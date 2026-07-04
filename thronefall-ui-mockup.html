@@ -430,7 +430,7 @@ button{font-family:inherit}
               <button class="mbtn" disabled title="Out of scope for this slice">Mutators</button>
               <button class="mbtn" id="settingsBtn">Settings</button>
             </div>
-            <div class="ver">Mockup v0.2 · Nordfels vertical slice</div>
+            <div class="ver">Mockup v0.3 · Nordfels vertical slice</div>
           </div>
         </div>
 
@@ -439,7 +439,7 @@ button{font-family:inherit}
           <div class="sg-head">
             <div class="sg-eyebrow">Art &amp; UI Bible</div>
             <h2>Nordfels Visual System</h2>
-            <p>A floating low-poly diorama seen from a high angle. No outlines — depth comes from three-tone face shading (top, front, side) on every block, plus soft shadow pools. The whole palette re-keys between day and night; gold is reserved for money, victory, and anything the player may press.</p>
+            <p>A low-poly island kingdom in an open sea, seen from a high angle. No outlines — depth comes from three-tone face shading (top, front, side) on every block, plus soft radial shadow pools. The whole palette re-keys between day and night, sea included; gold is reserved for money, victory, and anything the player may press.</p>
           </div>
 
           <div class="sg-sec">
@@ -560,7 +560,7 @@ button{font-family:inherit}
 
 <script>
 'use strict';
-/* Thronefall UI mockup v0.2 — isometric low-poly diorama. */
+/* Thronefall UI mockup v0.3 — organic island diorama in open sea. */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const SVGNS='http://www.w3.org/2000/svg';
 
@@ -593,7 +593,8 @@ $$('[data-icon]').forEach(el=>{el.innerHTML=icon(el.dataset.icon)});
 /* ---------------- materials: three-tone face shading, day/night ---------------- */
 const MATS={
   grass:['#96C877','#3F5B49'],  grassLt:['#A6D287','#48685A'],
-  path:['#E3CB93','#6F6A5C'],   water:['#6FB5D6','#2E4A6E'],  waterLt:['#8FCBE4','#3A5A85'],
+  path:['#E3CB93','#6F6A5C'],   sand:['#EBD9A9','#6B6350'],
+  water:['#61ACD0','#2A4568'],  waterLt:['#8FCBE4','#3A5A85'], waterDeep:['#4890BC','#1D3050'],
   stone:['#C6CBD5','#566179'],  stoneDk:['#AEB4C2','#495468'],
   wood:['#BC9468','#5C5040'],   cream:['#F4E8CB','#8F8672'],
   roof:['#D3705C','#7E4A41'],   roofB:['#7B93C9','#3D4C74'],
@@ -620,7 +621,7 @@ function shade(hex,f){
 }
 
 /* ---------------- isometric projection ---------------- */
-const SX=10.4, SY=5.3, OX=640, OY=140, ZH=8.5;
+const SX=11.6, SY=5.9, OX=640, OY=116, ZH=8.5;
 const px=(u,v)=>OX+(u-v)*SX;
 const py=(u,v,z=0)=>OY+(u+v)*SY-z*ZH;
 const F=n=>(Math.round(n*10)/10);
@@ -642,7 +643,7 @@ function gEll(u,v,r,fill,attrs=''){
   return `<ellipse class="sw" cx="${F(px(u,v))}" cy="${F(py(u,v))}" rx="${F(r*SX*1.414)}" ry="${F(r*SY*1.414)}" fill="${fill}" ${attrs}/>`;
 }
 function shadowEll(u,v,r){
-  return `<ellipse cx="${F(px(u,v))}" cy="${F(py(u,v))}" rx="${F(r*SX*1.35)}" ry="${F(r*SY*1.35)}" fill="#26202A" opacity=".13"/>`;
+  return `<ellipse cx="${F(px(u,v))}" cy="${F(py(u,v))}" rx="${F(r*SX*1.7)}" ry="${F(r*SY*1.7)}" fill="url(#shadowGrad)"/>`;
 }
 /* dark fixed tint for doors/slits (not palette-swapped) */
 const DARK='#3A3138';
@@ -650,7 +651,7 @@ const DARK='#3A3138';
 /* ---------------- scene groups ---------------- */
 const scene=$('#scene');
 function G(attrs={}){const g=document.createElementNS(SVGNS,'g');for(const k in attrs)g.setAttribute(k,attrs[k]);scene.appendChild(g);return g}
-const gSky=G(), gGround=G(), gRings=G(), gMarkers=G({id:'gMarkers'}), gFxU=G(), gWorld=G(), gTop=G();
+const gSky=G(), gGround=G(), gRings=G(), gMarkers=G({id:'gMarkers'}), gFxU=G(), gWorld=G(), gTop=G(), gPrev=G({id:'gPrev'});
 
 /* depth-sorted world objects */
 const depthArr=[];
@@ -673,49 +674,87 @@ function moveObj(h,d){
   h.d=d; insertObj(h);
 }
 
-/* ---------------- sky ---------------- */
+/* ---------------- open sea ---------------- */
 gSky.innerHTML=`
- <rect class="sw" x="0" y="0" width="1280" height="720" fill="var(--sky-t)"/>
- <ellipse class="sw" cx="640" cy="440" rx="720" ry="270" fill="var(--skyband-t)" opacity=".75"/>`;
-{ /* stars */
+ <rect class="sw" x="0" y="0" width="1280" height="720" fill="url(#seaGrad)"/>
+ <ellipse class="sunw" cx="1010" cy="130" rx="270" ry="95" fill="url(#glintGrad)"/>
+ <ellipse class="moonw" cx="1050" cy="120" rx="210" ry="75" fill="url(#moonGrad)"/>`;
+/* fireflies — visible only at night via .stars rule */
+{
   let s=''; let seed=9;
   const rnd=()=>{seed=(seed*16807)%2147483647; return seed/2147483647};
-  for(let i=0;i<52;i++){s+=`<circle cx="${(rnd()*1280).toFixed(0)}" cy="${(rnd()*240+8).toFixed(0)}" r="${(rnd()*1.2+.5).toFixed(1)}" fill="#DCE6FA"/>`}
+  for(let i=0;i<16;i++){
+    const u=6+rnd()*38, v=6+rnd()*38;
+    s+=`<circle cx="${F(px(u,v))}" cy="${F(py(u,v,1+rnd()*2))}" r="${(1.2+rnd()*1).toFixed(1)}" fill="#FFD97A" style="animation:flicker ${(1.6+rnd()*1.6).toFixed(1)}s ease-in-out ${(-rnd()*3).toFixed(1)}s infinite"/>`;
+  }
   gSky.insertAdjacentHTML('beforeend',`<g class="stars">${s}</g>`);
 }
-gSky.insertAdjacentHTML('beforeend',`
- <g class="sunw"><circle cx="1085" cy="105" r="36" fill="#F7D96B" stroke="#E9A81F" stroke-width="4"/></g>
- <g class="moonw"><circle cx="1085" cy="105" r="28" fill="#CBD7F0"/><circle cx="1076" cy="98" r="5.5" fill="#AAB9DC"/><circle cx="1094" cy="112" r="3.6" fill="#AAB9DC"/></g>`);
-function cloud(y,s,dur,delay){
-  gSky.insertAdjacentHTML('beforeend',`<g class="cloud" style="animation-duration:${dur}s;animation-delay:${delay}s"><g transform="translate(-180 ${y}) scale(${s})"><ellipse cx="0" cy="0" rx="52" ry="17" fill="#FDFDFB" opacity=".92"/><ellipse cx="34" cy="-8" rx="34" ry="13" fill="#FDFDFB" opacity=".92"/><ellipse cx="-30" cy="-5" rx="28" ry="11" fill="#FDFDFB" opacity=".92"/></g></g>`);
+/* drifting cloud shadows */
+function cloudShadow(y,s,dur,delay){
+  gSky.insertAdjacentHTML('beforeend',`<g class="cloud" style="animation-duration:${dur}s;animation-delay:${delay}s"><g transform="translate(-180 ${y}) scale(${s})"><ellipse cx="0" cy="0" rx="150" ry="52" fill="#1B2430" opacity=".07"/><ellipse cx="120" cy="-14" rx="90" ry="36" fill="#1B2430" opacity=".06"/></g></g>`);
 }
-cloud(64,1,88,-24); cloud(150,.7,112,-66); cloud(36,.5,72,-10); cloud(105,.85,98,-45);
+cloudShadow(250,1.2,96,-30); cloudShadow(430,1.5,120,-72); cloudShadow(330,.9,80,-12);
 
-/* ---------------- island ground ---------------- */
-{
-  const A=[px(0,0),py(0,0)], B=[px(50,0),py(50,0)], C=[px(50,50),py(50,50)], D=[px(0,50),py(0,50)];
-  const K=46;
-  gGround.innerHTML=
-    pg([D,C,[C[0],C[1]+K],[D[0],D[1]+K]],'var(--earth-l)')
-   +pg([B,C,[C[0],C[1]+K],[B[0],B[1]+K]],'var(--earth-r)')
-   +pg([A,B,C,D],'var(--grass-t)');
-  gGround.insertAdjacentHTML('beforeend',
-    gEll(14,20,3,'var(--grassLt-t)')+gEll(33,36,4,'var(--grassLt-t)')
-   +gEll(24,10,2.5,'var(--grassLt-t)')+gEll(40,20,3,'var(--grassLt-t)')
-   +gEll(10,37,2.6,'var(--grassLt-t)'));
-  /* pond */
-  gGround.insertAdjacentHTML('beforeend',
-    gEll(43,37,4.2,'var(--water-t)')+gEll(43.6,37.5,2.7,'var(--waterLt-t)','opacity=".75"')
-   +gEll(41.4,35.8,1,'var(--waterLt-t)','opacity=".55"'));
+/* ---------------- organic island ---------------- */
+function coastPath(grow){
+  const pts=[];
+  for(let i=0;i<72;i++){
+    const th=i/72*Math.PI*2, c=Math.cos(th), s=Math.sin(th);
+    const base=24/Math.pow(Math.max(Math.abs(c),Math.abs(s)),0.72);
+    const wob=Math.sin(th*3+1.7)*1.1+Math.sin(th*5+.4)*.7+Math.sin(th*8+2.9)*.45;
+    const r=base+wob+grow;
+    pts.push([25+r*c,25+r*s]);
+  }
+  return 'M'+pts.map(p=>F(px(p[0],p[1]))+' '+F(py(p[0],p[1])))+'Z';
 }
-/* lanes */
-const LANE_A_PTS=[[1,25.5],[7,25.2],[14,25],[19.5,25],[21.7,25]];
-const LANE_B_PTS=[[49,25.5],[42,25.2],[36,25],[29.6,25],[28.3,25]];
+gGround.innerHTML=
+  `<path d="${coastPath(1.1)}" transform="translate(0 16)" fill="#101B2C" opacity=".22"/>`
+ +`<path class="sw" d="${coastPath(3.4)}" fill="var(--waterLt-t)" opacity=".42"/>`
+ +`<path class="sw" d="${coastPath(1.1)}" fill="var(--sand-t)"/>`
+ +`<path class="sw" d="${coastPath(0)}" fill="var(--grass-t)"/>`;
+/* breaking-wave sparkles on the shallows */
+{
+  let w='';
+  for(const t of[.4,1.15,1.9,2.6,3.4,4.2,5.0,5.7]){
+    const c=Math.cos(t), s=Math.sin(t);
+    const r=24/Math.pow(Math.max(Math.abs(c),Math.abs(s)),0.72)+Math.sin(t*3+1.7)*1.1+2.4;
+    const X=F(px(25+r*c,25+r*s)), Y=F(py(25+r*c,25+r*s));
+    w+=`<g class="bob" style="animation-duration:${(2.4+t*.3).toFixed(1)}s;animation-delay:${(-t).toFixed(1)}s"><path class="sw" d="M${X-10} ${Y} q10 -5 20 0" stroke="var(--snow-t)" stroke-width="2" fill="none" opacity=".38" stroke-linecap="round"/></g>`;
+  }
+  gGround.insertAdjacentHTML('beforeend',w);
+}
+/* meadow patches */
+gGround.insertAdjacentHTML('beforeend',
+  gEll(14,20,3,'var(--grassLt-t)')+gEll(33,36,4,'var(--grassLt-t)')
+ +gEll(24,10,2.5,'var(--grassLt-t)')+gEll(40,20,3,'var(--grassLt-t)')
+ +gEll(10,37,2.6,'var(--grassLt-t)'));
+/* pond */
+gGround.insertAdjacentHTML('beforeend',
+  gEll(43,37,4.4,'var(--sand-t)','opacity=".8"')
+ +gEll(43,37,4,'var(--water-t)')+gEll(43.6,37.5,2.6,'var(--waterLt-t)','opacity=".75"')
+ +gEll(41.4,35.8,1,'var(--waterLt-t)','opacity=".55"'));
+/* lanes — soft sand edge under the packed path */
+const LANE_A_PTS=[[0,25.5],[7,25.2],[14,25],[19.5,25],[21.7,25]];
+const LANE_B_PTS=[[50,25.5],[42,25.2],[36,25],[29.6,25],[28.3,25]];
 function lanePath(pts){return 'M'+pts.map(p=>F(px(p[0],p[1]))+' '+F(py(p[0],p[1]))).join(' L ')}
 gGround.insertAdjacentHTML('beforeend',
-  `<path class="sw" d="${lanePath(LANE_A_PTS)}" fill="none" stroke="var(--path-t)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>`
- +`<path class="sw" d="${lanePath(LANE_B_PTS)}" fill="none" stroke="var(--path-t)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>`
- +gEll(25,27.4,2.2,'var(--path-t)'));
+  `<path class="sw" d="${lanePath(LANE_A_PTS)}" fill="none" stroke="var(--sand-t)" stroke-width="21" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>`
+ +`<path class="sw" d="${lanePath(LANE_B_PTS)}" fill="none" stroke="var(--sand-t)" stroke-width="21" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>`
+ +`<path class="sw" d="${lanePath(LANE_A_PTS)}" fill="none" stroke="var(--path-t)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>`
+ +`<path class="sw" d="${lanePath(LANE_B_PTS)}" fill="none" stroke="var(--path-t)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>`
+ +gEll(25,27.4,3,'var(--sand-t)','opacity=".55"')+gEll(25,27.4,2.5,'var(--path-t)'));
+/* flowers */
+{
+  let f='';
+  for(const [u,v] of [[12,18],[18,13.5],[30,10],[37,15],[40,28],[35,41],[24,40],[13,38],[8,30],[28,36.5],[20,19],[31,31.5]]){
+    f+=`<circle class="sw" cx="${F(px(u,v))}" cy="${F(py(u,v))}" r="1.7" fill="var(--snow-t)"/>`
+      +`<circle class="sw" cx="${F(px(u+.8,v-.4))}" cy="${F(py(u+.8,v-.4))}" r="1.4" fill="var(--flag-t)"/>`
+      +`<circle class="sw" cx="${F(px(u-.5,v+.7))}" cy="${F(py(u-.5,v+.7))}" r="1.3" fill="var(--snow-t)"/>`;
+  }
+  gGround.insertAdjacentHTML('beforeend',f);
+}
+/* soft vignette keyed to the island shape */
+gGround.insertAdjacentHTML('beforeend',`<path d="${coastPath(0)}" fill="url(#vignGrad)"/>`);
 
 /* ---------------- static props ---------------- */
 function mountain(u,v,s){
@@ -726,8 +765,8 @@ function mountain(u,v,s){
   h+=pyr(u+w*.55,v-.5,w*.6,w*.6,5*s,'stone');
   return addObj(u+v+w,'<g>'+h+'</g>');
 }
-mountain(1,5,1.15); mountain(1.5,15,.85); mountain(2,27,1.05); mountain(1,39,.8);
-mountain(9,1,.95); mountain(20,1,1.3); mountain(33,1,.85); mountain(42,1.5,1.05);
+mountain(4,7,1.0); mountain(3,14,.8); mountain(3,30.5,.9); mountain(5.5,38,.7);
+mountain(10.5,2.5,.9); mountain(20,1.5,1.25); mountain(31.5,2,.85); mountain(40,3.5,.95);
 
 function tree(u,v,s=1){
   let h=shadowEll(u,v,1.1*s);
@@ -736,10 +775,26 @@ function tree(u,v,s=1){
   h+=pyr(u-.85*s,v-.85*s,1.7*s,1.7*s,2*s,'pineDk',2.5*s);
   return addObj(u+v,'<g>'+h+'</g>');
 }
+function treeRound(u,v,s=1){
+  let h=shadowEll(u,v,1.2*s);
+  h+=box(u-.22*s,v-.22*s,.44*s,.44*s,1*s,'trunk');
+  h+=`<ellipse class="sw" cx="${F(px(u,v))}" cy="${F(py(u,v,2.2*s))}" rx="${F(1.5*s*SX)}" ry="${F(1.5*s*SX*.82)}" fill="var(--pineDk-t)"/>`;
+  h+=`<ellipse class="sw" cx="${F(px(u,v)-3*s)}" cy="${F(py(u,v,2.5*s))}" rx="${F(1.05*s*SX)}" ry="${F(1.05*s*SX*.8)}" fill="var(--pine-t)"/>`;
+  return addObj(u+v,'<g>'+h+'</g>');
+}
 tree(9,12,.9); tree(7,28.5,.8); tree(11,33,1); tree(9,44,.85); tree(16,7,1);
 tree(28,5,.8); tree(40,7,1); tree(45,13,.9); tree(44,19,.75);
 tree(14,42,1); tree(33,45,.9); tree(45,44,.8); tree(21,44,.7); tree(36,30,.7);
+treeRound(26,6.5,.9); treeRound(41.5,33,.85); treeRound(11,36.5,.8); treeRound(33,42.5,.75); treeRound(43,23,.7);
+function bush(u,v,s=1){
+  let h=shadowEll(u,v,.9*s);
+  h+=`<ellipse class="sw" cx="${F(px(u,v))}" cy="${F(py(u,v,.5*s))}" rx="${F(1.1*s*SX)}" ry="${F(1.1*s*SX*.62)}" fill="var(--pineDk-t)"/>`;
+  h+=`<ellipse class="sw" cx="${F(px(u,v)-2.5*s)}" cy="${F(py(u,v,.8*s))}" rx="${F(.7*s*SX)}" ry="${F(.7*s*SX*.6)}" fill="var(--pine-t)"/>`;
+  return addObj(u+v,'<g>'+h+'</g>');
+}
+bush(12,21.5,.9); bush(31,16.5,1); bush(39.5,23,.8); bush(20,35,.9); bush(28,43,.8); bush(9,31,.7);
 addObj(27,'<g>'+pyr(5.6,19,1.6,1.6,1.2,'stoneDk')+pyr(8.6,19.6,1.1,1.1,.8,'stone')+'</g>');
+addObj(76,'<g>'+pyr(37,38,1.4,1.4,1,'stoneDk')+'</g>');
 
 /* walls + gate towers, west (u≈15) and east (u≈35) */
 function wallRun(u,v,len){
@@ -748,9 +803,10 @@ function wallRun(u,v,len){
   return h;
 }
 function gateTower(u,v){
-  let h=shadowEll(u+.8,v+.8,1.3);
+  let h=shadowEll(u+.8,v+.8,1.4);
   h+=box(u,v,1.6,1.6,3.9,'stone');
-  h+=pyr(u-.25,v-.25,2.1,2.1,1.7,'roofB',3.9);
+  h+=box(u-.12,v-.12,1.84,1.84,.35,'stoneDk',3.9);
+  h+=pyr(u-.25,v-.25,2.1,2.1,1.8,'roofB',4.25);
   h+=`<circle class="torch" cx="${F(px(u+.8,v+1.7))}" cy="${F(py(u+.8,v+1.7,1.6))}" r="16" fill="url(#glowGrad)"/>`;
   return h;
 }
@@ -781,30 +837,45 @@ spawnFlag(2,25); spawnFlag(48,25);
 }
 
 /* ---------------- castle center ---------------- */
-{
-  let h=shadowEll(25,24.4,3.6);
-  h+=box(22.5,21.5,5,5,.9,'stoneDk');
-  h+=box(23,22,4,4,4.4,'stone',.9);
-  for(let i=0;i<4;i++){
-    h+=box(23.1+i*1.05,25.55,.55,.4,.6,'stoneDk',5.3);
-    h+=box(26.55,23.1+i*1.05,.4,.55,.6,'stoneDk',5.3);
-  }
-  h+=box(24,23,2,2,3.6,'stone',5.3);
-  h+=pyr(23.6,22.6,2.8,2.8,2.6,'roofB',8.9);
-  /* door on front face */
-  h+=`<polygon points="${F(px(24.35,26))},${F(py(24.35,26,1.9))} ${F(px(25.65,26))},${F(py(25.65,26,1.9))} ${F(px(25.65,26))},${F(py(25.65,26,0))} ${F(px(24.35,26))},${F(py(24.35,26,0))}" fill="${DARK}"/>`;
-  /* lit windows on the tower front */
-  h+=`<polygon class="windowlit" points="${F(px(24.45,25))},${F(py(24.45,25,8.2))} ${F(px(24.95,25))},${F(py(24.95,25,8.2))} ${F(px(24.95,25))},${F(py(24.95,25,7.2))} ${F(px(24.45,25))},${F(py(24.45,25,7.2))}" fill="#FFD97A"/>`;
-  h+=`<polygon class="windowlit" points="${F(px(25.15,25))},${F(py(25.15,25,8.2))} ${F(px(25.65,25))},${F(py(25.65,25,8.2))} ${F(px(25.65,25))},${F(py(25.65,25,7.2))} ${F(px(25.15,25))},${F(py(25.15,25,7.2))}" fill="#FFD97A"/>`;
-  /* torches by the door */
-  h+=`<circle class="torch" cx="${F(px(23.8,26.3))}" cy="${F(py(23.8,26.3,1.6))}" r="20" fill="url(#glowGrad)"/>`;
-  h+=`<circle class="torch" cx="${F(px(26.2,26.3))}" cy="${F(py(26.2,26.3,1.6))}" r="20" fill="url(#glowGrad)"/>`;
-  /* banner */
-  const fx=F(px(25,24)), fy=F(py(25,24,11.5));
-  h+=`<path d="M${fx} ${fy} v-22" stroke="${DARK}" stroke-width="2.5"/><g class="flagw"><path d="M${fx} ${fy-22} L${fx+20} ${fy-17} L${fx} ${fy-12} Z" fill="var(--flag-t)" class="sw"/></g>`;
-  const castleObj=addObj(49,'<g id="castleG">'+h+'</g>');
+function turret(u,v){
+  return box(u,v,1.1,1.1,5.2,'stone')
+       + box(u-.12,v-.12,1.34,1.34,.35,'stoneDk',5.2)
+       + pyr(u-.24,v-.24,1.58,1.58,1.7,'roofB',5.55);
 }
-gTop.innerHTML=`<defs><radialGradient id="glowGrad"><stop offset="0%" stop-color="#FFC85C" stop-opacity=".85"/><stop offset="100%" stop-color="#FFC85C" stop-opacity="0"/></radialGradient></defs>`;
+{
+  let h=shadowEll(25,24.4,4.2);
+  h+=box(22.2,21.2,5.6,5.6,.9,'stoneDk');
+  h+=turret(22.4,21.4);
+  h+=box(23,22,4,4,4.6,'stone',.9);
+  for(let i=0;i<4;i++){
+    h+=box(23.1+i*1.05,25.55,.55,.4,.6,'stoneDk',5.5);
+    h+=box(26.55,23.1+i*1.05,.4,.55,.6,'stoneDk',5.5);
+  }
+  h+=box(24,23,2,2,3.8,'stone',5.5);
+  h+=pyr(23.55,22.55,2.9,2.9,2.9,'roofB',9.3);
+  h+=turret(26.5,21.4)+turret(22.4,25.5);
+  h+=turret(26.5,25.5);
+  /* door on front face */
+  h+=`<polygon points="${F(px(24.35,26))},${F(py(24.35,26,2.6))} ${F(px(25.65,26))},${F(py(25.65,26,2.6))} ${F(px(25.65,26))},${F(py(25.65,26,.9))} ${F(px(24.35,26))},${F(py(24.35,26,.9))}" fill="${DARK}"/>`;
+  /* lit windows on the tower front */
+  h+=`<polygon class="windowlit" points="${F(px(24.45,25))},${F(py(24.45,25,8.4))} ${F(px(24.95,25))},${F(py(24.95,25,8.4))} ${F(px(24.95,25))},${F(py(24.95,25,7.4))} ${F(px(24.45,25))},${F(py(24.45,25,7.4))}" fill="#FFD97A"/>`;
+  h+=`<polygon class="windowlit" points="${F(px(25.15,25))},${F(py(25.15,25,8.4))} ${F(px(25.65,25))},${F(py(25.65,25,8.4))} ${F(px(25.65,25))},${F(py(25.65,25,7.4))} ${F(px(25.15,25))},${F(py(25.15,25,7.4))}" fill="#FFD97A"/>`;
+  /* torches by the door */
+  h+=`<circle class="torch" cx="${F(px(23.8,26.5))}" cy="${F(py(23.8,26.5,1.8))}" r="20" fill="url(#glowGrad)"/>`;
+  h+=`<circle class="torch" cx="${F(px(26.2,26.5))}" cy="${F(py(26.2,26.5,1.8))}" r="20" fill="url(#glowGrad)"/>`;
+  /* banner */
+  const fx=F(px(25,24)), fy=F(py(25,24,12.2));
+  h+=`<path d="M${fx} ${fy} v-22" stroke="${DARK}" stroke-width="2.5"/><g class="flagw"><path d="M${fx} ${fy-22} L${fx+20} ${fy-17} L${fx} ${fy-12} Z" fill="var(--flag-t)" class="sw"/></g>`;
+  addObj(49,'<g id="castleG">'+h+'</g>');
+}
+gTop.innerHTML=`<defs>
+ <radialGradient id="glowGrad"><stop offset="0%" stop-color="#FFC85C" stop-opacity=".85"/><stop offset="100%" stop-color="#FFC85C" stop-opacity="0"/></radialGradient>
+ <radialGradient id="shadowGrad"><stop offset="0%" stop-color="#26202A" stop-opacity=".28"/><stop offset="65%" stop-color="#26202A" stop-opacity=".14"/><stop offset="100%" stop-color="#26202A" stop-opacity="0"/></radialGradient>
+ <radialGradient id="glintGrad"><stop offset="0%" stop-color="#FFF3C4" stop-opacity=".5"/><stop offset="100%" stop-color="#FFF3C4" stop-opacity="0"/></radialGradient>
+ <radialGradient id="moonGrad"><stop offset="0%" stop-color="#C9D8F5" stop-opacity=".3"/><stop offset="100%" stop-color="#C9D8F5" stop-opacity="0"/></radialGradient>
+ <radialGradient id="vignGrad" gradientUnits="userSpaceOnUse" cx="640" cy="411" r="640"><stop offset="0%" stop-color="#141A22" stop-opacity="0"/><stop offset="62%" stop-color="#141A22" stop-opacity="0"/><stop offset="100%" stop-color="#141A22" stop-opacity=".16"/></radialGradient>
+ <linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--waterLt-t)"/><stop offset=".5" style="stop-color:var(--water-t)"/><stop offset="1" style="stop-color:var(--waterDeep-t)"/></linearGradient>
+</defs>`;
 
 /* ---------------- building art ---------------- */
 function houseArt(u,v,upg){
@@ -825,7 +896,7 @@ function millArt(u,v){
   h+=box(u-1.2,v-1.2,2.4,2.4,3,'cream');
   h+=pyr(u-1.5,v-1.5,3,3,1.9,'roof',3);
   const sx=F(px(u+1.22,v)), sy=F(py(u+1.22,v,2.5));
-  h+=`<g transform="translate(${sx} ${sy})"><g class="millblades"><g stroke="var(--trunk-t)" class="sw" stroke-width="3.4" stroke-linecap="round" fill="none"><path d="M0 -17 V17 M-17 0 H17"/></g><g fill="var(--cream-l)" class="sw"><rect x="-2.5" y="-17" width="5" height="9" rx="1.5"/><rect x="-2.5" y="8" width="5" height="9" rx="1.5"/><rect x="-17" y="-2.5" width="9" height="5" rx="1.5"/><rect x="8" y="-2.5" width="9" height="5" rx="1.5"/></g></g><circle r="2.8" fill="${DARK}"/></g>`;
+  h+=`<g transform="translate(${sx} ${sy})"><g class="millblades"><g stroke="var(--trunk-t)" class="sw" stroke-width="3.4" stroke-linecap="round" fill="none"><path d="M0 -20 V20 M-20 0 H20"/></g><g fill="var(--cream-l)" class="sw"><rect x="-3" y="-20" width="6" height="11" rx="1.8"/><rect x="-3" y="9" width="6" height="11" rx="1.8"/><rect x="-20" y="-3" width="11" height="6" rx="1.8"/><rect x="9" y="-3" width="11" height="6" rx="1.8"/></g></g><circle r="3" fill="${DARK}"/></g>`;
   return h;
 }
 function fieldArt(u,v){
@@ -1047,6 +1118,25 @@ function refreshDayHUD(){
   $('#goldNum').textContent=S.gold;
   $('#incomeNum').textContent='+'+dawnRows().total+' at dawn';
   $('#dayNum').innerHTML=`Day ${S.day} <span style="opacity:.55">/ 3</span>`;
+  renderWavePreview();
+}
+/* tonight's assault, previewed at its spawn points all day long */
+function renderWavePreview(){
+  const cnt={A:0,B:0};
+  nightPlan(S.day).forEach(e=>cnt[e.lane]++);
+  gPrev.innerHTML='';
+  const spots={A:[2,25],B:[48,25]};
+  for(const L in spots){
+    if(!cnt[L])continue;
+    const [u,v]=spots[L], X=F(px(u,v)), Y=F(py(u,v))-62;
+    gPrev.insertAdjacentHTML('beforeend',
+     `<g class="bob" style="animation-duration:3.4s">
+       <path d="M${X} ${Y+36} L${X} ${Y+16}" stroke="rgba(26,22,32,.5)" stroke-width="2"/>
+       <rect x="${X-35}" y="${Y-15}" width="70" height="31" rx="9" fill="rgba(26,22,32,.82)"/>
+       <g transform="translate(${X-27} ${Y-9}) scale(.8)">${ICONS.skull}</g>
+       <text x="${X+9}" y="${Y+7.5}" text-anchor="middle" font-size="15" font-weight="800" fill="#F6F2E8">×${cnt[L]}</text>
+      </g>`);
+  }
 }
 function makeDots(sel){const d=$(sel+' .dots');d.innerHTML='';for(let i=0;i<10;i++){const s=document.createElement('span');s.className='dot';d.appendChild(s)}}
 makeDots('#clockDay');makeDots('#clockNight');
@@ -1161,9 +1251,23 @@ function arrow(fromU,fromV,fromZ,toU,toV,onHit,color){
   gTop.appendChild(el);
   fxArr.push({kind:'arrow',el,fromU,fromV,fromZ,toU,toV,t:0,dur:Math.max(.12,dist/26),hit:onHit});
 }
+function coinFly(x,y,delay){
+  const el=document.createElementNS(SVGNS,'g');
+  el.innerHTML=`<circle r="5" fill="#F0B429" stroke="#8A6207" stroke-width="1.5"/><circle r="2.4" fill="none" stroke="#B07E14" stroke-width="1.2"/>`;
+  el.setAttribute('opacity','0');
+  gTop.appendChild(el);
+  fxArr.push({kind:'coin',el,x,y,t:-delay,dur:.8});
+}
 function updateFx(dt){
   for(const f of fxArr){
     f.t+=dt;const k=Math.min(1,f.t/f.dur);
+    if(f.kind==='coin'){
+      if(f.t<0)continue;
+      const X=f.x+(85-f.x)*k, Y=f.y+(42-f.y)*k-110*k*(1-k);
+      f.el.setAttribute('opacity',k>.92?String(F((1-k)/.08)):'1');
+      f.el.setAttribute('transform',`translate(${F(X)} ${F(Y)})`);
+      continue;
+    }
     if(f.kind==='dust'){f.el.setAttribute('rx',3+8*k);f.el.setAttribute('ry',1.6+3*k);f.el.setAttribute('opacity',.55*(1-k))}
     if(f.kind==='dmg'){f.el.setAttribute('y',f.y-20*k);f.el.setAttribute('opacity',1-k)}
     if(f.kind==='poof'){f.el.setAttribute('rx',4+(f.big?26:15)*k);f.el.setAttribute('ry',(4+(f.big?26:15)*k)*.55);f.el.setAttribute('opacity',.85*(1-k))}
@@ -1470,6 +1574,16 @@ $('#vicNext').addEventListener('click',()=>{
   $('#ovVictory').style.display='none';
   S.gold+=N._earned||0;applyDawn();S.day++;S.castleHP=S.castleMax;
   N=null;setPhase('day');refreshDayHUD();refreshMarkers();
+  /* dawn taxes: coins fly home from every earner */
+  let ci=0;
+  coinFly(px(25,24),py(25,24,6),ci++*.07);
+  for(const sl of SLOTS){
+    const b=S.builds[sl.id];if(!b)continue;
+    if(['house','mill','field','mine','harbour'].includes(b.type)){
+      coinFly(px(sl.u,sl.v),py(sl.u,sl.v,1.5),ci++*.07);
+      if(b.type==='house'&&b.upg)coinFly(px(sl.u,sl.v),py(sl.u,sl.v,3),ci++*.07);
+    }
+  }
   flashHint('Dawn pays taxes — reinvest before night '+S.day);
 });
 $('#defRetry').addEventListener('click',()=>{$('#ovDefeat').style.display='none';N=null;startNight()});
@@ -1494,6 +1608,7 @@ function setView(v){
     t.classList.toggle('active',(tv==='menu'&&v==='menu')||(tv==='style'&&v==='style')||
       (v==='game'&&((tv==='day'&&S.phase==='day')||(tv==='night'&&S.phase==='night'))));
   });
+  gPrev.style.display=(v==='game'&&S.phase==='day')?'':'none';
   closeBmenu(); renderAnnotations();
 }
 function setPhase(p){
@@ -1570,13 +1685,14 @@ function ANNOS(){
   menu:[
     {x:640,y:238,side:'r',t:'Wordmark',d:'Cinzel 700, +0.18em tracking, gold over the live diorama — no static key art.'},
     {x:640,y:420,side:'r',t:'Menu stack',d:'300px column, primary action gilded; absent options simply omitted.'},
-    {x:1085,y:105,side:'l',t:'Ambient scene',d:'The menu reuses the day scene — clouds drift, the mill turns. First thing the player sees is the thing they will defend.'},
+    {x:1000,y:190,side:'l',t:'Ambient scene',d:'The menu reuses the live diorama — waves lap, cloud shadows drift. First thing the player sees is the thing they will defend.'},
     {x:640,y:585,side:'r',t:'Version tag',d:'Build + slice name, 11px caps, 60% opacity.'},
   ],
   day:[
     {x:78,y:34,side:'r',t:'Gold counter',d:'The only currency. Tabular numerals; the "+N at dawn" preview updates with every purchase.'},
     {x:318,y:96,side:'r',t:'Day chip',d:'Day n of 3 on this map. Map name lives here, not in a separate header.'},
     {x:px(sl.u,sl.v),y:py(sl.u,sl.v),side:'r',t:'Build slot',d:'Each slot is a predetermined blueprint — the coins under the ring are its price. Ride close and press E, or click.'},
+    {x:px(2,25),y:py(2,25)-62,side:'r',t:'Wave preview',d:'Tonight’s assault is posted at its spawn point all day — size and direction are never a surprise.'},
     {x:650,y:318,side:'r',t:'Castle Center',d:'Fires arrows at night and anchors the kingdom. If it falls, the run ends.'},
     {x:px(K.u,K.v),y:py(K.u,K.v)+18,side:'l',t:'The King',d:'Ride with WASD or arrows. At night you fight in person.'},
     {x:1150,y:626,side:'l',t:'Begin Night',d:'No timer — the player ends the day. Space works too.'},
