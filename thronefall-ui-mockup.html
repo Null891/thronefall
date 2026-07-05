@@ -80,8 +80,8 @@ button{font-family:inherit}
 .millblades{animation:spin 8s linear infinite; transform-box:fill-box; transform-origin:center}
 @keyframes flagwave{0%,100%{transform:skewY(0deg)} 50%{transform:skewY(-6deg)}}
 .flagw{animation:flagwave 1.8s ease-in-out infinite; transform-box:fill-box; transform-origin:left center}
-@keyframes poppin{0%{transform:scale(.2)} 70%{transform:scale(1.1)} 100%{transform:scale(1)}}
-.pop{animation:poppin .35s ease-out; transform-origin:center bottom; transform-box:fill-box}
+@keyframes poppin{0%{transform:scale(.2)} 100%{transform:scale(1)}}
+.pop{animation:poppin .45s cubic-bezier(0.175,0.885,0.32,1.275); transform-origin:center bottom; transform-box:fill-box}
 @keyframes squish{0%,100%{transform:scaleY(1)} 50%{transform:scaleY(.82) translateY(2px)}}
 .squish{animation:squish .55s ease-in-out infinite; transform-box:fill-box; transform-origin:center bottom}
 @keyframes wobble{0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(4deg)}}
@@ -106,7 +106,7 @@ button{font-family:inherit}
 .mark .ghost{opacity:.85}
 .mark:hover .ring{stroke:#F6C95C; animation:none; opacity:1}
 .eprompt{ position:absolute; z-index:26; transform:translate(-50%,-100%);
-  background:rgba(24,20,26,.88); color:#F6F2E8; border:1.5px solid rgba(240,178,41,.7);
+  background:#1A1622; color:#F6F2E8; border:2px solid rgba(240,178,41,.8);
   border-radius:9px; padding:5px 10px; font-size:12px; font-weight:800; white-space:nowrap;
   pointer-events:none; display:none; }
 .eprompt .k{display:inline-grid; place-items:center; min-width:16px; height:16px; padding:0 3px;
@@ -115,9 +115,9 @@ button{font-family:inherit}
 /* ============ HUD shared ============ */
 .hud{position:absolute; inset:0; pointer-events:none; font-family:'Nunito',sans-serif}
 .hud-chip{ display:inline-flex; align-items:center; gap:9px;
-  background:rgba(24,20,26,.78); color:#F6F2E8;
-  border:1.5px solid rgba(246,242,232,.16); border-radius:12px;
-  padding:8px 14px; backdrop-filter:blur(3px); }
+  background:#1A1622; color:#F6F2E8;
+  border:2px solid #3A3049; border-radius:12px;
+  padding:8px 14px; }
 .hud-chip .num{font-weight:800; font-size:20px; font-variant-numeric:tabular-nums; letter-spacing:.01em}
 .hud-chip .lbl{font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.14em; opacity:.75}
 .hud-chip .sub{font-size:11.5px; font-weight:700; color:#F0B429}
@@ -127,19 +127,20 @@ button{font-family:inherit}
 #hudDay .kingchip{position:absolute; bottom:16px; left:16px}
 .cta{ appearance:none; cursor:pointer;
   font-family:'Cinzel',serif; font-weight:700; font-size:19px; letter-spacing:.1em;
-  color:#2B2114; background:linear-gradient(180deg,#F6C95C,#E9A81F);
-  border:2px solid #33272A; border-radius:14px; padding:12px 26px;
-  box-shadow:0 4px 0 #8A6207, 0 8px 18px rgba(20,16,10,.35); }
-.cta:hover{filter:brightness(1.06)}
-.cta:active{transform:translateY(3px); box-shadow:0 1px 0 #8A6207}
+  color:#2B2114; background:#F0B429;
+  border:2px solid #33272A; border-radius:12px; padding:12px 26px;
+  box-shadow:0 4px 0 #8A6207;
+  transition:background .08s, transform .08s, box-shadow .08s; }
+.cta:hover{background:#F6C95C; transform:translateY(-2px); box-shadow:0 6px 0 #8A6207}
+.cta:active{transform:translateY(2px); box-shadow:0 1px 0 #8A6207}
 .cta .kbd{font-family:'Nunito'; font-size:10.5px; font-weight:800; letter-spacing:.12em; opacity:.65; display:block; text-align:center}
 #hudDay .bottomright{position:absolute; right:16px; bottom:16px; display:flex; align-items:flex-end; gap:14px}
 .hint{ position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
   font-size:12px; font-weight:700; letter-spacing:.03em; color:#F6F2E8;
-  background:rgba(24,20,26,.6); padding:6px 14px; border-radius:999px; }
+  background:#1A1622; border:2px solid #3A3049; padding:6px 14px; border-radius:999px; }
 
 .clock{display:flex; flex-direction:column; align-items:center; gap:6px}
-.clock .dots{display:flex; gap:5px; background:rgba(24,20,26,.78); padding:8px 12px; border-radius:999px; border:1.5px solid rgba(246,242,232,.16)}
+.clock .dots{display:flex; gap:5px; background:#1A1622; padding:8px 12px; border-radius:999px; border:2px solid #3A3049}
 .clock .dot{width:9px; height:9px; border-radius:50%; background:rgba(246,242,232,.22); transition:background .3s}
 .clock .dot.f{background:#F0B429}
 .clock .lbl{font-size:10px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:rgba(246,242,232,.85); text-shadow:0 1px 3px rgba(0,0,0,.5)}
@@ -148,7 +149,7 @@ button{font-family:inherit}
 #hudNight .banner .t{ font-family:'Cinzel',serif; font-weight:700; font-size:21px; letter-spacing:.14em; color:#F6F2E8;
   text-shadow:0 2px 10px rgba(0,0,0,.6); }
 #hudNight .banner .r{ display:inline-flex; align-items:center; gap:8px; margin-top:5px;
-  background:rgba(24,20,26,.78); border:1.5px solid rgba(246,242,232,.16);
+  background:#1A1622; border:2px solid #3A3049;
   padding:4px 14px; border-radius:999px; color:#F6F2E8; font-weight:800; font-size:13px;
   font-variant-numeric:tabular-nums; }
 #hudNight .kingpanel{position:absolute; left:16px; bottom:16px; display:flex; align-items:flex-end; gap:10px}
@@ -156,9 +157,9 @@ button{font-family:inherit}
   border:2px solid rgba(246,242,232,.25); display:grid; place-items:center; overflow:hidden; }
 .kstats{display:flex; flex-direction:column; gap:6px}
 .kstats .name{font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:rgba(246,242,232,.9); text-shadow:0 1px 3px rgba(0,0,0,.6)}
-.bar{width:210px; height:16px; border-radius:8px; background:rgba(24,20,26,.8); border:1.5px solid rgba(246,242,232,.2); overflow:hidden}
-.bar .fill{height:100%; border-radius:6px; background:linear-gradient(180deg,#7ED17E,#43A55A); transition:width .3s ease}
-.bar.hp .fill{background:linear-gradient(180deg,#F08080,#C94F55)}
+.bar{width:210px; height:16px; border-radius:8px; background:#1A1622; border:2px solid #3A3049; overflow:hidden}
+.bar .fill{height:100%; border-radius:5px; background:#54B368; transition:width .3s ease}
+.bar.hp .fill{background:#E64A53}
 .abilities{display:flex; gap:8px}
 .ab{ position:relative; width:46px; height:46px; border-radius:12px; cursor:pointer;
   background:rgba(24,20,26,.82); border:1.5px solid rgba(246,242,232,.25);
@@ -207,8 +208,8 @@ button{font-family:inherit}
 
 /* ============ overlays ============ */
 .overlay{ position:absolute; inset:0; z-index:40; display:grid; place-items:center;
-  background:rgba(12,10,18,.62); backdrop-filter:blur(2px); }
-.panel{ width:min(460px, 88%); background:#1E1924; border:2px solid rgba(240,178,41,.5);
+  background:rgba(12,10,18,.72); }
+.panel{ width:min(460px, 88%); background:#1A1622; border:2px solid #3A3049;
   border-radius:18px; padding:28px 30px; color:#F6F2E8; text-align:center;
   box-shadow:0 24px 60px rgba(5,5,10,.6); }
 .panel h2{ font-family:'Cinzel',serif; font-weight:700; font-size:30px; letter-spacing:.12em;
@@ -430,7 +431,7 @@ button{font-family:inherit}
               <button class="mbtn" disabled title="Out of scope for this slice">Mutators</button>
               <button class="mbtn" id="settingsBtn">Settings</button>
             </div>
-            <div class="ver">Mockup v0.3 · Nordfels vertical slice</div>
+            <div class="ver">Mockup v0.4 · Nordfels vertical slice</div>
           </div>
         </div>
 
@@ -447,7 +448,7 @@ button{font-family:inherit}
             <div class="swrow"><div class="rl">Day</div><div id="swDay" style="display:flex;flex-wrap:wrap;gap:12px"></div></div>
             <div class="swrow"><div class="rl">Night</div><div id="swNight" style="display:flex;flex-wrap:wrap;gap:12px"></div></div>
             <div class="swrow"><div class="rl">Constant</div><div id="swConst" style="display:flex;flex-wrap:wrap;gap:12px"></div></div>
-            <p class="sg-note">Every material ships as three machine-derived tones: top ×1.0, front ×0.87, side ×0.72 — so day/night is a single token swap, never a repaint. Enemy bone-white, slime green and danger red sit outside the kingdom palette so threats pop at a glance.</p>
+            <p class="sg-note">Every material ships as three tones with a deliberate hue shift — lit tops lean warm, shadowed faces cool toward teal and violet instead of merely darkening. Day/night is a single token swap, never a repaint. Threat colors are locked and unshaded (red #E64A53, toxic green #85D671) so enemies stay parseable in any light.</p>
           </div>
 
           <div class="sg-sec">
@@ -580,7 +581,7 @@ const ICONS={
   sword:`<path d="M5 19L15.5 6.5 19 4l-1 4.5L7.5 20z" fill="#D8DEE8" stroke="#33272A" stroke-width="1.7" stroke-linejoin="round"/><path d="M5.5 15.5l3.5 3.5" stroke="#8A6A48" stroke-width="2.6" stroke-linecap="round"/><circle cx="4.8" cy="19.6" r="1.6" fill="#F0B429" stroke="#33272A" stroke-width="1.4"/>`,
   spear:`<path d="M4.5 19.5L15.5 8.5" stroke="#8A6A48" stroke-width="2.6" stroke-linecap="round"/><path d="M13.5 6.5L20 4l-2.5 6.5z" fill="#D8DEE8" stroke="#33272A" stroke-width="1.6" stroke-linejoin="round"/>`,
   bow:`<path d="M6 4c6 2 6 14 0 16" fill="none" stroke="#8A6A48" stroke-width="2.2" stroke-linecap="round"/><path d="M6 4v16" stroke="#D8DEE8" stroke-width="1.4"/><path d="M8.5 12H19" stroke="#33272A" stroke-width="1.8" stroke-linecap="round"/><path d="M19 12l-3.5-2v4z" fill="#33272A"/>`,
-  heart:`<path d="M12 20S4 14.5 4 9.2C4 6.4 6.2 4.5 8.6 4.5c1.5 0 2.7.8 3.4 2 .7-1.2 1.9-2 3.4-2 2.4 0 4.6 1.9 4.6 4.7C20 14.5 12 20 12 20z" fill="#C94F55" stroke="#33272A" stroke-width="1.8" stroke-linejoin="round"/>`,
+  heart:`<path d="M12 20S4 14.5 4 9.2C4 6.4 6.2 4.5 8.6 4.5c1.5 0 2.7.8 3.4 2 .7-1.2 1.9-2 3.4-2 2.4 0 4.6 1.9 4.6 4.7C20 14.5 12 20 12 20z" fill="#E64A53" stroke="#33272A" stroke-width="1.8" stroke-linejoin="round"/>`,
   skull:`<path d="M12 3.5c4.4 0 7.5 3 7.5 7 0 2.4-1.2 4.2-3 5.3V19a1.5 1.5 0 0 1-1.5 1.5h-6A1.5 1.5 0 0 1 7.5 19v-3.2c-1.8-1.1-3-2.9-3-5.3 0-4 3.1-7 7.5-7z" fill="#EDE7D6" stroke="#33272A" stroke-width="1.8"/><circle cx="9.2" cy="11" r="1.8" fill="#33272A"/><circle cx="14.8" cy="11" r="1.8" fill="#33272A"/><path d="M10.5 16h3" stroke="#33272A" stroke-width="1.6" stroke-linecap="round"/>`,
   hammer:`<path d="M4 7.5L8.5 3l4 4-1.2 1.2L20 16.8 16.8 20 8.2 11.2 7 12.5z" fill="#B9C0CC" stroke="#33272A" stroke-width="1.7" stroke-linejoin="round"/>`,
   shield:`<path d="M12 3l7 2.5v5c0 4.8-3 7.8-7 10.5-4-2.7-7-5.7-7-10.5v-5z" fill="#5FA8C9" stroke="#33272A" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 3l7 2.5v5c0 .2 0 .3-.01.5H12z" fill="#F0B429" stroke="#33272A" stroke-width="1.8" stroke-linejoin="round"/>`,
@@ -592,28 +593,61 @@ $$('[data-icon]').forEach(el=>{el.innerHTML=icon(el.dataset.icon)});
 
 /* ---------------- materials: three-tone face shading, day/night ---------------- */
 const MATS={
-  grass:['#96C877','#3F5B49'],  grassLt:['#A6D287','#48685A'],
-  path:['#E3CB93','#6F6A5C'],   sand:['#EBD9A9','#6B6350'],
-  water:['#61ACD0','#2A4568'],  waterLt:['#8FCBE4','#3A5A85'], waterDeep:['#4890BC','#1D3050'],
-  stone:['#C6CBD5','#566179'],  stoneDk:['#AEB4C2','#495468'],
-  wood:['#BC9468','#5C5040'],   cream:['#F4E8CB','#8F8672'],
-  roof:['#D3705C','#7E4A41'],   roofB:['#7B93C9','#3D4C74'],
+  grass:['#A8D08D','#455A64'],  grassLt:['#B8DCA0','#50666F'],
+  path:['#F0D59D','#565C66'],   sand:['#EFDCA9','#4E5560'],
+  water:['#7BC5E3','#3A5A85'],  waterLt:['#9AD4EA','#4A6B95'], waterDeep:['#5BA7CC','#1A2A48'],
+  stone:['#DDE2EB','#566179'],  stoneDk:['#C2C9D6','#495468'],
+  wood:['#D4A373','#544B41'],   cream:['#F4E8CB','#84828E'],
+  roof:['#D3705C','#6E4348'],   roofB:['#7B93C9','#3D4C74'],
   pine:['#5FA263','#2F4B45'],   pineDk:['#4C8A54','#28403B'],
-  trunk:['#8A6A48','#4E4238'],  earth:['#A3795A','#4F4238'],
-  snow:['#F4F8FA','#B9C6E2'],   wheat:['#E2C86B','#77683F'],
+  trunk:['#8A6A48','#4A4342'],  earth:['#A3795A','#3E3A40'],
+  snow:['#F4F8FA','#B9C6E2'],   wheat:['#E8CD74','#6B6754'],
   flag:['#F0B429','#C99A3A'],   sky:['#B9E0E6','#191F3D'],   skyband:['#CFEAE3','#232B52'],
 };
-function shade(hex,f){
-  const n=parseInt(hex.slice(1),16);
-  const r=Math.min(255,Math.round(((n>>16)&255)*f)), g=Math.min(255,Math.round(((n>>8)&255)*f)), b=Math.min(255,Math.round((n&255)*f));
-  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+/* hand-tuned face triads [top, left, right] for the load-bearing materials */
+const FACES={
+  grass:{d:['#A8D08D','#85B56A','#5A8B58'],n:['#455A64','#2E3C43','#1A2327']},
+  path:{d:['#F0D59D','#D1B47A','#968058']},
+  water:{d:['#7BC5E3','#4A99C7','#2A6799'],n:['#3A5A85','#243B5E','#132036']},
+  stone:{d:['#DDE2EB','#A2AAB8','#6F788A']},
+  wood:{d:['#D4A373','#A67C52','#6B4D36']},
+};
+/* shadows shift hue toward the cool sky, not just down in luminance */
+function hexHsl(hex){
+  const n=parseInt(hex.slice(1),16), r=((n>>16)&255)/255, g=((n>>8)&255)/255, b=(n&255)/255;
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, d=mx-mn;
+  if(!d)return[0,0,l];
+  const s=l>.5?d/(2-mx-mn):d/(mx+mn);
+  let h=mx===r?((g-b)/d+(g<b?6:0)):mx===g?((b-r)/d+2):((r-g)/d+4);
+  return[h*60,s,l];
+}
+function hslHex(h,s,l){
+  h=((h%360)+360)%360;
+  const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2;
+  let r,g,b;
+  if(h<60)[r,g,b]=[c,x,0];else if(h<120)[r,g,b]=[x,c,0];else if(h<180)[r,g,b]=[0,c,x];
+  else if(h<240)[r,g,b]=[0,x,c];else if(h<300)[r,g,b]=[x,0,c];else[r,g,b]=[c,0,x];
+  const q=v=>Math.round((v+m)*255);
+  return '#'+((1<<24)+(q(r)<<16)+(q(g)<<8)+q(b)).toString(16).slice(1);
+}
+function faceTone(hex,face){
+  let[h,s,l]=hexHsl(hex);
+  /* shortest signed arc toward the sky's blue (240°) */
+  let d=((240-h+540)%360)-180;
+  const k=face==='l'?.06:.14, cap=face==='l'?7:15;
+  h+=Math.max(-cap,Math.min(cap,d*k));
+  s=Math.min(1,s*(face==='l'?1.04:1.12));
+  l*=face==='l'?.84:.63;
+  return hslHex(h,s,l);
 }
 {
   let day='', night='';
   for(const m in MATS){
-    const [d,n]=MATS[m];
-    day+=`--${m}-t:${d};--${m}-l:${shade(d,.87)};--${m}-r:${shade(d,.72)};`;
-    night+=`--${m}-t:${n};--${m}-l:${shade(n,.87)};--${m}-r:${shade(n,.72)};`;
+    const [d,n]=MATS[m], o=FACES[m]||{};
+    const dd=o.d||[d,faceTone(d,'l'),faceTone(d,'r')];
+    const nn=o.n||[n,faceTone(n,'l'),faceTone(n,'r')];
+    day+=`--${m}-t:${dd[0]};--${m}-l:${dd[1]};--${m}-r:${dd[2]};`;
+    night+=`--${m}-t:${nn[0]};--${m}-l:${nn[1]};--${m}-r:${nn[2]};`;
   }
   const st=document.createElement('style');
   st.textContent=`.stage-inner{${day}} .stage-inner.night{${night}}`;
@@ -825,7 +859,7 @@ function spawnFlag(u,v){
   let h=`<ellipse cx="${sx}" cy="${sy}" rx="10" ry="5" fill="#26202A" opacity=".18"/>`;
   h+=box(u-.1,v-.1,.25,.25,3.2,'trunk');
   const tx=F(px(u,v)), ty=F(py(u,v,3.2));
-  h+=`<g class="flagw"><path d="M${tx} ${ty} L${tx+22} ${ty+5} L${tx} ${ty+10} Z" fill="#C94F55"/></g>`;
+  h+=`<g class="flagw"><path d="M${tx} ${ty} L${tx+22} ${ty+5} L${tx} ${ty+10} Z" fill="#E64A53"/></g>`;
   return addObj(u+v,'<g>'+h+'</g>');
 }
 spawnFlag(2,25); spawnFlag(48,25);
@@ -943,7 +977,7 @@ function barracksArt(u,v){
   h+=pyr(u-2.1,v-1.5,4.2,3,1.6,'roof',2);
   h+=`<polygon points="${F(px(u-.4,v+1.2))},${F(py(u-.4,v+1.2,1.5))} ${F(px(u+.4,v+1.2))},${F(py(u+.4,v+1.2,1.5))} ${F(px(u+.4,v+1.2))},${F(py(u+.4,v+1.2,.4))} ${F(px(u-.4,v+1.2))},${F(py(u-.4,v+1.2,.4))}" fill="var(--stone-t)" class="sw"/>`;
   const fx=F(px(u+1.7,v-1.4)), fy=F(py(u+1.7,v-1.4,3.6));
-  h+=`<path d="M${fx} ${fy} v-13" stroke="${DARK}" stroke-width="2"/><g class="flagw"><path d="M${fx} ${fy-13} L${fx+14} ${fy-10} L${fx} ${fy-7} Z" fill="#C94F55"/></g>`;
+  h+=`<path d="M${fx} ${fy} v-13" stroke="${DARK}" stroke-width="2"/><g class="flagw"><path d="M${fx} ${fy-13} L${fx+14} ${fy-10} L${fx} ${fy-7} Z" fill="#E64A53"/></g>`;
   return h;
 }
 function rangeArt(u,v){
@@ -951,7 +985,7 @@ function rangeArt(u,v){
   h+=box(u-1.6,v-1.1,3.2,2.2,1.5,'wood');
   h+=box(u-1.75,v-1.25,3.5,2.5,.3,'trunk',1.5);
   const tx=F(px(u+1.62,v+.2)), ty=F(py(u+1.62,v+.2,.9));
-  h+=`<circle cx="${tx}" cy="${ty}" r="6.5" fill="#F6F2E8"/><circle cx="${tx}" cy="${ty}" r="4" fill="#C94F55"/><circle cx="${tx}" cy="${ty}" r="1.6" fill="#F6F2E8"/>`;
+  h+=`<circle cx="${tx}" cy="${ty}" r="6.5" fill="#F6F2E8"/><circle cx="${tx}" cy="${ty}" r="4" fill="#E64A53"/><circle cx="${tx}" cy="${ty}" r="1.6" fill="#F6F2E8"/>`;
   const fx=F(px(u-1.5,v-1)), fy=F(py(u-1.5,v-1,1.8));
   h+=`<path d="M${fx} ${fy} v-11" stroke="${DARK}" stroke-width="2"/><g class="flagw"><path d="M${fx} ${fy-11} L${fx+12} ${fy-8.5} L${fx} ${fy-6} Z" fill="#5FA8C9"/></g>`;
   return h;
@@ -1025,8 +1059,9 @@ scene.addEventListener('click',closeBmenu);
 function openMenu(sl,title,rows){
   bmenu.innerHTML=`<div class="h">${title}</div>${rows}`;
   bmenu.style.display='block';
-  bmenu.style.left=F(px(sl.u,sl.v))+'px';
-  bmenu.style.top=(py(sl.u,sl.v)-26)+'px';
+  /* clamp inside the 1280x720 stage so slots near the coast never spill off-screen */
+  bmenu.style.left=Math.max(140,Math.min(1140,px(sl.u,sl.v)))+'px';
+  bmenu.style.top=Math.max(170,Math.min(660,py(sl.u,sl.v)-26))+'px';
 }
 function opt(attr,ic,nm,ds,cost,can){
   return `<button class="bopt" ${attr} ${can?'':'disabled'}><span class="ic">${icon(ic)}</span>
@@ -1212,50 +1247,72 @@ function updatePrompt(){
   }else eprompt.style.display='none';
 }
 
-/* ---------------- fx ---------------- */
+/* ---------------- fx (object-pooled: nodes are pre-allocated and recycled,
+   never created or removed inside the simulation loop) ---------------- */
 let fxArr=[];
-function fxEl(parent,html){const g=document.createElementNS(SVGNS,'g');g.innerHTML=html;parent.appendChild(g);return g}
+const POOLS={};
+const POOL_TAG={dust:['ellipse',()=>gFxU],dmg:['text',()=>gTop],poof:['ellipse',()=>gTop],
+  slash:['path',()=>gTop],arrow:['line',()=>gTop],coin:['g',()=>gTop]};
+function acquire(tag){
+  const pool=POOLS[tag]||(POOLS[tag]=[]);
+  let el=pool.pop();
+  if(!el){
+    const [node,parent]=POOL_TAG[tag];
+    el=document.createElementNS(SVGNS,node);
+    if(tag==='coin')el.innerHTML='<circle r="5" fill="#F0B429" stroke="#8A6207" stroke-width="1.5"/><circle r="2.4" fill="none" stroke="#B07E14" stroke-width="1.2"/>';
+    parent().appendChild(el);
+  }
+  el.style.visibility='visible';
+  return el;
+}
+function release(tag,el){el.style.visibility='hidden';(POOLS[tag]||(POOLS[tag]=[])).push(el)}
+{ /* pre-allocation pass */
+  const pre={dmg:50,arrow:50,poof:20,slash:20,dust:24,coin:16};
+  for(const t in pre)for(let i=0;i<pre[t];i++)release(t,acquire(t));
+}
 function dust(u,v){
-  const el=fxEl(gFxU,`<ellipse cx="${F(px(u,v))}" cy="${F(py(u,v))}" rx="3" ry="1.6" fill="#EDE3CE" opacity=".55"/>`);
-  fxArr.push({kind:'dust',el:el.firstChild,t:0,dur:.4});
+  const el=acquire('dust');
+  el.setAttribute('cx',F(px(u,v)));el.setAttribute('cy',F(py(u,v)));
+  el.setAttribute('rx',3);el.setAttribute('ry',1.6);
+  el.setAttribute('fill','#EDE3CE');el.setAttribute('opacity','.55');
+  fxArr.push({kind:'dust',el,t:0,dur:.4});
 }
 function dmgNum(x,y,n){
   if(!S.settings.dmg)return;
-  const el=document.createElementNS(SVGNS,'text');
+  const el=acquire('dmg');
   el.setAttribute('class','dmgnum');el.setAttribute('x',x);el.setAttribute('y',y);
-  el.setAttribute('text-anchor','middle');el.textContent='-'+n;
-  gTop.appendChild(el);
+  el.setAttribute('text-anchor','middle');el.setAttribute('opacity','1');el.textContent='-'+n;
   fxArr.push({kind:'dmg',el,x,y,t:0,dur:.75});
 }
 function poof(x,y,big){
-  const el=document.createElementNS(SVGNS,'ellipse');
-  el.setAttribute('cx',x);el.setAttribute('cy',y);el.setAttribute('fill','none');
-  el.setAttribute('stroke','#F6F2E8');el.setAttribute('stroke-width','3');
-  gTop.appendChild(el);
+  const el=acquire('poof');
+  el.setAttribute('cx',x);el.setAttribute('cy',y);el.setAttribute('rx',4);el.setAttribute('ry',2.2);
+  el.setAttribute('fill','none');el.setAttribute('stroke','#F6F2E8');el.setAttribute('stroke-width','3');
+  el.setAttribute('opacity','.85');
   fxArr.push({kind:'poof',el,x,y,t:0,dur:.42,big:!!big});
 }
 function slash(x,y,tx,ty){
   const a=Math.atan2(ty-y,tx-x)*180/Math.PI;
-  const el=document.createElementNS(SVGNS,'path');
+  const el=acquire('slash');
   el.setAttribute('d','M 11 -12 A 17 17 0 0 1 11 12');
   el.setAttribute('fill','none');el.setAttribute('stroke','#FFF6DC');
   el.setAttribute('stroke-width','3.2');el.setAttribute('stroke-linecap','round');
+  el.setAttribute('opacity','1');
   el.setAttribute('transform',`translate(${x} ${y}) rotate(${a})`);
-  gTop.appendChild(el);
   fxArr.push({kind:'slash',el,t:0,dur:.18});
 }
 function arrow(fromU,fromV,fromZ,toU,toV,onHit,color){
   const dist=Math.hypot(toU-fromU,toV-fromV);
-  const el=document.createElementNS(SVGNS,'line');
+  const el=acquire('arrow');
   el.setAttribute('stroke',color||'#F2E6C9');el.setAttribute('stroke-width','2.6');el.setAttribute('stroke-linecap','round');
-  gTop.appendChild(el);
+  el.setAttribute('x1',F(px(fromU,fromV)));el.setAttribute('y1',F(py(fromU,fromV,fromZ)));
+  el.setAttribute('x2',F(px(fromU,fromV)));el.setAttribute('y2',F(py(fromU,fromV,fromZ)));
   fxArr.push({kind:'arrow',el,fromU,fromV,fromZ,toU,toV,t:0,dur:Math.max(.12,dist/26),hit:onHit});
 }
 function coinFly(x,y,delay){
-  const el=document.createElementNS(SVGNS,'g');
-  el.innerHTML=`<circle r="5" fill="#F0B429" stroke="#8A6207" stroke-width="1.5"/><circle r="2.4" fill="none" stroke="#B07E14" stroke-width="1.2"/>`;
+  const el=acquire('coin');
   el.setAttribute('opacity','0');
-  gTop.appendChild(el);
+  el.setAttribute('transform',`translate(${F(x)} ${F(y)})`);
   fxArr.push({kind:'coin',el,x,y,t:-delay,dur:.8});
 }
 function updateFx(dt){
@@ -1284,7 +1341,7 @@ function updateFx(dt){
       if(k>=1&&!f.done){f.done=true;f.hit&&f.hit()}
     }
   }
-  fxArr=fxArr.filter(f=>{if(f.t>=f.dur){f.el.remove();return false}return true});
+  fxArr=fxArr.filter(f=>{if(f.t>=f.dur){release(f.kind,f.el);return false}return true});
 }
 
 /* ---------------- night simulation ---------------- */
@@ -1307,8 +1364,8 @@ const ETYPES={
 };
 function enemyArt(t){
   if(t==='slime')return`<ellipse cx="0" cy="0" rx="9" ry="4.2" fill="#26202A" opacity=".16"/>
-   <g class="squish"><path d="M-9 0 Q-10 -12 0 -13 Q10 -12 9 0 Z" fill="#7CC26B"/>
-   <path d="M-4 -8.5 Q0 -11 4 -8.5 L3 -6 Q0 -8 -3 -6 Z" fill="#97D687"/>
+   <g class="squish"><path d="M-9 0 Q-10 -12 0 -13 Q10 -12 9 0 Z" fill="#85D671"/>
+   <path d="M-4 -8.5 Q0 -11 4 -8.5 L3 -6 Q0 -8 -3 -6 Z" fill="#A5E890"/>
    <circle cx="-3" cy="-5.5" r="1.6" fill="#2E3A2A"/><circle cx="3" cy="-5.5" r="1.6" fill="#2E3A2A"/></g>`;
   if(t==='barrel')return`<ellipse cx="0" cy="0" rx="9" ry="4.2" fill="#26202A" opacity=".16"/>
    <g class="wobble"><rect x="-7" y="-16" width="14" height="16" rx="3" fill="#A9805A"/>
@@ -1411,7 +1468,7 @@ function spawnUnit(u,v,kind){
 }
 function spawnEnemy(spec){
   const T=ETYPES[spec.type], lane=spec.lane==='A'?LANE_A:LANE_B;
-  const h=addObj(0,`<g class="eface">${enemyArt(spec.type)}</g><g class="hpb" style="display:none"><rect x="-11" y="-34" width="22" height="4" rx="2" fill="rgba(20,16,24,.8)"/><rect class="hpf" x="-10" y="-33" width="20" height="2" rx="1" fill="#F08080"/></g>`);
+  const h=addObj(0,`<g class="eface">${enemyArt(spec.type)}</g><g class="hpb" style="display:none"><rect x="-11" y="-34" width="22" height="4" rx="2" fill="rgba(20,16,24,.8)"/><rect class="hpf" x="-10" y="-33" width="20" height="2" rx="1" fill="#E64A53"/></g>`);
   const e={type:spec.type,lane,laneName:spec.lane,d:0,hp:T.hp,max:T.hp,speed:T.speed,
     dmg:T.dmg,rate:T.rate,atkCd:.8,fly:T.fly,el:h,dead:false};
   h.el.querySelector('.eface').setAttribute('transform',`scale(${spec.lane==='A'?1:-1} 1)`);
@@ -1533,7 +1590,7 @@ function cleanupNight(){
   N.enemies.forEach(e=>{if(!e.dead)removeObj(e.el)});
   N.units.forEach(u=>removeObj(u.el));
   N.rings.forEach(r=>r.remove());
-  fxArr.forEach(f=>f.el.remove());fxArr=[];
+  fxArr.forEach(f=>release(f.kind,f.el));fxArr=[];
 }
 function abortNight(){
   if(!N)return;
@@ -1665,18 +1722,25 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
 
-/* ---------------- master loop ---------------- */
-let last=performance.now();
+/* ---------------- master loop: fixed-timestep accumulator ---------------- */
+const STEP=1/60;
+let last=performance.now(), acc=0;
+function step(st){
+  if(S.view==='game')updateKing(st);
+  if(N&&!N.over)simTick(st);
+  updateFx(st);
+}
 function frame(now){
   requestAnimationFrame(frame);
-  let dt=Math.min((now-last)/1000,.05);last=now;
-  if(anyOverlay())return;
-  if(S.view==='game')updateKing(dt);
-  if(N&&!N.over)simTick(dt);
-  updateFx(dt);
+  const dt=Math.min((now-last)/1000,.1);last=now;
+  if(anyOverlay()){acc=0;return}
+  acc+=dt;
+  let n=0;
+  while(acc>=STEP&&n<6){step(STEP);acc-=STEP;n++}
+  if(n===6)acc=0; /* spiral-of-death guard */
 }
 requestAnimationFrame(frame);
-window.__pump=s=>{const st=1/60;for(let i=0;i<Math.round(s*60);i++){if(S.view==='game')updateKing(st);if(N&&!N.over)simTick(st);updateFx(st)}};
+window.__pump=s=>{for(let i=0;i<Math.round(s*60);i++)step(STEP)};
 
 /* ---------------- annotations ---------------- */
 function ANNOS(){
@@ -1738,7 +1802,7 @@ function swatch(n,h){return`<div class="swatch"><div class="b" style="background
 const SGM=[['Grass','grass'],['Path','path'],['Water','water'],['Stone','stone'],['Timber','wood'],['Plaster','cream'],['Roof','roof']];
 $('#swDay').innerHTML=SGM.map(([n,k])=>swatch(n,MATS[k][0])).join('');
 $('#swNight').innerHTML=SGM.map(([n,k])=>swatch(n,MATS[k][1])).join('');
-$('#swConst').innerHTML=[['Gold','#F0B429'],['Gold hi','#F6C95C'],['Slime','#7CC26B'],['Danger','#C94F55'],['Parchment','#F6F2E8'],['UI ink','#33272A']].map(a=>swatch(...a)).join('');
+$('#swConst').innerHTML=[['Gold','#F0B429'],['Gold hi','#F6C95C'],['Toxic green','#85D671'],['Threat red','#E64A53'],['Parchment','#F6F2E8'],['UI ink','#33272A']].map(a=>swatch(...a)).join('');
 $('#icoGrid').innerHTML=Object.keys(ICONS).map(k=>`<div class="icocell"><svg viewBox="0 0 24 24">${ICONS[k]}</svg><div class="n">${k}</div></div>`).join('');
 $('#compRow').innerHTML=`
  <div class="compcell"><div class="cl">Gold counter</div>
