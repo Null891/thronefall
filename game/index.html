@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thronefall — Web Remake</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="./fonts.css">
+<style>
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{width:100%; height:100%; overflow:hidden; background:#0D1526}
+  body{font-family:'Nunito',system-ui,sans-serif; color:#F6F2E8; -webkit-user-select:none; user-select:none}
+  #gl{position:fixed; inset:0; width:100%; height:100%; display:block}
+
+  /* soft cinematic vignette over the render */
+  #vignette{position:fixed; inset:0; pointer-events:none; z-index:5;
+    background:radial-gradient(ellipse 120% 100% at 50% 45%, transparent 62%, rgba(8,10,18,.38) 100%)}
+
+  /* ============ UI layer ============ */
+  #ui{position:fixed; inset:0; pointer-events:none; z-index:10; font-variant-numeric:tabular-nums}
+  #ui .clickable{pointer-events:auto}
+
+  .hud-chip{display:inline-flex; align-items:center; gap:9px; background:#1A1622; color:#F6F2E8;
+    border:2px solid #3A3049; border-radius:12px; padding:8px 14px}
+  .hud-chip .num{font-weight:800; font-size:20px; letter-spacing:.01em}
+  .hud-chip .lbl{font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.14em; opacity:.75}
+  .hud-chip .sub{font-size:11.5px; font-weight:700; color:#F0B429}
+  .hud-icon{width:22px; height:22px; flex:none; display:grid; place-items:center; font-size:17px}
+
+  .topleft{position:absolute; top:16px; left:16px; display:flex; gap:10px}
+  .kingchip{position:absolute; bottom:16px; left:16px}
+  .bottomright{position:absolute; right:16px; bottom:16px; display:flex; align-items:flex-end; gap:14px}
+
+  .cta{appearance:none; cursor:pointer; font-family:'Cinzel',serif; font-weight:700; font-size:19px;
+    letter-spacing:.1em; color:#2B2114; background:#F0B429; border:2px solid #33272A; border-radius:12px;
+    padding:12px 26px; box-shadow:0 4px 0 #8A6207; transition:background .08s, transform .08s, box-shadow .08s}
+  .cta:hover{background:#F6C95C; transform:translateY(-2px); box-shadow:0 6px 0 #8A6207}
+  .cta:active{transform:translateY(2px); box-shadow:0 1px 0 #8A6207}
+  .cta .kbd{font-family:'Nunito'; font-size:10.5px; font-weight:800; letter-spacing:.12em; opacity:.65; display:block; text-align:center}
+
+  .hint{position:absolute; bottom:20px; left:50%; transform:translateX(-50%); font-size:12.5px; font-weight:700;
+    letter-spacing:.03em; background:#1A1622; border:2px solid #3A3049; padding:6px 14px; border-radius:999px; white-space:nowrap}
+
+  .clock{display:flex; flex-direction:column; align-items:center; gap:6px}
+  .clock .dots{display:flex; gap:5px; background:#1A1622; padding:8px 12px; border-radius:999px; border:2px solid #3A3049}
+  .clock .dot{width:9px; height:9px; border-radius:50%; background:rgba(246,242,232,.22); transition:background .3s}
+  .clock .dot.f{background:#F0B429}
+  .clock .lbl{font-size:10px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:rgba(246,242,232,.85); text-shadow:0 1px 3px rgba(0,0,0,.5)}
+
+  .banner{position:absolute; top:14px; left:50%; transform:translateX(-50%); text-align:center}
+  .banner .t{font-family:'Cinzel',serif; font-weight:700; font-size:22px; letter-spacing:.14em; text-shadow:0 2px 10px rgba(0,0,0,.6)}
+  .banner .r{display:inline-flex; align-items:center; gap:8px; margin-top:5px; background:#1A1622;
+    border:2px solid #3A3049; padding:4px 14px; border-radius:999px; font-weight:800; font-size:13px}
+
+  .kingpanel{position:absolute; left:16px; bottom:16px; display:flex; align-items:flex-end; gap:10px}
+  .portrait{width:60px; height:60px; border-radius:14px; background:#3A2E44; border:2px solid #3A3049;
+    display:grid; place-items:center; font-size:30px}
+  .kstats{display:flex; flex-direction:column; gap:6px}
+  .kstats .name{font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:rgba(246,242,232,.9); text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .bar{width:210px; height:16px; border-radius:8px; background:#1A1622; border:2px solid #3A3049; overflow:hidden}
+  .bar .fill{height:100%; border-radius:5px; background:#54B368; transition:width .25s ease}
+  .bar.hp .fill{background:#E64A53}
+  .abilities{display:flex; gap:8px}
+  .ab{position:relative; width:52px; height:52px; border-radius:12px; background:#1A1622; border:2px solid #3A3049;
+    display:grid; place-items:center; cursor:pointer; font-size:22px; color:#F6F2E8}
+  .ab.ready{border-color:#F0B429; box-shadow:0 0 12px rgba(240,178,41,.35)}
+  .ab .cd{position:absolute; inset:0; border-radius:10px; background:conic-gradient(rgba(10,8,14,.78) calc(var(--cd,0)*1%), transparent 0); pointer-events:none}
+  .ab .key{position:absolute; right:3px; bottom:2px; font-size:9.5px; font-weight:800; opacity:.7}
+
+  .troops{position:absolute; right:16px; bottom:74px; display:flex; gap:8px}
+  .tchip{display:inline-flex; align-items:center; gap:7px; background:#1A1622; border:2px solid #3A3049;
+    color:#F6F2E8; border-radius:999px; padding:6px 14px 6px 8px; font-weight:800; font-size:12.5px; cursor:pointer}
+  .tchip .k{display:inline-grid; place-items:center; width:18px; height:18px; border-radius:5px; background:#3A3049; font-size:10.5px}
+  .tchip.on{border-color:#F0B429}
+  .tchip.on .k{background:#F0B429; color:#2B2114}
+
+  .pausebtn{position:absolute; top:14px; right:14px; width:42px; height:42px; border-radius:11px; background:#1A1622;
+    border:2px solid #3A3049; color:#F6F2E8; font-size:15px; cursor:pointer}
+
+  /* floating world-anchored DOM (projected each frame) */
+  #floatLayer{position:absolute; inset:0; overflow:hidden}
+  .wavePrev{position:absolute; transform:translate(-50%,-100%); background:#1A1622; border:2px solid #3A3049;
+    border-radius:10px; padding:5px 11px; font-weight:800; font-size:14px; display:flex; align-items:center; gap:7px; white-space:nowrap}
+  .wavePrev .sk{font-size:15px}
+  .castlebar{position:absolute; transform:translate(-50%,-100%); display:none; text-align:center}
+  .castlebar .cb{width:150px; height:12px; border-radius:6px; background:#1A1622; border:2px solid #3A3049; overflow:hidden}
+  .castlebar .cf{height:100%; background:#E64A53; transition:width .25s}
+  .castlebar .cl{font-size:9.5px; font-weight:800; letter-spacing:.14em; margin-top:3px; text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  .dmgnum{position:absolute; transform:translate(-50%,-50%); font-weight:900; font-size:15px; color:#FFF6DC;
+    text-shadow:0 1px 0 #33272A, 0 0 6px rgba(0,0,0,.5); visibility:hidden}
+  .ehp{position:absolute; transform:translate(-50%,-100%); width:34px; height:5px; background:rgba(20,16,24,.85);
+    border-radius:3px; visibility:hidden}
+  .ehp i{display:block; height:3px; margin:1px; border-radius:2px; background:#E64A53}
+
+  .eprompt{position:absolute; transform:translate(-50%,-100%); background:#1A1622; color:#F6F2E8;
+    border:2px solid rgba(240,178,41,.8); border-radius:9px; padding:5px 10px; font-size:12px; font-weight:800;
+    white-space:nowrap; display:none}
+  .eprompt .k{display:inline-grid; place-items:center; min-width:16px; height:16px; padding:0 3px; border-radius:4px;
+    background:#F0B429; color:#2B2114; font-size:10.5px; margin-right:6px}
+
+  #bmenu{position:absolute; transform:translate(-50%,-100%); width:250px; background:#1A1622; border:2px solid #3A3049;
+    border-radius:13px; padding:9px; display:none}
+  #bmenu .h{font-family:'Cinzel',serif; font-weight:700; font-size:13.5px; letter-spacing:.06em; color:#F6C95C; padding:2px 4px 7px}
+  .bopt{display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer; background:transparent;
+    border:1.5px solid rgba(246,242,232,.14); border-radius:9px; padding:7px 9px; color:#F6F2E8; margin-bottom:6px; font-family:inherit}
+  .bopt:last-child{margin-bottom:0}
+  .bopt:hover:not(:disabled){border-color:#F0B429; background:rgba(240,178,41,.1)}
+  .bopt:disabled{opacity:.45; cursor:not-allowed}
+  .bopt .ic{width:26px; flex:none; font-size:20px; text-align:center}
+  .bopt .nm{font-weight:800; font-size:13px; line-height:1.2}
+  .bopt .ds{font-size:10.5px; opacity:.72; line-height:1.25}
+  .bopt .cost{margin-left:auto; font-weight:800; font-size:13px; color:#F6C95C; white-space:nowrap}
+
+  /* ============ overlays ============ */
+  .overlay{position:fixed; inset:0; z-index:40; display:none; place-items:center; background:rgba(12,10,18,.72); pointer-events:auto}
+  .panel{width:min(440px,88%); background:#1A1622; border:2px solid #3A3049; border-radius:18px; padding:26px 28px; text-align:center}
+  .panel h2{font-family:'Cinzel',serif; font-weight:700; font-size:28px; letter-spacing:.12em; color:#F6C95C; margin-bottom:4px}
+  .panel .sub{font-size:13px; opacity:.8; margin-bottom:14px}
+  .tally{text-align:left; margin:0 auto 16px; max-width:320px}
+  .tally .row{display:flex; justify-content:space-between; padding:5px 2px; font-size:13.5px; border-bottom:1px dashed rgba(246,242,232,.12)}
+  .tally .row b{color:#F6C95C}
+  .panel .btns{display:flex; flex-direction:column; gap:9px; margin-top:6px}
+  .pbtn{appearance:none; cursor:pointer; font-family:'Nunito'; font-weight:800; font-size:14px; color:#F6F2E8;
+    background:transparent; border:2px solid #3A3049; border-radius:11px; padding:10px}
+  .pbtn:hover{border-color:#F0B429; color:#F6C95C}
+  .setrow{display:flex; justify-content:space-between; align-items:center; padding:9px 2px; font-size:13.5px; font-weight:700;
+    border-bottom:1px dashed rgba(246,242,232,.12)}
+  .setrow input{width:18px; height:18px; accent-color:#F0B429; cursor:pointer}
+
+  /* ============ menu screen ============ */
+  #menuScreen{position:fixed; inset:0; z-index:30; display:grid; place-items:center; pointer-events:auto;
+    background:radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(10,12,22,.45) 100%)}
+  #menuScreen .stack{text-align:center; transform:translateY(-4vh)}
+  #menuScreen .crown{font-size:44px; filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
+  #menuScreen h1{font-family:'Cinzel',serif; font-weight:900; font-size:clamp(42px,7vw,84px); letter-spacing:.16em;
+    color:#F6C95C; text-shadow:0 3px 0 #8A6207, 0 10px 30px rgba(20,16,10,.55); margin:2px 0 6px}
+  #menuScreen .tag{font-size:13px; font-weight:800; letter-spacing:.3em; text-transform:uppercase; color:rgba(246,242,232,.9); margin-bottom:30px}
+  #menuScreen .ver{margin-top:26px; font-size:10.5px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; opacity:.55}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important} }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="vignette"></div>
+
+<div id="ui">
+  <div id="floatLayer">
+    <div class="wavePrev" id="prevA"><span class="sk">💀</span><span id="prevAn">×10</span></div>
+    <div class="wavePrev" id="prevB"><span class="sk">💀</span><span id="prevBn">×9</span></div>
+    <div class="castlebar" id="castleWrap"><div class="cb"><div class="cf" id="castleFill" style="width:100%"></div></div><div class="cl">CASTLE CENTER</div></div>
+    <div class="eprompt" id="eprompt"></div>
+    <div id="bmenu" class="clickable"></div>
+  </div>
+
+  <div id="hudDay" style="display:none">
+    <div class="topleft">
+      <div class="hud-chip"><span class="hud-icon">🪙</span><span class="num" id="goldNum">8</span><span class="sub" id="incomeNum">+1 at dawn</span></div>
+      <div class="hud-chip"><span class="hud-icon">☀️</span><span><span class="num" id="dayNum" style="font-size:16px">Day 1 / 3</span><br><span class="lbl">Nordfels</span></span></div>
+    </div>
+    <div class="hud-chip kingchip"><span class="hud-icon">👑</span><span><b style="font-size:14px">King Aldric</b><br><span class="lbl">Spear · Lv 3</span></span></div>
+    <div class="bottomright">
+      <div class="clock"><div class="dots" id="clockDay"></div><div class="lbl">Nightfall</div></div>
+      <button class="cta clickable" id="beginNight">BEGIN NIGHT<span class="kbd">SPACE</span></button>
+    </div>
+    <div class="hint" id="dayHint">Ride with WASD · build with E or click a slot · Space begins the night</div>
+  </div>
+
+  <div id="hudNight" style="display:none">
+    <div class="banner"><div class="t" id="waveTitle">NIGHT 1</div><div class="r">💀 Remaining <b id="remainNum">0</b></div></div>
+    <div class="kingpanel">
+      <div class="portrait">👑</div>
+      <div class="kstats">
+        <div class="name">King Aldric · Spear</div>
+        <div class="bar"><div class="fill" id="kingFill" style="width:100%"></div></div>
+        <div class="abilities">
+          <button class="ab clickable" id="abSpear">🗡<span class="cd" id="abSpearCd"></span><span class="key">Q</span></button>
+          <button class="ab clickable" id="abHorn">📯<span class="cd" id="abHornCd"></span><span class="key">E</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="troops">
+      <button class="tchip clickable on" data-stance="hold"><span class="k">1</span>Hold the Line</button>
+      <button class="tchip clickable" data-stance="charge"><span class="k">2</span>Charge!</button>
+    </div>
+    <div class="bottomright"><div class="clock"><div class="dots" id="clockNight"></div><div class="lbl">Till dawn</div></div></div>
+    <button class="pausebtn clickable" id="pauseBtn">⏸</button>
+  </div>
+</div>
+
+<div id="menuScreen">
+  <div class="stack">
+    <div class="crown">👑</div>
+    <h1>THRONEFALL</h1>
+    <div class="tag">Build by day · Defend by night</div>
+    <button class="cta" id="playBtn" style="font-size:22px; padding:14px 36px">PLAY CAMPAIGN</button>
+    <div class="ver">Web remake v0.1 · Nordfels vertical slice · fan-made, not affiliated with Grizzly Games</div>
+  </div>
+</div>
+
+<div class="overlay" id="ovVictory"><div class="panel">
+  <h2>NIGHT SURVIVED</h2><div class="sub" id="vicSub"></div>
+  <div class="tally" id="vicTally"></div>
+  <button class="cta" id="vicNext" style="width:100%">CONTINUE</button>
+</div></div>
+
+<div class="overlay" id="ovDefeat"><div class="panel">
+  <h2 style="color:#E64A53">THE CASTLE HAS FALLEN</h2><div class="sub">The kingdom is lost to the horde.</div>
+  <div class="btns"><button class="cta" id="defRetry" style="width:100%">RETRY NIGHT</button>
+  <button class="pbtn" id="defMenu">Abandon to menu</button></div>
+</div></div>
+
+<div class="overlay" id="ovCleared"><div class="panel">
+  <h2>NORDFELS LIBERATED</h2><div class="sub">Three nights weathered. The realm holds.</div>
+  <div class="tally" id="clrTally"></div>
+  <button class="cta" id="clrMenu" style="width:100%">RETURN TO MENU</button>
+</div></div>
+
+<div class="overlay" id="ovPause"><div class="panel">
+  <h2>PAUSED</h2><div class="sub">The horde waits for no one — but it will wait for this.</div>
+  <div class="btns">
+    <button class="cta" id="pauseResume" style="width:100%">RESUME</button>
+    <button class="pbtn" id="pauseRestart">Restart this night</button>
+    <button class="pbtn" id="pauseSettings">Settings</button>
+    <button class="pbtn" id="pauseAbandon">Abandon run</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="ovSettings"><div class="panel">
+  <h2 style="font-size:22px">SETTINGS</h2>
+  <div style="text-align:left; margin:10px 0 16px">
+    <label class="setrow">Damage numbers <input type="checkbox" id="setDmg" checked></label>
+    <label class="setrow">Tower range rings at night <input type="checkbox" id="setRanges" checked></label>
+    <label class="setrow">Screen shake <input type="checkbox" id="setShake" checked></label>
+  </div>
+  <button class="cta" id="setClose" style="width:100%">DONE</button>
+</div></div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/addons/"
+} }
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
