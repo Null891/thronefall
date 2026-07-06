@@ -131,19 +131,36 @@ function flag(color, s = 1) {
 }
 
 /* ---------- terrain ---------- */
-function coastShape(grow, sx = 1, sz = 1, sc = 1) {
+/* one equation per WORLD: the shapes differ, not just the paint.
+   All shape terms vanish on the road axes so the lanes always reach the sea. */
+export function coastRadius(th, shape) {
+  const c = Math.cos(th), s = Math.sin(th);
+  let base = 24 / Math.pow(Math.max(Math.abs(c), Math.abs(s)), 0.72);
+  let wob = Math.sin(th * 3 + 1.7) * 1.1 + Math.sin(th * 5 + .4) * .7 + Math.sin(th * 8 + 2.9) * .45;
+  switch (shape) {
+    case 'round':    base = 24; break;                                        // a small perfect sphere of a world
+    case 'ripple':   base = 24; wob += Math.sin(th * 8) * 1.8; break;         // reef rings
+    case 'cross':    base *= 1 + .2 * Math.cos(4 * th); break;                // four great lobes on the roads
+    case 'shatter':  wob += Math.sin(4 * th) * 3 + Math.sin(8 * th) * 2; break;      // war-torn, cratered coast
+    case 'volcanic': wob += Math.sin(4 * th) * 2.2 + Math.sin(12 * th) * 1.7; break; // torn by eruptions
+    case 'shard':    wob += Math.sin(12 * th) * 2.4 + Math.sin(4 * th) * 1.4; break; // crystalline serration
+    case 'spine':    wob += Math.sin(4 * th) * 2; break;                      // the titan's ridged back
+    case 'jungle':   wob += Math.sin(6 * th) * 1.7; break;                    // green fingers into the sea
+    case 'drift':    base *= 1 + .18 * s; break;                              // dunes blown to the south
+  }
+  return base + wob;
+}
+function coastShape(grow, sx = 1, sz = 1, sc = 1, shape = null) {
   const pts = [];
   for (let i = 0; i < 72; i++) {
     const th = i / 72 * Math.PI * 2, c = Math.cos(th), s = Math.sin(th);
-    const base = 24 / Math.pow(Math.max(Math.abs(c), Math.abs(s)), 0.72);
-    const wob = Math.sin(th * 3 + 1.7) * 1.1 + Math.sin(th * 5 + .4) * .7 + Math.sin(th * 8 + 2.9) * .45;
-    const r = (base + wob) * sc + grow;
+    const r = coastRadius(th, shape) * sc + grow;
     pts.push(new THREE.Vector2(25 + r * c * sx, -(25 + r * s * sz)));
   }
   return new THREE.Shape(pts);
 }
-function blob(grow, depth, mat, topY, sx, sz, sc) {
-  const geo = new THREE.ExtrudeGeometry(coastShape(grow, sx, sz, sc), { depth, bevelEnabled: false });
+function blob(grow, depth, mat, topY, sx, sz, sc, shape) {
+  const geo = new THREE.ExtrudeGeometry(coastShape(grow, sx, sz, sc, shape), { depth, bevelEnabled: false });
   geo.rotateX(-Math.PI / 2);
   geo.translate(0, topY - depth, 0);
   const o = new THREE.Mesh(geo, mat);
@@ -175,7 +192,7 @@ const TERRA = {
 const spaceMat = new THREE.MeshBasicMaterial({ color: '#0A0D18' });
 let seaMesh = null; // the open sea persists across maps
 export function buildTerrain(group, lanes, opts = {}) {
-  const { sx = 1, sz = 1, sc = 1, pond = true, pal = null } = opts;
+  const { sx = 1, sz = 1, sc = 1, pond = true, pal = null, shape = null } = opts;
   const T = TERRA[pal] || mats;
   const SP = (u, v) => [25 + (u - 25) * sc, 25 + (v - 25) * sc]; // decorative coords stretch with the island
   if (!seaMesh) {
@@ -184,11 +201,11 @@ export function buildTerrain(group, lanes, opts = {}) {
   }
   if (!seaMesh.parent) group.parent?.add(seaMesh);
   seaMesh.material = pal === 'moon' ? spaceMat : pal === 'sky' ? cloudMat : mats.water;
-  const shallow = blob(3.4, .1, new THREE.MeshStandardMaterial({ color: '#9AD4EA', transparent: true, opacity: .45, roughness: .5 }), -.42, sx, sz, sc);
+  const shallow = blob(3.4, .1, new THREE.MeshStandardMaterial({ color: '#9AD4EA', transparent: true, opacity: .45, roughness: .5 }), -.42, sx, sz, sc, shape);
   REG.push({ m: shallow.material, d: new THREE.Color('#9AD4EA'), n: new THREE.Color('#3C5D88') });
   group.add(shallow);
-  group.add(blob(1.1, .6, T.sand, -.06, sx, sz, sc));
-  group.add(blob(0, 2.6, T.grass, 0, sx, sz, sc));
+  group.add(blob(1.1, .6, T.sand, -.06, sx, sz, sc, shape));
+  group.add(blob(0, 2.6, T.grass, 0, sx, sz, sc, shape));
   /* meadow patches */
   for (const [u0, v0, r] of [[14,20,3],[33,36,4],[24,10,2.5],[40,20,3],[10,37,2.6],[38,8,3.2],[8,10,2.8],[42,44,3]]) {
     const [u, v] = SP(u0, v0);
@@ -558,6 +575,45 @@ export function serpentArt() {
 export function finArt() {
   const g = new THREE.Group();
   const f = cone(.45, 1.3, 4, mats.stoneDk); f.rotation.z = -.25; g.add(f);
+  return g;
+}
+export function guardArt() { // the king's shadow, in gilded steel
+  const g = new THREE.Group();
+  g.add(mesh(new THREE.CapsuleGeometry(.28, .55, 3, 8), mSteel, 0, .6, 0));
+  g.add(mesh(new THREE.SphereGeometry(.21, 8, 7), mSteel, 0, 1.15, 0));
+  g.add(cone(.09, .35, 5, MC(CONST.gold, { glow: .4 }), 0, 1.35, 0)); // plume
+  g.add(box(.12, .6, .5, mGold, -.34, .45, 0));                       // gilded shield
+  const sw = box(.07, .85, .07, mSteel, .34, .55, 0); sw.rotation.z = -.5; g.add(sw);
+  return g;
+}
+export function ballistaArt() { // a war machine worth its silver
+  const g = new THREE.Group();
+  g.add(box(1.6, .35, 1.2, mats.trunk, 0, .1, 0));
+  for (const [x, z] of [[-.6, .45], [.6, .45], [-.6, -.45], [.6, -.45]])
+    g.add(cyl(.09, .12, .5, 5, mats.trunk, x, 0, z));
+  const arm = box(1.8, .14, .18, T_wood(), 0, .7, 0); g.add(arm);
+  const bow = mesh(new THREE.TorusGeometry(.75, .06, 5, 10, Math.PI), mSteel, .55, .75, 0);
+  bow.rotation.z = -Math.PI / 2; bow.rotation.y = Math.PI / 2; g.add(bow);
+  const bolt = cyl(.05, .05, 1.4, 4, mSteel, 0, .78, 0); bolt.rotation.z = Math.PI / 2; g.add(bolt);
+  const f = flag(CONST.gold, .7); f.position.set(-.7, .4, -.5); g.add(f);
+  return g;
+}
+export function trapArt() { // iron teeth in the road
+  const g = new THREE.Group();
+  const ring = mesh(new THREE.TorusGeometry(.5, .07, 5, 10), mSteel, 0, .08, 0);
+  ring.rotation.x = -Math.PI / 2; g.add(ring);
+  for (let i = 0; i < 6; i++) {
+    const th = i / 6 * Math.PI * 2;
+    const tooth = cone(.07, .3, 4, mSteel, Math.cos(th) * .45, .1, Math.sin(th) * .45);
+    tooth.rotation.x = Math.cos(th) * .5; tooth.rotation.z = -Math.sin(th) * .5; g.add(tooth);
+  }
+  return g;
+}
+export function meteorMesh() {
+  const g = new THREE.Group();
+  g.add(mesh(new THREE.IcosahedronGeometry(.55, 0), MC('#FF6A3D', { glow: 1.2 })));
+  g.add(mesh(new THREE.IcosahedronGeometry(.3, 0), MC('#FFD97A', { glow: 1.6 }), .2, .2, .1));
+  const gw = glow('#FF6A3D', 5, .9, 1); g.add(gw);
   return g;
 }
 export function golemArt() { // six achievements of stone, walking

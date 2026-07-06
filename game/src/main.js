@@ -44,6 +44,17 @@ const NIGHT = { sunPos: new THREE.Vector3(2, 46, -8), sunCol: new THREE.Color('#
   hemiSky: new THREE.Color('#16223E'), hemiGnd: new THREE.Color('#0C1016'), hemiInt: .55,
   bg: new THREE.Color('#0D1526'), exp: .82, torch: 2.4 };
 const phase = { t: 0, target: 0 };
+const BASE_SKY = {
+  dayBg: '#A5D8EA', daySun: '#FFE7C0', daySunInt: 2.6, dayHemi: '#BFE0FF', dayGnd: '#86A96F', dayExp: 1.12,
+  nightBg: '#0D1526', nightSun: '#8FB0E8', nightHemi: '#16223E', fog: [70, 220],
+};
+function applySky(sky) {
+  const k = { ...BASE_SKY, ...(sky || {}) };
+  DAY.bg.set(k.dayBg); DAY.sunCol.set(k.daySun); DAY.sunInt = k.daySunInt;
+  DAY.hemiSky.set(k.dayHemi); DAY.hemiGnd.set(k.dayGnd); DAY.exp = k.dayExp;
+  NIGHT.bg.set(k.nightBg); NIGHT.sunCol.set(k.nightSun); NIGHT.hemiSky.set(k.nightHemi);
+  scene.fog.near = k.fog[0]; scene.fog.far = k.fog[1];
+}
 const torchLights = [];
 function addTorch(pos) {
   const l = new THREE.PointLight('#FFB35C', 0, 10, 1.8);
@@ -201,7 +212,8 @@ const MAPS = {
       B: [[64, 25.7], [56, 25.6], [49, 25.4], [42, 25.2], [36, 25], [29.6, 25], [28.3, 25]],
       C: [[25, -4], [24.8, 3], [25, 9], [24.8, 14], [25, 18], [25, 21.6]],
     },
-    terrain: { sx: 1.45, sz: .9, sc: 1.25, pond: false },
+    terrain: { sx: 1.45, sz: .9, sc: 1.25, pond: false, shape: 'spine' },
+    sky: { dayBg: '#96C8D8', daySun: '#F4E6C0', nightBg: '#0A1420' },
     boss: BOSS_DEFS.brood, bosses: [BOSS_DEFS.brood, BOSS_DEFS.meg],
     slots: [
       { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
@@ -279,7 +291,8 @@ const MAPS = {
       B: [[60, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, -11], [24.7, -3], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.6, pond: false },
+    terrain: { sx: 1, sz: 1, sc: 1.6, pond: false, shape: 'cross' },
+    sky: { dayBg: '#8E86A8', daySun: '#D8C8E8', daySunInt: 1.9, dayHemi: '#8E86B8', dayExp: .98, nightBg: '#0E0A1A', fog: [55, 190] },
     castleStyle: 'bone', theme: 'dark', slotXform: 'mirrorX',
     sub: { slime: 'skeleton' }, // the dead walk these hills
     boss: BOSS_DEFS.skeleking, bosses: [BOSS_DEFS.skeleking, BOSS_DEFS.warlord],
@@ -339,7 +352,8 @@ const MAPS = {
   ironfront: {
     id: 'ironfront', name: 'Ironfront', unlockAfter: { map: 'deephollow', nights: 10 },
     saboteur: true, skin: 'ww2', castleStyle: 'bunker', theme: 'ww2', camZoom: 1.05,
-    terrain: { sx: 1, sz: 1, sc: 1.9, pond: false },
+    terrain: { sx: 1, sz: 1, sc: 1.9, pond: false, shape: 'shatter' },
+    sky: { dayBg: '#9A968A', daySun: '#D8D2C0', daySunInt: 1.8, dayHemi: '#A8A498', dayGnd: '#6A6858', dayExp: .95, nightBg: '#0C0E12', fog: [60, 200] },
     laneIds: ['A', 'B', 'C', 'D'],
     boss: BOSS_DEFS.landship, bosses: [BOSS_DEFS.landship, BOSS_DEFS.acewing],
     decor() {
@@ -382,7 +396,8 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'moon' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'moon', shape: 'round' },
+    sky: { dayBg: '#0A0D1A', daySun: '#F0F4FF', daySunInt: 3, dayHemi: '#2A3450', dayGnd: '#3A4050', dayExp: 1.05, nightBg: '#05070F', nightHemi: '#0E1428', fog: [90, 300] },
     castleStyle: 'crystal', theme: 'crystal', slotXform: 'rot90',
     sub: { slime: 'moonling' },
     boss: BOSS_DEFS.starspawn, bosses: [BOSS_DEFS.starspawn, BOSS_DEFS.tyrantking],
@@ -431,6 +446,11 @@ const MAPS = {
       }
       const earth = place(ART.earthArt(), -6, -4);
       earth.position.y = 32;
+      for (let i = 0; i < 40; i++) { // stars, even at noon — there is no air here
+        const st = ART.glow('#FFFFFF', .5 + Math.random() * .5, .55, .85, Math.random() < .3);
+        st.position.set(25 + (Math.random() - .5) * 110, 20 + Math.random() * 26, 25 + (Math.random() - .5) * 110);
+        mapGroup.add(st);
+      }
       place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
       place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
       place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
@@ -447,7 +467,8 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'abyss' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'abyss', shape: 'ripple' },
+    sky: { dayBg: '#1E4A5E', daySun: '#7BC5E3', daySunInt: 1.7, dayHemi: '#2E6E7E', dayGnd: '#1E4A46', dayExp: .95, nightBg: '#0A2028', nightSun: '#3E7D8A', fog: [35, 130] },
     castleStyle: 'coral', theme: 'coral', slotXform: 'mirrorZ',
     sub: { slime: 'crab', wasp: 'jelly' },
     boss: BOSS_DEFS.maw, bosses: [BOSS_DEFS.maw, BOSS_DEFS.jellyqueen],
@@ -512,7 +533,8 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ice' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ice', shape: 'cross' },
+    sky: { dayBg: '#DDE8F2', daySun: '#E8F0FF', daySunInt: 2.8, dayHemi: '#D8E4F0', dayExp: 1.15, nightBg: '#101A2E', fog: [60, 210] },
     sub: { slime: 'iceling' },
     boss: BOSS_DEFS.yeti, bosses: [BOSS_DEFS.yeti, BOSS_DEFS.tyrantking],
     slots: [
@@ -572,7 +594,8 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'jungle' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'jungle', shape: 'jungle' },
+    sky: { dayBg: '#9CC8A8', daySun: '#F4E8AC', daySunInt: 2.2, dayHemi: '#A8D0B0', dayGnd: '#4E7A48', nightBg: '#0A1610', fog: [50, 170] },
     castleStyle: 'vine', theme: 'vine', merchant: true, slotXform: 'rot90',
     sub: { runner: 'panther' },
     boss: BOSS_DEFS.vinehorror, bosses: [BOSS_DEFS.vinehorror, BOSS_DEFS.warlord],
@@ -634,7 +657,8 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ash' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ash', shape: 'volcanic' },
+    sky: { dayBg: '#4A3230', daySun: '#FFB35C', daySunInt: 2.2, dayHemi: '#5E4038', dayGnd: '#3A2A24', dayExp: 1.0, nightBg: '#1A0E0C', nightSun: '#B06040', fog: [50, 170] },
     castleStyle: 'magma', theme: 'magma', merchant: true, slotXform: 'mirrorZ',
     sub: { slime: 'cinderling' },
     boss: BOSS_DEFS.magmalord, bosses: [BOSS_DEFS.magmalord, BOSS_DEFS.tyrantking],
@@ -700,7 +724,8 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'dune' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'dune', shape: 'drift' },
+    sky: { dayBg: '#E8C88E', daySun: '#FFE7C0', daySunInt: 3, dayHemi: '#F0D8A8', dayGnd: '#C0A068', dayExp: 1.2, nightBg: '#141020', fog: [70, 230] },
     castleStyle: 'dune', theme: 'dune', merchant: true, slotXform: 'rot90',
     sub: { slime: 'scarab' },
     boss: BOSS_DEFS.wyrm, bosses: [BOSS_DEFS.wyrm, BOSS_DEFS.warlord],
@@ -761,7 +786,8 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'sky' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'sky', shape: 'shard' },
+    sky: { dayBg: '#BFE4FF', daySun: '#FFFFFF', daySunInt: 3, dayHemi: '#CFEAFF', dayExp: 1.25, nightBg: '#0E1830', fog: [80, 260] },
     castleStyle: 'crystal', theme: 'crystal', merchant: true, slotXform: 'mirrorX',
     sub: { wasp: 'sprite' },
     boss: BOSS_DEFS.roc, bosses: [BOSS_DEFS.roc, BOSS_DEFS.starspawn],
@@ -821,9 +847,7 @@ function onLand(u, v) {
   const rr = Math.hypot(x, z);
   if (rr < 12 * sc) return true;
   const th = Math.atan2(z, x);
-  const base = 24 / Math.pow(Math.max(Math.abs(Math.cos(th)), Math.abs(Math.sin(th))), 0.72);
-  const wob = Math.sin(th * 3 + 1.7) * 1.1 + Math.sin(th * 5 + .4) * .7 + Math.sin(th * 8 + 2.9) * .45;
-  return rr <= (base + wob) * sc + .8; // riders may reach the wet sand, not the waves
+  return rr <= ART.coastRadius(th, t.shape) * sc + .8; // riders may reach the wet sand, not the waves
 }
 function blockedBy(u, v) { // stone and timber stop a horse; crops and open gates do not
   if (Math.hypot(u - 25, v - 24) < 3.4) return true; // the keep itself
@@ -870,6 +894,7 @@ function loadMap(id) {
   const def = MAPS[id] || MAPS.nordfels;
   MAP = def; S.map = def.id;
   ART.setTheme(def.theme || null);
+  applySky(def.sky);
   HILLS = [];
   try { localStorage.tf_map = def.id; } catch { /* private mode */ }
   if (mapGroup) scene.remove(mapGroup);
@@ -1199,6 +1224,7 @@ function pool(n, maker) {
   return { take() { const o = items.find(x => !x.visible); if (o) o.visible = true; return o; }, all: items };
 }
 const arrowPool = pool(50, ART.arrowMesh), coinPool = pool(48, ART.coinMesh), poofPool = pool(14, ART.poofMesh);
+const meteorPool = pool(2, ART.meteorMesh);
 function domPool(n, cls) {
   const layer = $('#floatLayer'), items = [];
   for (let i = 0; i < n; i++) { const el = document.createElement(cls === 'ehp' ? 'div' : 'span'); el.className = cls; if (cls === 'ehp') el.innerHTML = '<i></i>'; layer.appendChild(el); items.push(el); }
@@ -1283,6 +1309,12 @@ function updateFx(dt) {
     if (f.t < 0) continue;
     if (f.kind === 'dmg') { const p = proj(f.x, f.y + k * 1.6, f.z); f.el.style.left = p.x + 'px'; f.el.style.top = p.y + 'px'; f.el.style.opacity = 1 - k; }
     if (f.kind === 'poof') { const s = .4 + (f.big ? 3.4 : 1.8) * k; f.m.scale.setScalar(s); f.m.material.opacity = .9 * (1 - k); }
+    if (f.kind === 'meteor') {
+      _a.lerpVectors(f.from, f.to, k);
+      f.m.position.copy(_a);
+      f.m.rotation.x += dt * 9; f.m.rotation.y += dt * 7;
+      if (k >= 1 && !f.done) { f.done = true; f.hit && f.hit(); }
+    }
     if (f.kind === 'die') { // squash into the ground, splaying wide
       f.mesh.scale.set(1 + k * .8, Math.max(.04, 1 - k * 1.05), 1 + k * .8);
       if (f.fly) f.mesh.position.y = -1.5 * k * k;
@@ -1673,10 +1705,9 @@ function startNight() {
   N.towers.push({ u: 25, v: 24, z: 9.5, cd: .8, castle: true,
     spec: { range: 11, rate: S.castleLvl >= 4 ? .5 : S.castleLvl >= 3 ? .7 : 1.1, dmg: S.castleLvl >= 4 ? 4 : S.castleLvl >= 2 ? 3 : 2 } });
   if (ACH.golem) spawnUnit(25 + 2.5, 28.8, 'golem', 0); // the stone friend keeps its vigil
-  if (S._mercs) { for (let i = 0; i < S._mercs; i++) spawnUnit(23 + i * 1.4, 30.5, 'knight', 2); S._mercs = 0; }
-  N.trapsLeft = S._traps || 0; S._traps = 0;
-  if (S._powder) { N.towers.forEach(t => t.spec = { ...t.spec, dmg: t.spec.dmg + 1 }); S._powder = false; }
-  N.bellSlow = S._bell ? .88 : 1; S._bell = false;
+  if (S._guard) { spawnUnit(K.u + 1.2, K.v + 1, 'guard', 0); const g = N.units[N.units.length - 1]; g.alwaysFollow = true; g.following = true; }
+  if (ballistaMesh) N.towers.push({ id: '_ballista', u: 28.5, v: 27.5, z: 1.6, cd: 1, spec: { range: 16, rate: 2.4, dmg: 6 } });
+  N.bellSlow = 1;
   N.serpentAt = (MAP.serpent && S.serpent && !S.serpent.slain && S.day >= 4) ? 8 + Math.random() * 10 : 0;
   N.serp = null;
   N.sabAt = (MAP.saboteur && S.day >= 3 && N.bldgs.length) ? 10 + Math.random() * 14 : 0;
@@ -1704,11 +1735,13 @@ function startNight() {
 function spawnUnit(u, v, kind) {
   const specs = { knight: { range: 1.9, rate: .7, dmg: 1, hp: 5 }, berserk: { range: 1.9, rate: .8, dmg: 2, hp: 4 },
     longbow: { range: 13, rate: 1.15, dmg: 1, hp: 2 }, fire: { range: 9, rate: 1.2, dmg: 1, splash: 1.7, hp: 2 },
-    golem: { range: 2.2, rate: 1.4, dmg: 4, hp: 30 } };
+    golem: { range: 2.2, rate: 1.4, dmg: 4, hp: 30 },
+    guard: { range: 2, rate: .6, dmg: 2, hp: 15 } };
   const sp = { ...specs[kind] };
   if (hasPerk('discipline')) { sp.hp += 2; sp.rate *= .85; }
   sp.hp += arguments[3] || 0; // veteran bonus
   const mesh = kind === 'golem' ? ART.golemArt()
+    : kind === 'guard' ? ART.guardArt()
     : kind === 'knight' || kind === 'berserk' ? ART.knightArt(kind, MAP.skin) : ART.archerArt(kind, MAP.skin);
   mesh.position.set(u, 0, v); mesh.rotation.y = Math.random() * 6; scene.add(mesh);
   const ring = ART.ringMesh(.55, '#F0B429', .75); // lights up while this soldier rides with the king
@@ -1754,7 +1787,6 @@ function spawnEnemy(spec) {
     boss: isBoss, brood: isBoss ? (T.brood || 0) : 0, broodT: 4, broodType: T.broodType || 'wasp' };
   const sw = !isBoss && SWAG[type];
   if (sw) { e.sw = sw[0]; e.swf = sw[1]; e.surge = sw[2]; e.swBase = (Math.random() - .5) * 1.6; }
-  if (N.trapsLeft > 0 && !isBoss && !spec.raid) { N.trapsLeft--; e.trapAt = e.lane.total * (.35 + Math.random() * .25); }
   if (spec.raid && !isBoss) { // a raider veers off the road toward gold on its own flank
     const st = LANES[spec.lane].start;
     const targets = N.bldgs.filter(g => !g.dead && (INCOME_T.has(g.type) || S.day >= 6))
@@ -2083,7 +2115,16 @@ function simTick(dt) {
         if (chiefPos.some(c => Math.hypot(c.u - pp.u, c.v - pp.v) < 5)) mult *= 1.3;
       }
       e.d = Math.min(stop, e.d + e.speed * mult * dt);
-      if (e.trapAt && e.d >= e.trapAt) { e.trapAt = 0; poof(p0.u, .4, p0.v, true); sfx.kill(false); hurt(e, 999); }
+      for (const tp of trapPosts) {
+        if (!tp.armed || tp.lane !== e.laneId || e.fly || e.boss) continue;
+        if (e.d >= tp.d - .3 && e.d <= tp.d + 1.2) {
+          tp.armed = false;
+          mapGroup.remove(tp.mesh);
+          poof(p0.u, .4, p0.v, true); sfx.kill(false);
+          hurt(e, 999);
+          break;
+        }
+      }
     }
     else if (wall) {
       e.atkCd -= dt;
@@ -2170,7 +2211,8 @@ function simTick(dt) {
        melee runs it down, archers advance into firing positions; Hold returns to the post.
        Leaving Follow plants a new post wherever each soldier stands — that is how you re-station troops. */
     let tx = null, tz = null, sp = 0, stopAt = .3;
-    if (follow) {
+    if (un.alwaysFollow && !K.down) { tx = K.u + Math.cos(un.fo) * 1.6; tz = K.v + Math.sin(un.fo) * 1.6; sp = 9.5; }
+    else if (follow) {
       /* riding close recruits a soldier into the king's retinue */
       if (!un.following && !K.down && Math.hypot(un.u - K.u, un.v - K.v) < 5.5) { un.following = true; poof(un.u, .9, un.v); }
       if (un.following && !K.down) { tx = K.u + Math.cos(un.fo) * un.fr; tz = K.v + Math.sin(un.fo) * un.fr; sp = 8.5; }
@@ -2424,6 +2466,10 @@ function resetRun() {
   S.castleLvl = 1; S.castleMax = 15 + (hasPerk('masonry') ? 8 : 0); S.castleHP = S.castleMax;
   S.serpent = MAP.serpent ? { hp: 140, max: 140, slain: false } : null;
   S._saga = false;
+  S._meteor = 0; S._guard = false;
+  if (typeof refreshScroll === 'function') try { refreshScroll(); } catch { /* pre-dom */ }
+  if (ballistaMesh) { mapGroup.remove(ballistaMesh); ballistaMesh = null; }
+  trapPosts.forEach(tp => mapGroup.remove(tp.mesh)); trapPosts = [];
   if (typeof CHEAT !== 'undefined') { // the crown's testing boons persist into the run
     if (CHEAT.gold) S.gold += CHEAT.gold;
     if (CHEAT.god) { S.castleMax = 999; S.castleHP = 999; K.max = 200; K.hp = 200; }
@@ -2543,6 +2589,7 @@ document.addEventListener('keydown', e => {
     } else (nearSlot.castle || S.builds[nearSlot.id]) ? slotAction(nearSlot) : tryBuild(nearSlot);
   }
   else if (k === 'q' && S.phaseName === 'night' && !anyOverlay()) useQ();
+  else if (k === 'r' && S.phaseName === 'night' && !anyOverlay()) castMeteor();
   else if (k === 'e' && S.phaseName === 'night' && !anyOverlay()) useHorn();
   else if (['1', '2', '3'].includes(e.key) && S.phaseName === 'night') $$('.tchip')[+e.key - 1].click();
   else if (k === 'm') {
@@ -2598,9 +2645,7 @@ function drawMini() {
   X.beginPath();
   for (let i = 0; i <= 72; i++) {
     const th = i / 72 * Math.PI * 2, c = Math.cos(th), s2 = Math.sin(th);
-    const base = 24 / Math.pow(Math.max(Math.abs(c), Math.abs(s2)), 0.72);
-    const wob = Math.sin(th * 3 + 1.7) * 1.1 + Math.sin(th * 5 + .4) * .7 + Math.sin(th * 8 + 2.9) * .45;
-    const r = (base + wob) * sc;
+    const r = ART.coastRadius(th, t.shape) * sc;
     const [mx, my] = px(25 + r * c * sx, 25 + r * s2 * sz);
     i ? X.lineTo(mx, my) : X.moveTo(mx, my);
   }
@@ -2775,12 +2820,51 @@ $('#cheatGo2').addEventListener('click', () => {
 
 /* the wandering merchant of the far realms */
 const MERCH_POOL = [
-  { id: 'merc', ic: '⚔️', n: 'Sellsword Band', d: 'Three veteran knights fight for you tonight', c: 6 },
-  { id: 'trap', ic: '🪤', n: 'Bear Traps', d: 'The first 4 invaders down the roads are snared and slain', c: 7 },
+  { id: 'meteor', ic: '☄️', n: 'Meteor Scroll', d: 'A castable star — press R at night to bring fire down (2 charges)', c: 8 },
+  { id: 'guard', ic: '🛡️', n: 'Royal Bodyguard', d: 'A gilded champion shadows the King every night of this run', c: 7 },
+  { id: 'ballista', ic: '🏹', n: 'Ballista Emplacement', d: 'A war machine raised by the keep — fires all run, far and hard', c: 9 },
+  { id: 'trap', ic: '🪤', n: 'Bear Traps', d: 'Iron teeth staked on every road — each snaps one invader dead', c: 7 },
   { id: 'tonic', ic: '🧪', n: 'Hearth Tonic', d: 'The King gains +6 max HP for this run', c: 5 },
-  { id: 'powder', ic: '🧨', n: 'Blast Powder', d: 'Every tower strikes +1 harder tonight', c: 6 },
-  { id: 'bell', ic: '🔔', n: 'Warning Bell', d: 'Tonight the horde marches 12% slower', c: 4 },
 ];
+let ballistaMesh = null;
+let trapPosts = []; // { lane, d, mesh, armed }
+function placeTraps() {
+  for (const lid of MAP.laneIds) {
+    const d = LANES[lid].total * .55;
+    const p = LANES[lid].at(d);
+    const m = place(ART.trapArt(), p.u, p.v);
+    trapPosts.push({ lane: lid, d, mesh: m, armed: true });
+  }
+  sfx.build();
+}
+function refreshScroll() {
+  const el = $('#abScroll');
+  el.style.display = (S._meteor || 0) > 0 ? 'grid' : 'none';
+  $('#scrollN').textContent = S._meteor || 0;
+}
+function castMeteor() {
+  if (!N || N.over || !(S._meteor > 0)) return;
+  const e = nearestEnemy(K.u, K.v, 18) || nearestEnemy(25, 24, 18);
+  if (!e) { flashBanner('NO TARGET UNDER THE SKY'); return; }
+  S._meteor--; refreshScroll();
+  const p = epos(e);
+  const m = meteorPool.take();
+  if (m) {
+    sfx.roar();
+    fxAdd({ kind: 'meteor', m, from: new THREE.Vector3(p.u + 8, 26, p.v + 6), to: new THREE.Vector3(p.u, .4, p.v), t: 0, dur: .6,
+      hit: () => {
+        poof(p.u, .6, p.v, true); poof(p.u, 2, p.v, true); poof(p.u + 1, .5, p.v - 1, true);
+        sfx.slam();
+        if (S.settings.shake && !matchMedia('(prefers-reduced-motion: reduce)').matches) shakeT = .45;
+        for (const o of [...N.enemies]) {
+          if (o.dead || o.serpent) continue;
+          const q = epos(o);
+          if (Math.hypot(q.u - p.u, q.v - p.v) < 4.2) hurt(o, 12);
+        }
+      } });
+  }
+}
+$('#abScroll').addEventListener('click', castMeteor);
 function openMerchant() {
   if (S.view !== 'game' || S.phaseName !== 'day' || anyOverlay()) return; // he waits politely outside
   const offers = [...MERCH_POOL].sort(() => Math.random() - .5).slice(0, 3);
@@ -2792,11 +2876,15 @@ function openMerchant() {
     const el = b.closest('.aitem'), id = el.dataset.mc, c = +el.dataset.c;
     if (S.gold < c) { sfx.error(); return; }
     S.gold -= c; refreshDayHUD(); sfx.upgrade();
-    if (id === 'merc') S._mercs = 3;
-    if (id === 'trap') S._traps = 4;
+    if (id === 'meteor') { S._meteor = (S._meteor || 0) + 2; refreshScroll(); }
+    if (id === 'guard') S._guard = true;
+    if (id === 'ballista' && !ballistaMesh) {
+      ballistaMesh = place(ART.ballistaArt(), 28.5, 27.5, -.6);
+      ballistaMesh.position.y = heightAt(28.5, 27.5);
+      poof(28.5, .5, 27.5); sfx.build();
+    }
+    if (id === 'trap') placeTraps();
     if (id === 'tonic') { K.max += 6; K.hp = K.max; }
-    if (id === 'powder') S._powder = true;
-    if (id === 'bell') S._bell = true;
     b.textContent = 'SOLD'; b.disabled = true;
   }));
 }
