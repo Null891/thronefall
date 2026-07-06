@@ -15,22 +15,33 @@ Not affiliated with Grizzly Games or Mythwright.
 
 ## Play
 
-- **Pick a weapon on the menu** — Spear (swift jabs), Longbow (fights at range), or Warhammer
-  (slow crushing sweeps with splash) — each with its own **Q** ability
-- **WASD / arrows** — ride the King (screen-relative)
+- **Pick your loadout on the menu** — a map (Nordfels, or **Leviathan** once you've survived
+  3 nights), a rider (King Aldric · Lady Maren and her falcon · stout Grimbold), a weapon
+  (Spear / Longbow / Warhammer, each with its own **Q** ability), and two **royal edicts**
+- **WASD / arrows** — ride (screen-relative)
 - **E** — build or upgrade at the nearest slot (or click any building / the castle)
-- **Space** — begin the night
-- **Q** — weapon ability · **E** — rally horn (at night)
-- **1 / 2 / 3** — troop stance (Hold / Charge / **Follow Me**) · **Esc** — pause · **M** — mute
+- **Space** — begin the night · **Q** — weapon ability · **E** — rally horn
+- **1 / 2 / 3** — troop orders (Hold / Charge / **Follow Me**) · **Esc** — pause · **M** — mute
 
 **Taxes lie in the streets.** At dawn every building spills its coins on the ground — ride close
 and they leap into your purse. Barrel Knights and Ogres drop loot mid-battle too. Anything left
 uncollected sweeps itself in when night falls.
 
-**Commanding troops.** Switch to *Follow Me* (3) and your soldiers gather around the King; ride
-anywhere on the island, then switch back to *Hold* (1) to station them right there. *Charge* (2)
-sends melee troops hunting the nearest enemy. Soldiers standing in the road **body-block the
-horde** — enemies stop and brawl — but soldiers can fall; more muster at the next nightfall.
+**Commanding troops.** *Follow Me* (3) gathers only the soldiers **around the King** — ride past
+others to add them to the retinue — then *Hold* (1) stations the whole party right where it stands.
+*Charge* (2) sends melee hunting across the whole field while archers advance to firing positions.
+Soldiers in the road **body-block the horde**, and **palisade walls** (a buildable slot on every
+road) stop it cold until battered down; masons repair them at dawn. Fallen soldiers muster again
+at nightfall.
+
+**The Armory.** Every night survived banks **crowns** (double on boss nights). Spend them on the
+menu for permanent unlocks: the **Frost Staff** (chilling bolts, Q = Blizzard), the **Royal Seal**
+(a third edict slot), two new edicts, and the **Royal Bastion** fourth castle tier.
+
+**Bosses & the deep.** Every 5th night a boss marches — the Ogre Warlord on Nordfels, the
+Broodmother on Leviathan. Nights 8+ bring wall-ignoring **Shades**; war chiefs drive the horde
+from night 10, and surviving ten nights earns your saga screen. And on Leviathan, from night 4…
+watch the water.
 
 **Endless campaign.** Nights 1–3 are authored; from night 4 the horde scales forever (runners from
 night 4, spitters from night 6, ogre packs every 3rd night, +18% enemy HP per night past 3). From

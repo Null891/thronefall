@@ -107,6 +107,8 @@ export const sfx = {
     tone(sfxBus, { f: 320, bend: 540, type: 'triangle', a: .01, d: .2, v: .16 }); },
   slam()    { tone(sfxBus, { f: 75, bend: 40, type: 'sine', a: .005, d: .45, v: .5 });
     noise(sfxBus, { d: .3, v: .3, fc: 300, bend: 80, type: 'lowpass' }); },
+  command() { tone(sfxBus, { f: 392, type: 'sawtooth', a: .01, d: .18, v: .11, fc: 1600 });
+    tone(sfxBus, { f: 523, t: .09, type: 'sawtooth', a: .01, d: .22, v: .09, fc: 1600 }); },
   horn()    { [262, 330, 392].forEach(f => {
     tone(sfxBus, { f, type: 'sawtooth', a: .06, d: .85, v: .12, fc: 1400 });
     tone(sfxBus, { f: f * 1.006, type: 'sawtooth', a: .09, d: .85, v: .08, fc: 1200 }); }); },
@@ -118,6 +120,10 @@ export const sfx = {
   defeat()  { [330, 311, 262, 196].forEach((f, i) => tone(sfxBus, { f, t: i * .22, type: 'sawtooth', a: .02, d: .55, v: .14, fc: 1100 })); },
   error()   { tone(sfxBus, { f: 160, type: 'square', a: .004, d: .13, v: .12 });
     tone(sfxBus, { f: 151, type: 'square', a: .004, d: .13, v: .09 }); },
+  roar()    { tone(sfxBus, { f: 58, bend: 130, type: 'sawtooth', a: .12, d: 1.6, v: .4, fc: 460 });
+    noise(sfxBus, { d: 1.4, v: .3, fc: 360, bend: 90, type: 'lowpass' }); },
+  freeze()  { [1568, 1245, 988, 784].forEach((f, i) => tone(sfxBus, { f, t: i * .06, type: 'sine', a: .004, d: .5, v: .11 }));
+    noise(sfxBus, { d: .7, v: .16, fc: 5200, bend: 2100, q: 2 }); },
 };
 
 /* ---------- generative score: gentle folk plucks by day, drone + heartbeat by night ---------- */

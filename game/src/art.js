@@ -107,40 +107,45 @@ function flag(color, s = 1) {
 }
 
 /* ---------- terrain ---------- */
-function coastShape(grow) {
+function coastShape(grow, sx = 1, sz = 1) {
   const pts = [];
   for (let i = 0; i < 72; i++) {
     const th = i / 72 * Math.PI * 2, c = Math.cos(th), s = Math.sin(th);
     const base = 24 / Math.pow(Math.max(Math.abs(c), Math.abs(s)), 0.72);
     const wob = Math.sin(th * 3 + 1.7) * 1.1 + Math.sin(th * 5 + .4) * .7 + Math.sin(th * 8 + 2.9) * .45;
     const r = base + wob + grow;
-    pts.push(new THREE.Vector2(25 + r * c, -(25 + r * s)));
+    pts.push(new THREE.Vector2(25 + r * c * sx, -(25 + r * s * sz)));
   }
   return new THREE.Shape(pts);
 }
-function blob(grow, depth, mat, topY) {
-  const geo = new THREE.ExtrudeGeometry(coastShape(grow), { depth, bevelEnabled: false });
+function blob(grow, depth, mat, topY, sx, sz) {
+  const geo = new THREE.ExtrudeGeometry(coastShape(grow, sx, sz), { depth, bevelEnabled: false });
   geo.rotateX(-Math.PI / 2);
   geo.translate(0, topY - depth, 0);
   const o = new THREE.Mesh(geo, mat);
   o.receiveShadow = true; o.castShadow = false;
   return o;
 }
-export function buildTerrain(scene, LANE_A_PTS, LANE_B_PTS) {
-  const sea = mesh(new THREE.PlaneGeometry(500, 500), mats.water, 25, 0, 25, false);
-  sea.rotation.x = -Math.PI / 2; sea.position.y = -.55; scene.add(sea);
-  const shallow = blob(3.4, .1, new THREE.MeshStandardMaterial({ color: '#9AD4EA', transparent: true, opacity: .45, roughness: .5 }), -.42);
+let seaMesh = null; // the open sea persists across maps
+export function buildTerrain(group, lanes, opts = {}) {
+  const { sx = 1, sz = 1, pond = true } = opts;
+  if (!seaMesh) {
+    seaMesh = mesh(new THREE.PlaneGeometry(500, 500), mats.water, 25, 0, 25, false);
+    seaMesh.rotation.x = -Math.PI / 2; seaMesh.position.y = -.55;
+  }
+  if (!seaMesh.parent) group.parent?.add(seaMesh);
+  const shallow = blob(3.4, .1, new THREE.MeshStandardMaterial({ color: '#9AD4EA', transparent: true, opacity: .45, roughness: .5 }), -.42, sx, sz);
   REG.push({ m: shallow.material, d: new THREE.Color('#9AD4EA'), n: new THREE.Color('#3C5D88') });
-  scene.add(shallow);
-  scene.add(blob(1.1, .6, mats.sand, -.06));
-  scene.add(blob(0, 2.6, mats.grass, 0));
+  group.add(shallow);
+  group.add(blob(1.1, .6, mats.sand, -.06, sx, sz));
+  group.add(blob(0, 2.6, mats.grass, 0, sx, sz));
   /* meadow patches */
   for (const [u, v, r] of [[14,20,3],[33,36,4],[24,10,2.5],[40,20,3],[10,37,2.6]]) {
-    const p = cyl(r, r, .04, 24, mats.grassLt, u, .02, v); p.castShadow = false; scene.add(p);
+    const p = cyl(r, r, .04, 24, mats.grassLt, u, .02, v); p.castShadow = false; group.add(p);
   }
   /* lanes as rounded plates */
-  const plate = (u, v, r, m, y) => { const p = cyl(r, r, .05, 14, m, u, y, v); p.castShadow = false; scene.add(p); };
-  for (const pts of [LANE_A_PTS, LANE_B_PTS]) {
+  const plate = (u, v, r, m, y) => { const p = cyl(r, r, .05, 14, m, u, y, v); p.castShadow = false; group.add(p); };
+  for (const pts of lanes) {
     for (let i = 0; i < pts.length - 1; i++) {
       const [au, av] = pts[i], [bu, bv] = pts[i + 1];
       const n = Math.ceil(Math.hypot(bu - au, bv - av) / .9);
@@ -151,13 +156,14 @@ export function buildTerrain(scene, LANE_A_PTS, LANE_B_PTS) {
     }
   }
   plate(25, 27.4, 3.1, mats.sand, .035); plate(25, 27.4, 2.55, mats.path, .06);
-  /* pond */
-  plate(43, 37, 4.3, mats.sand, .03);
-  const pond = cyl(3.9, 3.9, .05, 24, mats.waterLt, 43, .05, 37); pond.castShadow = false; scene.add(pond);
+  if (pond) {
+    plate(43, 37, 4.3, mats.sand, .03);
+    const pd = cyl(3.9, 3.9, .05, 24, mats.waterLt, 43, .05, 37); pd.castShadow = false; group.add(pd);
+  }
   /* flowers */
   for (const [u, v] of [[12,18],[18,13.5],[30,10],[37,15],[40,28],[35,41],[24,40],[13,38],[8,30],[28,36.5],[20,19],[31,31.5]]) {
-    scene.add(cyl(.09, .09, .3, 5, mWhite, u, 0, v));
-    scene.add(cyl(.08, .08, .24, 5, mGold, u + .5, 0, v - .3));
+    group.add(cyl(.09, .09, .3, 5, mWhite, u, 0, v));
+    group.add(cyl(.08, .08, .24, 5, mGold, u + .5, 0, v - .3));
   }
   /* fireflies — drift over the meadows, night only */
   let seed = 9;
@@ -165,12 +171,12 @@ export function buildTerrain(scene, LANE_A_PTS, LANE_B_PTS) {
   for (let i = 0; i < 14; i++) {
     const u = 7 + rnd() * 36, v = 7 + rnd() * 36, ph = rnd() * 9, sp = .6 + rnd();
     const s = glow('#FFD97A', .8 + rnd() * .5, 0, .8, true);
-    scene.add(s);
+    group.add(s);
     ANIMS.push((t) => {
+      if (!s.parent) return;
       s.position.set(u + Math.sin(t * sp * .5 + ph) * 2.2, 1 + Math.sin(t * sp + ph * 2) * .5, v + Math.cos(t * sp * .4 + ph) * 2.2);
     });
   }
-  return { sea };
 }
 
 /* ---------- flora & rocks ---------- */
@@ -267,14 +273,16 @@ export function castleArt() {
 }
 
 /* ---------- buildings ---------- */
-export function houseArt(upg) {
-  const g = new THREE.Group(); const hh = upg ? 2.3 : 1.7;
+export function houseArt(upg, manor) {
+  const g = new THREE.Group(); const hh = manor ? 2.9 : upg ? 2.3 : 1.7;
   g.add(box(2.7, hh, 2, mats.cream));
-  g.add(prismRoof(2.1, 1.6, 1.5, mats.roof, 0, hh, 0));
+  g.add(prismRoof(2.1, 1.6, 1.5, manor ? mats.roofB : mats.roof, 0, hh, 0));
   g.add(box(.6, .95, .12, mats.dark, .3, 0, 1.02));
   g.add(box(.55, .55, .1, windowMat(), -.7, hh - 1, 1.02));
+  if (manor) g.add(box(.55, .55, .1, windowMat(), .55, hh - 1.9, 1.02));
   const gw = glow('#FFD97A', 1.9, 0, .45); gw.position.set(-.7, hh - .75, 1.2); g.add(gw);
-  if (upg) { const f = flag(CONST.gold, .9); f.position.set(-.9, hh + .6, -.5); g.add(f); }
+  if (upg) { const f = flag(manor ? CONST.threat : CONST.gold, .9); f.position.set(-.9, hh + .6, -.5); g.add(f); }
+  if (manor) g.add(box(3, .25, 2.3, mGold, 0, hh - .1, 0));
   return g;
 }
 export function millArt() {
@@ -296,12 +304,17 @@ export function fieldArt() {
   for (let i = 0; i < 3; i++) g.add(box(2.6, .32, .5, mats.wheat, 0, 0, -.85 + i * .85));
   return g;
 }
-export function mineArt() {
+export function mineArt(deep) {
   const g = new THREE.Group();
   g.add(cone(1.9, 2.3, 5, mats.stoneDk));
   g.add(box(.8, 1, .14, mats.dark, 0, 0, 1.15));
   g.add(mesh(new THREE.IcosahedronGeometry(.28, 0), mGold, 1.1, .18, 1.2));
   g.add(mesh(new THREE.IcosahedronGeometry(.2, 0), mGold, -1.15, .14, 1));
+  if (deep) { // deep shaft: pit-head frame and a richer seam
+    g.add(box(.2, 1.6, .2, mats.trunk, -.55, 0, 1.15)); g.add(box(.2, 1.6, .2, mats.trunk, .55, 0, 1.15));
+    g.add(box(1.4, .2, .3, mats.trunk, 0, 1.5, 1.15));
+    g.add(mesh(new THREE.IcosahedronGeometry(.24, 0), mGold, .2, 2, .3));
+  }
   return g;
 }
 export function harbourArt(upg) {
@@ -314,27 +327,36 @@ export function harbourArt(upg) {
   const b = boat(); b.scale.setScalar(.75); b.position.set(1.9, .3, .9); g.add(b);
   return g;
 }
-export function towerArt(upg) {
+export function towerArt(upg, mw) {
   const g = new THREE.Group(); const tall = upg === 'sniper' ? 1.3 : 0;
   g.add(cyl(.8, .92, 3.6 + tall, 8, mats.stone));
   if (upg === 'archer') g.add(cyl(.95, .95, .35, 8, mGold, 0, 2.1, 0));
+  if (upg === 'frost') {
+    g.add(cyl(.95, .95, .35, 8, MC('#9FD8F0', { glow: .5 }), 0, 2.1, 0));
+    const iceGw = glow('#9FD8F0', 2.6, .25, .7); iceGw.position.set(0, 4.6 + tall, 0); g.add(iceGw);
+  }
   g.add(cyl(1.05, 1.05, .4, 8, mats.stoneDk, 0, 3.6 + tall, 0));
-  g.add(cone(1.12, 1.8, 8, mats.roofB, 0, 4 + tall, 0));
+  g.add(cone(1.12, 1.8, 8, upg === 'frost' ? mats.snow : mats.roofB, 0, 4 + tall, 0));
   g.add(box(.3, .8, .1, windowMat(), 0, 2.2 + tall, .88));
   const gw = glow('#FFD97A', 2.2, 0, .5); gw.position.set(0, 2.6 + tall, 1.05); g.add(gw);
   if (upg === 'sniper') { const f = flag('#5FA8C9', .8); f.position.y = 5.6 + tall; g.add(f); }
+  if (mw) g.add(cone(.22, .6, 6, mGold, 0, 5.7 + tall, 0)); // masterwork finial
   g.userData.z = 4 + tall; // arrow launch height
   return g;
 }
-export function barracksArt() {
+export function barracksArt(_, vet) {
   const g = new THREE.Group();
   g.add(box(3.2, 1.9, 2.2, mats.wood));
   g.add(prismRoof(2.5, 1.8, 1.4, mats.roof, 0, 1.9, 0));
   g.add(box(.75, 1.1, .12, mats.dark, 0, 0, 1.12));
   const f = flag(CONST.threat, .95); f.position.set(1.3, 2.6, -.7); g.add(f);
+  if (vet) { // the veteran company hangs its shields on the wall
+    for (let i = 0; i < 3; i++) g.add(cyl(.26, .26, .08, 8, mSteel, -1 + i, 1.2, 1.14));
+    const f2 = flag(CONST.gold, .8); f2.position.set(-1.3, 2.5, -.7); g.add(f2);
+  }
   return g;
 }
-export function rangeArt() {
+export function rangeArt(_, guild) {
   const g = new THREE.Group();
   g.add(box(2.4, .7, 1.8, mats.wood));                    // shooting platform
   g.add(box(2.6, .18, 2, mats.cream, 0, .7, 0));
@@ -346,13 +368,52 @@ export function rangeArt() {
   face.add(cyl(.32, .32, .1, 12, mThreat));
   face.add(cyl(.12, .12, .12, 12, mWhite));
   const f = flag('#5FA8C9', .85); f.position.set(-1, .88, -.6); g.add(f);
+  if (guild) { // fletchers' guild: a second target and a gold pennant
+    const t2 = new THREE.Group(); t2.position.set(2.2, 0, -.8); t2.rotation.y = -.7; g.add(t2);
+    t2.add(cyl(.06, .06, .9, 5, mats.trunk));
+    const face2 = new THREE.Group(); face2.position.y = 1.15; face2.rotation.x = Math.PI / 2; t2.add(face2);
+    face2.add(cyl(.4, .4, .08, 12, mWhite));
+    face2.add(cyl(.24, .24, .1, 12, mGold));
+    const f2 = flag(CONST.gold, .7); f2.position.set(-1.6, .88, .4); g.add(f2);
+  }
+  return g;
+}
+export function roadWallArt(upg) {
+  const g = new THREE.Group(); const h = upg ? 2.7 : 1.9;
+  g.add(box(.85, h, 3.6, upg ? mats.stone : mats.wood));
+  for (let i = 0; i < 3; i++) g.add(box(.62, .5, .62, upg ? mats.stoneDk : mats.trunk, 0, h, -1.2 + i * 1.2));
+  if (upg) { g.add(box(1.15, 1, 1.15, mats.stoneDk, 0, 0, -2.05)); g.add(box(1.15, 1, 1.15, mats.stoneDk, 0, 0, 2.05)); }
+  else for (const z of [-1.9, 1.9]) { const p = cyl(.14, .17, 2.2, 5, mats.trunk, 0, 0, z); g.add(p); }
   return g;
 }
 export const BUILD_ART = { house: houseArt, mill: millArt, field: fieldArt, mine: mineArt,
-  harbour: harbourArt, tower: towerArt, barracks: barracksArt, range: rangeArt };
+  harbour: harbourArt, tower: towerArt, barracks: barracksArt, range: rangeArt, wall: roadWallArt };
+
+/* ---------- leviathan bones ---------- */
+export function ribArt(s = 1) {
+  const arc = mesh(new THREE.TorusGeometry(3.1 * s, .2 * s, 6, 14, Math.PI), mats.snow);
+  const g = new THREE.Group(); g.add(arc);
+  return g;
+}
+export function boneSpike(s = 1) {
+  const c = cone(.32 * s, 1.6 * s, 5, mats.snow);
+  c.rotation.z = (Math.random() - .5) * .5;
+  const g = new THREE.Group(); g.add(c);
+  return g;
+}
+export function skullArt(s = 1) {
+  const g = new THREE.Group();
+  const sk = mesh(new THREE.IcosahedronGeometry(2.4 * s, 1), mats.snow, 0, 1.9 * s, 0);
+  sk.scale.set(1.1, .92, 1.3); g.add(sk);
+  g.add(box(3 * s, .7 * s, 2 * s, mats.snow, 0, .1 * s, .8 * s));
+  g.add(box(.66 * s, .85 * s, .3 * s, mats.dark, -.85 * s, 2 * s, 2.15 * s));
+  g.add(box(.66 * s, .85 * s, .3 * s, mats.dark, .85 * s, 2 * s, 2.15 * s));
+  for (let i = 0; i < 5; i++) g.add(cone(.16 * s, .55 * s, 5, mats.snow, -1 * s + i * .5 * s, .35 * s, 1.75 * s));
+  return g;
+}
 
 /* ---------- characters ---------- */
-export function kingArt() {
+export function kingArt(char = 'aldric') {
   const g = new THREE.Group();
   const body = new THREE.Group(); g.add(body); g.userData.body = body;
   const h = new THREE.Group(); body.add(h);
@@ -363,11 +424,22 @@ export function kingArt() {
   h.add(box(.42, .28, .3, mHorse, .88, 1.28, 0));
   h.add(box(.3, .4, .06, mMane, .62, 1.05, 0));
   const tail = box(.1, .5, .1, mMane, -.72, .7, 0); tail.rotation.z = .5; h.add(tail);
-  body.add(box(.5, .18, .4, mThreat, 0, 1.12, 0));                  // saddle
+  const capeM = char === 'maren' ? MC('#3E8E9E', { glow: .12 }) : char === 'grimbold' ? MC('#8A5A3A', { glow: .08 }) : mThreat;
+  body.add(box(.5, .18, .4, capeM, 0, 1.12, 0));                    // saddle
   const k = new THREE.Group(); k.position.set(0, 1.28, 0); body.add(k);
-  k.add(mesh(new THREE.CapsuleGeometry(.22, .4, 3, 8), mThreat, 0, .4, 0));
+  k.add(mesh(new THREE.CapsuleGeometry(char === 'grimbold' ? .27 : .22, .4, 3, 8), capeM, 0, .4, 0));
   k.add(mesh(new THREE.SphereGeometry(.2, 8, 7), mSkin, 0, .92, 0));
-  k.add(cyl(.14, .17, .16, 6, mGold, 0, 1.05, 0));
+  if (char === 'maren') k.add(cone(.21, .32, 6, capeM, 0, 1.02, 0));                            // falconer's hood
+  else if (char === 'grimbold') { k.add(cyl(.19, .22, .22, 7, mSteel, 0, .98, 0)); k.add(box(.1, .55, .48, mSteel, -.32, .4, 0)); } // helm + shield
+  else k.add(cyl(.14, .17, .16, 6, mGold, 0, 1.05, 0));                                         // the crown
+  if (char === 'maren') { // her falcon rides the wind beside her
+    const falcon = new THREE.Group();
+    falcon.add(mesh(new THREE.SphereGeometry(.13, 6, 5), mWhite));
+    falcon.add(box(.5, .03, .14, mWhite, 0, .04, 0));
+    falcon.add(cone(.05, .14, 4, mGold, .16, 0, 0));
+    falcon.position.set(1.3, 2.3, 0);
+    g.add(falcon); g.userData.falcon = falcon;
+  }
   /* one prop per weapon; the game shows the chosen one */
   const spear = new THREE.Group(); spear.position.set(.3, .62, 0); spear.rotation.z = -.9; k.add(spear);
   spear.add(cyl(.03, .03, 1.5, 5, mMane));
@@ -378,8 +450,38 @@ export function kingArt() {
   const hammer = new THREE.Group(); hammer.position.set(.32, .6, 0); hammer.rotation.z = -.8; k.add(hammer);
   hammer.add(cyl(.045, .045, 1.1, 6, mMane));
   hammer.add(box(.34, .3, .3, mSteel, 0, .45, 0));
-  bow.visible = hammer.visible = false;
-  g.userData.weapons = { spear, bow, hammer };
+  const staff = new THREE.Group(); staff.position.set(.32, .6, 0); staff.rotation.z = -.5; k.add(staff);
+  staff.add(cyl(.035, .035, 1.4, 5, mMane));
+  staff.add(mesh(new THREE.OctahedronGeometry(.16, 0), MC('#9FD8F0', { glow: .9 }), 0, .82, 0));
+  bow.visible = hammer.visible = staff.visible = false;
+  g.userData.weapons = { spear, bow, hammer, staff };
+  return g;
+}
+
+/* ---------- the Leviathan itself — a sea titan that surfaces off the coast ---------- */
+export function serpentArt() {
+  const g = new THREE.Group();
+  const mSea = MC('#2E6E7E', { glow: .14 }), mBelly = MC('#8FCABB', { glow: .08 });
+  const head = new THREE.Group(); head.position.set(0, 3.4, 0); g.add(head); g.userData.head = head;
+  const skull = mesh(new THREE.IcosahedronGeometry(1.5, 0), mSea); skull.scale.set(1, .85, 1.4); head.add(skull);
+  head.add(box(1.4, .5, 1.7, mBelly, 0, -.65, .35));
+  head.add(mesh(new THREE.SphereGeometry(.19, 6, 5), MC('#85D671', { glow: 1.3 }), -.55, .35, 1));
+  head.add(mesh(new THREE.SphereGeometry(.19, 6, 5), MC('#85D671', { glow: 1.3 }), .55, .35, 1));
+  head.add(cone(.32, 1.1, 5, mSea, 0, 1.15, -.4));
+  const neck = cyl(.62, .85, 2.8, 7, mSea, 0, 1.7, -.7); neck.rotation.x = .35; g.add(neck);
+  const coils = [];
+  for (const [dz, s] of [[-3.4, 1.1], [-6.6, .85]]) {
+    const c = mesh(new THREE.TorusGeometry(1.5 * s, .55 * s, 7, 12, Math.PI), mSea, 0, 0, dz);
+    c.rotation.y = Math.PI / 2;
+    g.add(c); coils.push(c);
+  }
+  g.userData.coils = coils;
+  const tail = cone(.5, 1.7, 5, mSea, 0, .6, -9); tail.rotation.x = -.8; g.add(tail);
+  return g;
+}
+export function finArt() {
+  const g = new THREE.Group();
+  const f = cone(.45, 1.3, 4, mats.stoneDk); f.rotation.z = -.25; g.add(f);
   return g;
 }
 export function knightArt(kind) {
@@ -429,6 +531,20 @@ export function enemyArt(type) {
     const b = mesh(new THREE.IcosahedronGeometry(.42, 0), mThreat, 0, .34, 0); b.scale.y = .8; bodyG.add(b);
     bodyG.add(mesh(new THREE.SphereGeometry(.06, 5, 4), mats.dark, .15, .44, .3));
     bodyG.add(mesh(new THREE.SphereGeometry(.06, 5, 4), mats.dark, -.15, .44, .3));
+  } else if (type === 'shade') {
+    const mShade = new THREE.MeshStandardMaterial({ color: '#3A2E52', transparent: true, opacity: .78,
+      emissive: '#6B4FA0', emissiveIntensity: .5, flatShading: true, roughness: .9 });
+    const b = cone(.5, 1.3, 6, mShade, 0, .3, 0); bodyG.add(b);
+    bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), MC('#B9F0FF', { glow: 1.4 }), .16, 1.05, .3));
+    bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), MC('#B9F0FF', { glow: 1.4 }), -.16, 1.05, .3));
+    bodyG.position.y = 1;
+  } else if (type === 'chief') {
+    bodyG.add(cyl(.5, .55, 1.15, 8, mSteel, 0, 0, 0));
+    bodyG.add(cone(.5, .45, 8, mThreat, 0, 1.15, 0));
+    bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), mThreat, .18, .92, .46));
+    bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), mThreat, -.18, .92, .46));
+    const f = flag(CONST.threat, 1.1); f.position.set(-.45, .9, -.3); bodyG.add(f);
+    const drum = cyl(.24, .24, .3, 8, mats.wood, .55, .55, .2); drum.rotation.z = Math.PI / 2; bodyG.add(drum);
   } else if (type === 'spitter') {
     const mViolet = MC('#B07EC9', { glow: .3 });
     const b = mesh(new THREE.IcosahedronGeometry(.6, 0), mViolet, 0, .5, 0); b.scale.y = .9; bodyG.add(b);
@@ -442,6 +558,20 @@ export function enemyArt(type) {
     bodyG.add(mesh(new THREE.SphereGeometry(.09, 5, 4), mats.dark, -.22, 1.5, .78));
     const club = cyl(.13, .2, 1.5, 6, mats.trunk, 1.1, .9, 0); club.rotation.z = -.7; bodyG.add(club);
   }
+  return g;
+}
+
+export function bossArt(kind) {
+  if (kind === 'warlord') {
+    const g = enemyArt('ogre');
+    g.scale.setScalar(1.85);
+    g.userData.body.add(cyl(.36, .46, .36, 6, mGold, 0, 2.05, 0));
+    const f = flag(CONST.threat, 1.1); f.position.set(-.8, 1.6, -.5); g.userData.body.add(f);
+    return g;
+  }
+  const g = enemyArt('wasp'); // the Broodmother
+  g.scale.setScalar(2.1);
+  g.userData.body.add(cyl(.22, .3, .26, 6, mGold, .45, .38, 0));
   return g;
 }
 
@@ -494,10 +624,15 @@ export function castleTrim(lvl) {
   if (lvl === 2) {
     g.add(box(2.3, .28, 2.3, mGold, 0, 9.05, 0));
     g.add(box(4.3, .3, 4.3, mGold, 0, 5.5, 0));
-  } else {
+  } else if (lvl === 3) {
     for (const [x, z] of [[-2.35, -2.35], [2.35, -2.35], [-2.35, 2.35], [2.35, 2.35]])
       g.add(cone(.35, .8, 7, mGold, x, 6.9, z));
     const f = flag(CONST.threat, 1.1); f.position.set(1.2, 12.2, 0); g.add(f);
+  } else { // Lv 4 — the Royal Bastion
+    g.add(cone(1.95, 1.2, 8, mGold, 0, 12.1, 0));
+    for (const [x, z] of [[-2.35, 0], [2.35, 0], [0, -2.35], [0, 2.35]]) {
+      const f = flag(CONST.gold, .8); f.position.set(x, 6.6, z); g.add(f);
+    }
   }
   return g;
 }

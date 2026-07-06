@@ -141,14 +141,39 @@
   #menuScreen h1{font-family:'Cinzel',serif; font-weight:900; font-size:clamp(42px,7vw,84px); letter-spacing:.16em;
     color:#F6C95C; text-shadow:0 3px 0 #8A6207, 0 10px 30px rgba(20,16,10,.55); margin:2px 0 6px}
   #menuScreen .tag{font-size:13px; font-weight:800; letter-spacing:.3em; text-transform:uppercase; color:rgba(246,242,232,.9); margin-bottom:24px}
-  .wrow{display:flex; gap:10px; justify-content:center; margin-bottom:24px}
-  .wcard{display:flex; flex-direction:column; align-items:center; gap:3px; width:138px; cursor:pointer;
-    background:#1A1622; border:2px solid #3A3049; border-radius:12px; padding:10px 8px; color:#F6F2E8; font-family:inherit}
-  .wcard .ic{font-size:26px; line-height:1.2}
-  .wcard b{font-size:13px; letter-spacing:.05em}
-  .wcard .d{font-size:10px; opacity:.7; line-height:1.35}
-  .wcard:hover{border-color:#F0B429}
-  .wcard.on{border-color:#F0B429; box-shadow:0 0 14px rgba(240,178,41,.25)}
+  .wrow{display:flex; gap:10px; justify-content:center; margin-bottom:14px}
+  .wcard,.ccard{display:flex; flex-direction:column; align-items:center; gap:3px; width:138px; cursor:pointer;
+    background:#1A1622; border:2px solid #3A3049; border-radius:12px; padding:9px 8px; color:#F6F2E8; font-family:inherit}
+  .wcard .ic,.ccard .ic{font-size:24px; line-height:1.2}
+  .wcard b,.ccard b{font-size:12.5px; letter-spacing:.05em}
+  .wcard .d,.ccard .d{font-size:10px; opacity:.7; line-height:1.35}
+  .wcard:hover,.ccard:hover{border-color:#F0B429}
+  .wcard.on,.ccard.on{border-color:#F0B429; box-shadow:0 0 14px rgba(240,178,41,.25)}
+  .armbtn{appearance:none; cursor:pointer; font-family:'Nunito'; font-weight:800; font-size:13px; color:#F6C95C;
+    background:#1A1622; border:2px solid #3A3049; border-radius:999px; padding:8px 18px; margin-top:14px}
+  .armbtn:hover{border-color:#F0B429}
+  .aitem{display:flex; align-items:center; gap:10px; padding:8px 2px; border-bottom:1px dashed rgba(246,242,232,.12); text-align:left}
+  .aitem .ic{width:30px; font-size:22px; text-align:center; flex:none}
+  .aitem .nm{font-weight:800; font-size:13px}
+  .aitem .ds{font-size:10.5px; opacity:.72; line-height:1.3}
+  .aitem button{margin-left:auto; flex:none; appearance:none; cursor:pointer; font-family:'Nunito'; font-weight:800; font-size:12px;
+    color:#2B2114; background:#F0B429; border:2px solid #33272A; border-radius:9px; padding:6px 12px; white-space:nowrap}
+  .aitem button:disabled{opacity:.45; cursor:not-allowed}
+  .mrow{display:flex; gap:10px; justify-content:center; margin-bottom:14px}
+  .mcard{position:relative; width:216px; text-align:left; cursor:pointer; background:#1A1622; border:2px solid #3A3049;
+    border-radius:12px; padding:10px 13px; color:#F6F2E8; font-family:inherit; display:flex; flex-direction:column; gap:2px}
+  .mcard b{font-family:'Cinzel',serif; font-size:14px; letter-spacing:.1em; color:#F6C95C}
+  .mcard .d{font-size:10.5px; opacity:.72}
+  .mcard .lock{font-size:10px; font-weight:800; color:#E64A53; margin-top:2px}
+  .mcard:hover:not(.locked){border-color:#F0B429}
+  .mcard.on{border-color:#F0B429; box-shadow:0 0 14px rgba(240,178,41,.22)}
+  .mcard.locked{opacity:.55; cursor:not-allowed}
+  .plbl{font-size:10px; font-weight:800; letter-spacing:.22em; text-transform:uppercase; color:rgba(246,242,232,.7); margin-bottom:7px}
+  .prow{display:flex; gap:8px; justify-content:center; margin-bottom:22px}
+  .pchip{display:inline-flex; align-items:center; gap:6px; background:#1A1622; border:2px solid #3A3049; color:#F6F2E8;
+    border-radius:999px; padding:6px 13px; font-weight:800; font-size:11.5px; cursor:pointer; font-family:inherit}
+  .pchip:hover{border-color:#F0B429}
+  .pchip.on{border-color:#F0B429; color:#F6C95C}
   #menuScreen .ver{margin-top:26px; font-size:10.5px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; opacity:.55}
 
   @media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important} }
@@ -163,6 +188,7 @@
   <div id="floatLayer">
     <div class="wavePrev" id="prevA"><span class="sk">💀</span><span id="prevAn">×10</span></div>
     <div class="wavePrev" id="prevB"><span class="sk">💀</span><span id="prevBn">×9</span></div>
+    <div class="wavePrev" id="prevC" style="display:none"><span class="sk">💀</span><span id="prevCn">×0</span></div>
     <div class="castlebar" id="castleWrap"><div class="cb"><div class="cf" id="castleFill" style="width:100%"></div></div><div class="cl">CASTLE CENTER</div></div>
     <div class="eprompt" id="eprompt"></div>
     <div id="bmenu" class="clickable"></div>
@@ -171,9 +197,9 @@
   <div id="hudDay" style="display:none">
     <div class="topleft">
       <div class="hud-chip"><span class="hud-icon">🪙</span><span class="num" id="goldNum">8</span><span class="sub" id="incomeNum">+1 at dawn</span></div>
-      <div class="hud-chip"><span class="hud-icon">☀️</span><span><span class="num" id="dayNum" style="font-size:16px">Day 1 / 3</span><br><span class="lbl">Nordfels</span></span></div>
+      <div class="hud-chip"><span class="hud-icon">☀️</span><span><span class="num" id="dayNum" style="font-size:16px">Day 1</span><br><span class="lbl" id="mapName">Nordfels</span></span></div>
     </div>
-    <div class="hud-chip kingchip"><span class="hud-icon">👑</span><span><b style="font-size:14px">King Aldric</b><br><span class="lbl" id="kingWeap">Spear · Lv 3</span></span></div>
+    <div class="hud-chip kingchip"><span class="hud-icon" id="kingIcon">👑</span><span><b style="font-size:14px" id="kingName">King Aldric</b><br><span class="lbl" id="kingWeap">Spear · Lv 3</span></span></div>
     <div class="bottomright">
       <div class="clock"><div class="dots" id="clockDay"></div><div class="lbl">Nightfall</div></div>
       <button class="cta clickable" id="beginNight">BEGIN NIGHT<span class="kbd">SPACE</span></button>
@@ -184,8 +210,16 @@
   <div id="hudNight" style="display:none">
     <div class="hud-chip" style="position:absolute; top:14px; left:16px"><span class="hud-icon">🪙</span><span class="num" id="goldNight">0</span></div>
     <div class="banner"><div class="t" id="waveTitle">NIGHT 1</div><div class="r">💀 Remaining <b id="remainNum">0</b></div></div>
+    <div id="bossWrap" style="position:absolute; top:104px; left:50%; transform:translateX(-50%); width:300px; display:none; text-align:center">
+      <div id="bossName" style="font-family:'Cinzel',serif; font-weight:700; font-size:13px; letter-spacing:.16em; color:#E64A53; text-shadow:0 1px 4px rgba(0,0,0,.6)">BOSS</div>
+      <div class="bar" style="width:100%; height:12px; margin-top:4px"><div class="fill" id="bossFill" style="width:100%"></div></div>
+    </div>
+    <div id="serpWrap" style="position:absolute; bottom:150px; left:50%; transform:translateX(-50%); width:280px; display:none; text-align:center">
+      <div style="font-family:'Cinzel',serif; font-weight:700; font-size:12.5px; letter-spacing:.16em; color:#7BE0C8; text-shadow:0 1px 4px rgba(0,0,0,.6)">THE LEVIATHAN</div>
+      <div class="bar" style="width:100%; height:11px; margin-top:4px"><div class="fill" id="serpFill" style="width:100%; background:#3E8E9E"></div></div>
+    </div>
     <div class="kingpanel">
-      <div class="portrait">👑</div>
+      <div class="portrait" id="portrait">👑</div>
       <div class="kstats">
         <div class="name" id="kingTitle">King Aldric · Spear</div>
         <div class="bar"><div class="fill" id="kingFill" style="width:100%"></div></div>
@@ -210,13 +244,33 @@
     <div class="crown">👑</div>
     <h1>THRONEFALL</h1>
     <div class="tag">Build by day · Defend by night</div>
+    <div class="mrow">
+      <button class="mcard on" data-m="nordfels"><b>NORDFELS</b><span class="d">Two roads through the green highlands</span></button>
+      <button class="mcard" data-m="leviathan"><b>LEVIATHAN</b><span class="d">Three roads over a titan's bones</span><span class="lock" id="levLock">🔒 Survive 3 nights in Nordfels</span></button>
+    </div>
+    <div class="wrow">
+      <button class="ccard on" data-c="aldric"><span class="ic">👑</span><b>King Aldric</b><span class="d">The steady sovereign<br>20 HP · balanced</span></button>
+      <button class="ccard" data-c="maren"><span class="ic">🦅</span><b>Lady Maren</b><span class="d">Swift rider · 14 HP<br>her falcon strikes fliers</span></button>
+      <button class="ccard" data-c="grimbold"><span class="ic">🛡</span><b>Grimbold</b><span class="d">Stout · 28 HP<br>shelters nearby soldiers</span></button>
+    </div>
     <div class="wrow">
       <button class="wcard on" data-w="spear"><span class="ic">🗡</span><b>Spear</b><span class="d">Swift jabs from the saddle<br>Q — spear throw</span></button>
       <button class="wcard" data-w="bow"><span class="ic">🏹</span><b>Longbow</b><span class="d">Fights from horseback range<br>Q — arrow storm</span></button>
       <button class="wcard" data-w="hammer"><span class="ic">🔨</span><b>Warhammer</b><span class="d">Slow, crushing sweeps<br>Q — ground slam</span></button>
+      <button class="wcard" data-w="frost" style="display:none"><span class="ic">❄</span><b>Frost Staff</b><span class="d">Bolts chill the horde<br>Q — blizzard</span></button>
+    </div>
+    <div class="plbl">Royal edicts · choose two</div>
+    <div class="prow">
+      <button class="pchip" data-p="masonry" title="Castle +8 HP and walls +8 HP">🏰 Masonry</button>
+      <button class="pchip" data-p="loot" title="Slain enemies sometimes drop a coin">💰 Loot Goblins</button>
+      <button class="pchip" data-p="discipline" title="Soldiers +2 HP and strike faster">🛡 Iron Discipline</button>
+      <button class="pchip" data-p="warhorn" title="Rally lasts 10 s and heals the King">📯 War Horn</button>
+      <button class="pchip" data-p="beacons" title="Towers see 15% farther" style="display:none">🔥 Beacons</button>
+      <button class="pchip" data-p="pockets" title="Begin every run with +4 gold" style="display:none">👛 Deep Pockets</button>
     </div>
     <button class="cta" id="playBtn" style="font-size:22px; padding:14px 36px">PLAY CAMPAIGN</button>
-    <div class="ver">Web remake v0.4 · Nordfels, endless campaign · fan-made, not affiliated with Grizzly Games</div>
+    <div><button class="armbtn" id="armBtn">⚜ ARMORY · <span id="crownNum">0</span> crowns</button></div>
+    <div class="ver">Web remake v0.5 · endless campaign · fan-made, not affiliated with Grizzly Games</div>
   </div>
 </div>
 
@@ -234,9 +288,25 @@
 </div></div>
 
 <div class="overlay" id="ovCleared"><div class="panel">
-  <h2>NORDFELS LIBERATED</h2><div class="sub">Three nights weathered. The realm holds.</div>
+  <h2 id="clrTitle">THE SAGA OF NORDFELS</h2><div class="sub">Ten nights weathered. Songs will be sung of this — and the horde is not finished.</div>
   <div class="tally" id="clrTally"></div>
-  <button class="cta" id="clrMenu" style="width:100%">RETURN TO MENU</button>
+  <div class="btns">
+    <button class="cta" id="clrGo" style="width:100%">KEEP RULING</button>
+    <button class="pbtn" id="clrMenu">Return to menu</button>
+  </div>
+</div></div>
+
+<div class="overlay" id="ovArmory"><div class="panel" style="width:min(500px,92%)">
+  <h2 style="font-size:22px">THE ARMORY</h2>
+  <div class="sub">Crowns earned each night survived buy the crown's arsenal · <b style="color:#F6C95C">⚜ <span id="armCrowns">0</span></b></div>
+  <div style="margin:6px 0 14px">
+    <div class="aitem" data-a="frost"><span class="ic">❄</span><span><span class="nm">Frost Staff</span><br><span class="ds">A new weapon — bolts chill the horde · Q calls a blizzard</span></span><button></button></div>
+    <div class="aitem" data-a="seal"><span class="ic">⚜</span><span><span class="nm">Royal Seal</span><br><span class="ds">Carry a third royal edict into every run</span></span><button></button></div>
+    <div class="aitem" data-a="beacons"><span class="ic">🔥</span><span><span class="nm">Signal Beacons</span><br><span class="ds">New edict — towers see 15% farther</span></span><button></button></div>
+    <div class="aitem" data-a="pockets"><span class="ic">👛</span><span><span class="nm">Deep Pockets</span><br><span class="ds">New edict — begin every run with +4 gold</span></span><button></button></div>
+    <div class="aitem" data-a="bastion"><span class="ic">🏯</span><span><span class="nm">Royal Bastion</span><br><span class="ds">Unlocks a fourth Castle Center tier — twin ballistae</span></span><button></button></div>
+  </div>
+  <button class="cta" id="armClose" style="width:100%">DONE</button>
 </div></div>
 
 <div class="overlay" id="ovPause"><div class="panel">
