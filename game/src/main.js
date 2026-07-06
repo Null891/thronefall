@@ -190,7 +190,7 @@ const MAPS = {
     },
   },
   leviathan: {
-    id: 'leviathan', name: 'Leviathan', unlockAfter: { map: 'nordfels', nights: 3 }, extraWasps: 3,
+    id: 'leviathan', name: 'Leviathan', unlockAfter: { map: 'nordfels', nights: 5 }, extraWasps: 3,
     serpent: true, serpPos: { u: 45, v: 49 }, camZoom: 1.12,
     bounds: { u: [-17, 67], v: [-1, 51] },
     laneIds: ['A', 'B', 'C'],
@@ -268,7 +268,7 @@ const MAPS = {
     },
   },
   deephollow: {
-    id: 'deephollow', name: 'Deephollow', unlockAfter: { map: 'leviathan', nights: 5 },
+    id: 'deephollow', name: 'Deephollow', unlockAfter: { map: 'leviathan', nights: 8 },
     saboteur: true, camZoom: 1.05,
     bounds: { u: [-14, 64], v: [-14, 64] },
     laneIds: ['A', 'B', 'C'],
@@ -334,7 +334,7 @@ const MAPS = {
     },
   },
   ironfront: {
-    id: 'ironfront', name: 'Ironfront', unlockAfter: { map: 'deephollow', nights: 6 },
+    id: 'ironfront', name: 'Ironfront', unlockAfter: { map: 'deephollow', nights: 10 },
     saboteur: true, skin: 'ww2', camZoom: 1.05,
     terrain: { sx: 1, sz: 1, sc: 1.9, pond: false },
     laneIds: ['A', 'B', 'C', 'D'],
@@ -370,7 +370,7 @@ const MAPS = {
     },
   },
   lunaris: {
-    id: 'lunaris', name: 'Lunaris', unlockAfter: { map: 'ironfront', nights: 6 },
+    id: 'lunaris', name: 'Lunaris', unlockAfter: { map: 'ironfront', nights: 12 },
     camZoom: 1.05, mini: 'tyrant',
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
@@ -433,7 +433,7 @@ const MAPS = {
     },
   },
   abyss: {
-    id: 'abyss', name: 'The Abyss', unlockAfter: { map: 'lunaris', nights: 6 },
+    id: 'abyss', name: 'The Abyss', unlockAfter: { map: 'lunaris', nights: 12 },
     camZoom: 1.05, mini: 'urchin',
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
@@ -496,7 +496,7 @@ const MAPS = {
     },
   },
   frostmaw: {
-    id: 'frostmaw', name: 'Frostmaw', unlockAfter: { map: 'abyss', nights: 6 },
+    id: 'frostmaw', name: 'Frostmaw', unlockAfter: { map: 'abyss', nights: 14 },
     camZoom: 1.05, coldSnap: true,
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
@@ -554,7 +554,7 @@ const MAPS = {
     },
   },
   verdania: {
-    id: 'verdania', name: 'Verdania', unlockAfter: { map: 'frostmaw', nights: 6 },
+    id: 'verdania', name: 'Verdania', unlockAfter: { map: 'frostmaw', nights: 14 },
     camZoom: 1.05, mini: 'gorilla',
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
@@ -613,7 +613,7 @@ const MAPS = {
     },
   },
   cinderpeak: {
-    id: 'cinderpeak', name: 'Cinderpeak', unlockAfter: { map: 'verdania', nights: 6 },
+    id: 'cinderpeak', name: 'Cinderpeak', unlockAfter: { map: 'verdania', nights: 15 },
     camZoom: 1.05, mini: 'tyrant',
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
@@ -674,7 +674,7 @@ const MAPS = {
     },
   },
   sandsea: {
-    id: 'sandsea', name: 'Sandsea', unlockAfter: { map: 'cinderpeak', nights: 6 },
+    id: 'sandsea', name: 'Sandsea', unlockAfter: { map: 'cinderpeak', nights: 15 },
     camZoom: 1.05,
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
@@ -733,7 +733,7 @@ const MAPS = {
     },
   },
   aetherreach: {
-    id: 'aetherreach', name: 'Aetherreach', unlockAfter: { map: 'sandsea', nights: 8 },
+    id: 'aetherreach', name: 'Aetherreach', unlockAfter: { map: 'sandsea', nights: 18 },
     camZoom: 1.05, mini: 'urchin',
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
@@ -984,7 +984,7 @@ function refreshDayHUD() {
   refreshMarkers();
 }
 let hintT = null;
-const HINT0 = 'Ride with WASD · E builds & upgrades · Space begins the night';
+const HINT0 = 'Ride with WASD · Shift gallops · E builds & upgrades · Space begins the night';
 function flashHint(t) { const el = $('#dayHint'); el.textContent = t; clearTimeout(hintT); hintT = setTimeout(() => { el.textContent = HINT0; }, 2600); }
 function flashBanner(txt) {
   const t = $('#waveTitle'), old = 'NIGHT ' + S.day;
@@ -1227,7 +1227,7 @@ function refreshKingHUD() {
   $('#kingIcon').textContent = C.icon;
   $('#portrait').textContent = C.icon;
   $('#kingTitle').textContent = C.name + ' · ' + W.name;
-  $('#kingWeap').textContent = W.name + ' · Lv 3';
+  $('#kingWeap').textContent = W.name;
   $('#abQIc').textContent = W.icon;
   $('#abSpear').title = W.q;
 }
@@ -1236,8 +1236,9 @@ function setWeapon(w) {
   S.weapon = w;
   try { localStorage.tf_weapon = w; } catch { /* private mode */ }
   const props = K.mesh.userData.weapons;
-  for (const key in props) props[key].visible = key === w;
-  K.wpBase = { spear: -.9, bow: -.4, hammer: -.8, staff: -.5 }[w] || -.9;
+  const propKey = w === 'frost' ? 'staff' : w;
+  for (const key in props) props[key].visible = key === propKey;
+  K.wpBase = { spear: -.9, bow: -.4, hammer: -.8, frost: -.5 }[w] || -.9;
   $$('.wcard').forEach(c => c.classList.toggle('on', c.dataset.w === w));
   refreshKingHUD();
 }
@@ -1325,6 +1326,7 @@ function closeBmenu() { bmenu.style.display = 'none'; bmenu.dataset.slot = ''; }
 function openMenu(sl, title, rows) {
   bmenu.innerHTML = `<div class="h">${title}</div>` + rows;
   bmenu.style.display = 'block'; bmenu.dataset.slot = sl.id;
+  bmenu._u = sl.u; bmenu._v = sl.v;
   const p = proj(sl.u, 2.4, sl.v);
   bmenu.style.left = Math.max(150, Math.min(innerWidth - 150, p.x)) + 'px';
   bmenu.style.top = Math.max(190, Math.min(innerHeight - 40, p.y)) + 'px';
@@ -1493,6 +1495,7 @@ function updatePrompt() {
       label = `<span class="k">E</span>Fortify Castle · ${CASTLE_TIERS[S.castleLvl].cost}g`;
     }
   }
+  if (bmenu.style.display === 'block' && Math.hypot((bmenu._u || 0) - K.u, (bmenu._v || 0) - K.v) > 7) closeBmenu();
   if (nearSlot && bmenu.style.display !== 'block') {
     eprompt.innerHTML = label;
     eprompt.style.display = 'block';
