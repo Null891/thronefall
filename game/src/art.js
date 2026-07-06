@@ -71,6 +71,30 @@ export function setPhase(t, time = 0) { // 0 = day, 1 = night
   }
 }
 
+/* ---------- realm themes: every structure dresses for its world ---------- */
+let THEME = null;
+export function setTheme(t) { THEME = t; }
+const THEME_MATS = {};
+function themed(kind) { // kind: roof | roofB | wood
+  const key = (THEME || 'default') + ':' + kind;
+  if (THEME_MATS[key]) return THEME_MATS[key];
+  let m = null;
+  const mk = (hex, glow) => MC(hex, { glow: glow || .08 });
+  if (THEME === 'ww2') m = kind === 'wood' ? mk('#6B7A4A', .06) : M('stoneDk');
+  else if (THEME === 'crystal') m = kind === 'wood' ? M('stone') : mk('#9FD8F0', .45);
+  else if (THEME === 'bone') m = kind === 'wood' ? M('trunk') : M('snow');
+  else if (THEME === 'ice') m = kind === 'wood' ? mk('#BFD8E8', .08) : M('snow');
+  else if (THEME === 'vine') m = kind === 'wood' ? M('trunk') : mk('#4E8A3E', .12);
+  else if (THEME === 'coral') m = kind === 'wood' ? mk('#8FCABB', .1) : mk('#E87A9C', .22);
+  else if (THEME === 'magma') m = kind === 'wood' ? M('dark') : mk('#5A2E28', .18);
+  else if (THEME === 'dune') m = kind === 'wood' ? mk('#C9A45E', .06) : kind === 'roofB' ? MC(CONST.gold, { glow: .15 }) : mk('#D9B87A', .06);
+  else if (THEME === 'dark') m = kind === 'wood' ? M('trunk') : mk('#4A3B52', .1);
+  if (!m) m = kind === 'roof' ? mats.roof : kind === 'roofB' ? mats.roofB : mats.wood;
+  THEME_MATS[key] = m;
+  return m;
+}
+const T_roof = () => themed('roof'), T_roofB = () => themed('roofB'), T_wood = () => themed('wood');
+
 /* shared materials */
 const mats = {};
 for (const k in PAL) mats[k] = M(k);
@@ -245,7 +269,7 @@ export function spawnFlagArt() {
 }
 export function boat() {
   const g = new THREE.Group();
-  const hull = box(1.5, .32, .7, mats.wood); hull.scale.z = .85; g.add(hull);
+  const hull = box(1.5, .32, .7, T_wood()); hull.scale.z = .85; g.add(hull);
   g.add(cyl(.03, .03, 1.3, 4, mats.dark, 0, .3, 0));
   const sail = cone(.42, .95, 3, mWhite, .02, .55, 0); sail.castShadow = false; g.add(sail);
   ANIMS.push((t) => { g.position.y = .02 + Math.sin(t * 1.6) * .05; g.rotation.z = Math.sin(t * 1.3) * .05; });
@@ -263,7 +287,7 @@ export function gateTower() {
   const g = new THREE.Group();
   g.add(box(1.7, 4, 1.7, mats.stone));
   g.add(box(2, .38, 2, mats.stoneDk, 0, 4, 0));
-  g.add(prismRoof(1.45, 1.45, 1.7, mats.roofB, 0, 4.38, 0));
+  g.add(prismRoof(1.45, 1.45, 1.7, T_roofB(), 0, 4.38, 0));
   const fl = mesh(new THREE.SphereGeometry(.16, 6, 5), flameMat(), .95, 2.2, .95); fl.castShadow = false; g.add(fl);
   const gw = glow('#FFB35C', 3.4, 0, .85, true); gw.position.set(.95, 2.3, .95); g.add(gw);
   g.userData.torch = new THREE.Vector3(.95, 2.4, .95);
@@ -273,7 +297,7 @@ function turret(x, z) {
   const g = new THREE.Group(); g.position.set(x, 0, z);
   g.add(cyl(.55, .62, 5.1, 7, mats.stone));
   g.add(cyl(.72, .72, .32, 7, mats.stoneDk, 0, 5.1, 0));
-  g.add(cone(.78, 1.7, 7, mats.roofB, 0, 5.42, 0));
+  g.add(cone(.78, 1.7, 7, T_roofB(), 0, 5.42, 0));
   return g;
 }
 export function castleArt() {
@@ -285,7 +309,7 @@ export function castleArt() {
     g.add(box(.4, .6, .55, mats.stoneDk, 1.85, 5.5, -1.55 + i * 1.05));
   }
   g.add(box(2, 3.8, 2, mats.stone, 0, 5.5, 0));
-  g.add(prismRoof(1.75, 1.75, 2.9, mats.roofB, 0, 9.3, 0));
+  g.add(prismRoof(1.75, 1.75, 2.9, T_roofB(), 0, 9.3, 0));
   g.add(turret(-2.35, -2.35)); g.add(turret(2.35, -2.35)); g.add(turret(-2.35, 2.35)); g.add(turret(2.35, 2.35));
   g.add(box(1.15, 1.7, .15, mats.dark, 0, .9, 2.02));               // gate door
   const wm = windowMat();
@@ -305,7 +329,7 @@ export function castleArt() {
 export function houseArt(upg, manor) {
   const g = new THREE.Group(); const hh = manor ? 2.9 : upg ? 2.3 : 1.7;
   g.add(box(2.7, hh, 2, mats.cream));
-  g.add(prismRoof(2.1, 1.6, 1.5, manor ? mats.roofB : mats.roof, 0, hh, 0));
+  g.add(prismRoof(2.1, 1.6, 1.5, manor ? T_roofB() : T_roof(), 0, hh, 0));
   g.add(box(.6, .95, .12, mats.dark, .3, 0, 1.02));
   g.add(box(.55, .55, .1, windowMat(), -.7, hh - 1, 1.02));
   if (manor) g.add(box(.55, .55, .1, windowMat(), .55, hh - 1.9, 1.02));
@@ -318,7 +342,7 @@ export function millArt(upg) {
   const g = new THREE.Group();
   g.add(box(2.1, 2.7, 2.1, mats.cream));
   if (upg) g.add(box(2.3, .25, 2.3, mGold, 0, 2.55, 0));
-  g.add(prismRoof(1.7, 1.7, 1.6, mats.roof, 0, 2.7, 0));
+  g.add(prismRoof(1.7, 1.7, 1.6, T_roof(), 0, 2.7, 0));
   g.add(box(.55, .85, .12, mats.dark, 0, 0, 1.07));
   const hub = new THREE.Group(); hub.position.set(0, 2.5, 1.18); g.add(hub);
   const sailS = upg ? 1.35 : 1;
@@ -356,7 +380,7 @@ export function harbourArt(upg, upg2) {
     const lg = glow('#FFE9A6', 3, .1, .95, true); lg.position.set(-1.9, 3, -.8); g.add(lg);
   }
   g.add(box(1.8, 1.5, 1.9, mats.cream, -.9, 0, 0));
-  g.add(prismRoof(1.5, 1.6, 1.2, mats.roof, -.9, 1.5, 0));
+  g.add(prismRoof(1.5, 1.6, 1.2, T_roof(), -.9, 1.5, 0));
   g.add(box(2.6, .3, 1, mats.wood, 1.1, .15, .2));
   g.add(box(.5, .5, .1, windowMat(), -.9, .6, .98));
   if (upg) g.add(box(1.4, .3, .9, mats.wood, 1.4, .15, -1));
@@ -372,7 +396,7 @@ export function towerArt(upg, mw) {
     const iceGw = glow('#9FD8F0', 2.6, .25, .7); iceGw.position.set(0, 4.6 + tall, 0); g.add(iceGw);
   }
   g.add(cyl(1.05, 1.05, .4, 8, mats.stoneDk, 0, 3.6 + tall, 0));
-  g.add(cone(1.12, 1.8, 8, upg === 'frost' ? mats.snow : mats.roofB, 0, 4 + tall, 0));
+  g.add(cone(1.12, 1.8, 8, upg === 'frost' ? mats.snow : T_roofB(), 0, 4 + tall, 0));
   g.add(box(.3, .8, .1, windowMat(), 0, 2.2 + tall, .88));
   const gw = glow('#FFD97A', 2.2, 0, .5); gw.position.set(0, 2.6 + tall, 1.05); g.add(gw);
   if (upg === 'sniper') { const f = flag('#5FA8C9', .8); f.position.y = 5.6 + tall; g.add(f); }
@@ -382,8 +406,8 @@ export function towerArt(upg, mw) {
 }
 export function barracksArt(_, vet) {
   const g = new THREE.Group();
-  g.add(box(3.2, 1.9, 2.2, mats.wood));
-  g.add(prismRoof(2.5, 1.8, 1.4, mats.roof, 0, 1.9, 0));
+  g.add(box(3.2, 1.9, 2.2, T_wood()));
+  g.add(prismRoof(2.5, 1.8, 1.4, T_roof(), 0, 1.9, 0));
   g.add(box(.75, 1.1, .12, mats.dark, 0, 0, 1.12));
   const f = flag(CONST.threat, .95); f.position.set(1.3, 2.6, -.7); g.add(f);
   if (vet) { // the veteran company hangs its shields on the wall
@@ -394,7 +418,7 @@ export function barracksArt(_, vet) {
 }
 export function rangeArt(_, guild) {
   const g = new THREE.Group();
-  g.add(box(2.4, .7, 1.8, mats.wood));                    // shooting platform
+  g.add(box(2.4, .7, 1.8, T_wood()));                    // shooting platform
   g.add(box(2.6, .18, 2, mats.cream, 0, .7, 0));
   /* standing target on a post, facing the platform */
   const t = new THREE.Group(); t.position.set(1.9, 0, .6); t.rotation.y = -.9; g.add(t);
@@ -429,7 +453,7 @@ export function roadWallArt(kind, upg2) {
     }
   } else { // palisade
     const h = 1.9;
-    g.add(box(.85, h, 3.6, mats.wood));
+    g.add(box(.85, h, 3.6, T_wood()));
     for (let i = 0; i < 3; i++) g.add(box(.62, .5, .62, mats.trunk, 0, h, -1.2 + i * 1.2));
     for (const z of [-1.9, 1.9]) g.add(cyl(.14, .17, 2.2, 5, mats.trunk, 0, 0, z));
   }
