@@ -15,10 +15,10 @@ Not affiliated with Grizzly Games or Mythwright.
 
 ## Play
 
-- **Pick your loadout on the menu** — a map (**Nordfels** · **Leviathan** at 3 nights ·
-  **Deephollow** at 6 · **Ironfront** at 10), a rider (King Aldric · Lady Maren and her falcon ·
-  stout Grimbold), a weapon (Spear / Longbow / Warhammer, each with its own **Q** ability),
-  and two **royal edicts**. Every purchase shows what it does before the gold leaves the purse.
+- **Pick your loadout on the menu** — eleven realms unlocked in a chain (nights survived on each
+  map unlock the next): Nordfels, Leviathan, Deephollow, Ironfront, Lunaris (the moon), The Abyss,
+  Frostmaw, Verdania, Cinderpeak (lava roads), Sandsea, and the bonus isle Aetherreach — plus a
+  rider, a weapon, and royal edicts. Every purchase shows what it does before the gold leaves the purse.
 - **WASD / arrows** — ride (screen-relative)
 - **E** — build or upgrade at the nearest slot (or click any building / the castle)
 - **Space** — begin the night · **Q** — weapon ability · **E** — rally horn

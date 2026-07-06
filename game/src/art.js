@@ -126,24 +126,49 @@ function blob(grow, depth, mat, topY, sx, sz, sc) {
   o.receiveShadow = true; o.castShadow = false;
   return o;
 }
+/* alternate grounds: regolith for the moon, drowned stone for the abyss */
+function M2(day, night, opts = {}) {
+  const m = new THREE.MeshStandardMaterial({ color: day, flatShading: true, roughness: .92, metalness: 0, ...opts });
+  REG.push({ m, d: new THREE.Color(day), n: new THREE.Color(night) });
+  return m;
+}
+const lavaMat = (() => {
+  const m = new THREE.MeshStandardMaterial({ color: '#3A2320', flatShading: true, roughness: .8,
+    emissive: '#FF6A3D', emissiveIntensity: .55 });
+  ANIMS.push((t) => { m.emissiveIntensity = .45 + Math.sin(t * 2.2) * .2; }); // the roads themselves breathe fire
+  return m;
+})();
+const cloudMat = new THREE.MeshBasicMaterial({ color: '#E8EEF6' });
+const TERRA = {
+  ash: { grass: M2('#4A4048', '#241E26'), grassLt: M2('#5A4E56', '#2C2530'), sand: M2('#6A5A52', '#332A28'), get path() { return lavaMat; } },
+  dune: { grass: M2('#E8CD8E', '#8A7A56'), grassLt: M2('#F2DCA4', '#988762'), sand: M2('#D9B87A', '#7A6A4A'), path: M2('#C9A45E', '#6E5A3A') },
+  sky: { grass: M2('#D8E2F0', '#586A8E'), grassLt: M2('#E6EEF8', '#64769A'), sand: M2('#B9C7DE', '#485A7E'), path: M2('#A9B9D4', '#40526F') },
+  ice: { grass: M2('#E6EEF5', '#5E6E86'), grassLt: M2('#F2F8FC', '#6A7A92'), sand: M2('#C6D6E3', '#4A5A70'), path: M2('#B4C7D8', '#42526A') },
+  jungle: { grass: M2('#5E9A4E', '#2E4A38'), grassLt: M2('#74B25E', '#3A5A42'), sand: M2('#C9B87A', '#6A6248'), path: M2('#A98F5E', '#575038') },
+  moon: { grass: M2('#B9BFC9', '#4A5160'), grassLt: M2('#CBD1DA', '#575E6D'), sand: M2('#8E939E', '#3A404C'), path: M2('#A6ACB8', '#4A505C') },
+  abyss: { grass: M2('#3E7D8A', '#1E3A4A'), grassLt: M2('#4E96A0', '#26485A'), sand: M2('#7BAF9E', '#2E5450'), path: M2('#5E9AA6', '#2A4A56') },
+};
+const spaceMat = new THREE.MeshBasicMaterial({ color: '#0A0D18' });
 let seaMesh = null; // the open sea persists across maps
 export function buildTerrain(group, lanes, opts = {}) {
-  const { sx = 1, sz = 1, sc = 1, pond = true } = opts;
+  const { sx = 1, sz = 1, sc = 1, pond = true, pal = null } = opts;
+  const T = TERRA[pal] || mats;
   const SP = (u, v) => [25 + (u - 25) * sc, 25 + (v - 25) * sc]; // decorative coords stretch with the island
   if (!seaMesh) {
     seaMesh = mesh(new THREE.PlaneGeometry(500, 500), mats.water, 25, 0, 25, false);
     seaMesh.rotation.x = -Math.PI / 2; seaMesh.position.y = -.55;
   }
   if (!seaMesh.parent) group.parent?.add(seaMesh);
+  seaMesh.material = pal === 'moon' ? spaceMat : pal === 'sky' ? cloudMat : mats.water;
   const shallow = blob(3.4, .1, new THREE.MeshStandardMaterial({ color: '#9AD4EA', transparent: true, opacity: .45, roughness: .5 }), -.42, sx, sz, sc);
   REG.push({ m: shallow.material, d: new THREE.Color('#9AD4EA'), n: new THREE.Color('#3C5D88') });
   group.add(shallow);
-  group.add(blob(1.1, .6, mats.sand, -.06, sx, sz, sc));
-  group.add(blob(0, 2.6, mats.grass, 0, sx, sz, sc));
+  group.add(blob(1.1, .6, T.sand, -.06, sx, sz, sc));
+  group.add(blob(0, 2.6, T.grass, 0, sx, sz, sc));
   /* meadow patches */
   for (const [u0, v0, r] of [[14,20,3],[33,36,4],[24,10,2.5],[40,20,3],[10,37,2.6],[38,8,3.2],[8,10,2.8],[42,44,3]]) {
     const [u, v] = SP(u0, v0);
-    const p = cyl(r * sc, r * sc, .04, 24, mats.grassLt, u, .02, v); p.castShadow = false; group.add(p);
+    const p = cyl(r * sc, r * sc, .04, 24, T.grassLt, u, .02, v); p.castShadow = false; group.add(p);
   }
   /* lanes as rounded plates */
   const plate = (u, v, r, m, y) => { const p = cyl(r, r, .05, 14, m, u, y, v); p.castShadow = false; group.add(p); };
@@ -153,18 +178,18 @@ export function buildTerrain(group, lanes, opts = {}) {
       const n = Math.ceil(Math.hypot(bu - au, bv - av) / .9);
       for (let j = 0; j <= n; j++) {
         const u = au + (bu - au) * j / n, v = av + (bv - av) * j / n;
-        plate(u, v, 1.55, mats.sand, .035); plate(u, v, 1.15, mats.path, .06);
+        plate(u, v, 1.55, T.sand, .035); plate(u, v, 1.15, T.path, .06);
       }
     }
   }
-  plate(25, 27.4, 3.1, mats.sand, .035); plate(25, 27.4, 2.55, mats.path, .06);
+  plate(25, 27.4, 3.1, T.sand, .035); plate(25, 27.4, 2.55, T.path, .06);
   if (pond) {
     const [pu, pv] = SP(43, 37);
-    plate(pu, pv, 4.3, mats.sand, .03);
+    plate(pu, pv, 4.3, T.sand, .03);
     const pd = cyl(3.9, 3.9, .05, 24, mats.waterLt, pu, .05, pv); pd.castShadow = false; group.add(pd);
   }
   /* flowers */
-  for (const [u0, v0] of [[12,18],[18,13.5],[30,10],[37,15],[40,28],[35,41],[24,40],[13,38],[8,30],[28,36.5],[20,19],[31,31.5],[6,20],[44,12],[10,44],[41,40]]) {
+  if (!pal) for (const [u0, v0] of [[12,18],[18,13.5],[30,10],[37,15],[40,28],[35,41],[24,40],[13,38],[8,30],[28,36.5],[20,19],[31,31.5],[6,20],[44,12],[10,44],[41,40]]) {
     const [u, v] = SP(u0, v0);
     group.add(cyl(.09, .09, .3, 5, mWhite, u, 0, v));
     group.add(cyl(.08, .08, .24, 5, mGold, u + .5, 0, v - .3));
@@ -289,14 +314,16 @@ export function houseArt(upg, manor) {
   if (manor) g.add(box(3, .25, 2.3, mGold, 0, hh - .1, 0));
   return g;
 }
-export function millArt() {
+export function millArt(upg) {
   const g = new THREE.Group();
   g.add(box(2.1, 2.7, 2.1, mats.cream));
+  if (upg) g.add(box(2.3, .25, 2.3, mGold, 0, 2.55, 0));
   g.add(prismRoof(1.7, 1.7, 1.6, mats.roof, 0, 2.7, 0));
   g.add(box(.55, .85, .12, mats.dark, 0, 0, 1.07));
   const hub = new THREE.Group(); hub.position.set(0, 2.5, 1.18); g.add(hub);
+  const sailS = upg ? 1.35 : 1;
   for (let i = 0; i < 4; i++) {
-    const b = box(.34, 1.5, .06, mWhite, 0, .45, 0);
+    const b = box(.34 * sailS, 1.5 * sailS, .06, mWhite, 0, .45 * sailS, 0);
     const arm = new THREE.Group(); arm.rotation.z = i * Math.PI / 2; arm.add(b); hub.add(arm);
   }
   hub.add(mesh(new THREE.SphereGeometry(.16, 6, 5), mats.dark));
@@ -321,8 +348,13 @@ export function mineArt(deep) {
   }
   return g;
 }
-export function harbourArt(upg) {
+export function harbourArt(upg, upg2) {
   const g = new THREE.Group();
+  if (upg2) { // the lighthouse calls more boats home
+    g.add(cyl(.3, .38, 2.6, 7, mWhite, -1.9, 0, -.8));
+    g.add(cyl(.34, .34, .3, 7, mThreat, -1.9, 2.6, -.8));
+    const lg = glow('#FFE9A6', 3, .1, .95, true); lg.position.set(-1.9, 3, -.8); g.add(lg);
+  }
   g.add(box(1.8, 1.5, 1.9, mats.cream, -.9, 0, 0));
   g.add(prismRoof(1.5, 1.6, 1.2, mats.roof, -.9, 1.5, 0));
   g.add(box(2.6, .3, 1, mats.wood, 1.1, .15, .2));
@@ -551,7 +583,7 @@ function ww2Art(type) {
     bodyG.add(box(1.7, .06, .4, mOlive, 0, .05, 0));
     bodyG.add(box(.5, .3, .06, mOlive, -.55, .15, 0));
     const prop = cyl(.04, .04, .5, 4, mats.dark, .62, 0, 0); prop.rotation.x = Math.PI / 2; bodyG.add(prop);
-    bodyG.position.y = 2;
+    bodyG.position.y = 2; g.userData.hoverY = 2;
   } else if (type === 'spitter') { // field gun
     const w1 = cyl(.32, .32, .12, 10, mats.dark, 0, .32, .5); w1.rotation.x = Math.PI / 2; bodyG.add(w1);
     const w2 = cyl(.32, .32, .12, 10, mats.dark, 0, .32, -.5); w2.rotation.x = Math.PI / 2; bodyG.add(w2);
@@ -568,6 +600,97 @@ export function enemyArt(type, skin) {
   if (skin === 'ww2') { const w = ww2Art(type); if (w) return w; }
   const g = new THREE.Group();
   const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+  if (type === 'cinderling') { // a coal that learned to crawl
+    const b = mesh(new THREE.IcosahedronGeometry(.5, 0), MC('#FF6A3D', { glow: .8 }), 0, .4, 0); b.scale.y = .82; bodyG.add(b);
+    bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), mats.dark, .17, .5, .36));
+    bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), mats.dark, -.17, .5, .36));
+    const gw = glow('#FF6A3D', 1.6, .3, .8, true); gw.position.y = .5; g.add(gw);
+    return g;
+  }
+  if (type === 'scarab') { // rolls out of the dunes
+    const b = mesh(new THREE.SphereGeometry(.45, 8, 6), MC('#3A6E8A', { glow: .3 }), 0, .38, 0); b.scale.set(1.25, .7, .95); bodyG.add(b);
+    bodyG.add(mesh(new THREE.SphereGeometry(.2, 6, 5), mats.dark, .48, .3, 0));
+    bodyG.add(cone(.08, .3, 4, mats.dark, .68, .35, 0));
+    for (const z of [-.3, .3]) for (const x of [-.3, .1, .5]) bodyG.add(cyl(.04, .04, .3, 4, mats.dark, x, .05, z));
+    return g;
+  }
+  if (type === 'sprite') { // a knot of stormlight
+    const b = mesh(new THREE.IcosahedronGeometry(.3, 0), MC('#BFD8FF', { glow: 1.4 }), 0, 0, 0); bodyG.add(b);
+    const gw = glow('#BFD8FF', 2.4, .4, .9, true); bodyG.add(gw);
+    g.userData.hoverY = 1.6;
+    bodyG.position.y = 1.6;
+    return g;
+  }
+  if (type === 'iceling') { // frost given hunger
+    const b = mesh(new THREE.IcosahedronGeometry(.52, 0), MC('#BFE4F5', { glow: .5 }), 0, .42, 0); b.scale.y = .82; bodyG.add(b);
+    bodyG.add(cone(.1, .35, 4, mats.snow, 0, .8, 0));
+    bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), mats.dark, .17, .5, .36));
+    bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), mats.dark, -.17, .5, .36));
+    return g;
+  }
+  if (type === 'panther') { // low, black, fast
+    const b = box(1.1, .4, .45, mats.dark, 0, .35, 0); bodyG.add(b);
+    bodyG.add(box(.35, .3, .35, mats.dark, .6, .55, 0));
+    bodyG.add(mesh(new THREE.SphereGeometry(.05, 5, 4), MC('#F6C95C', { glow: 1.3 }), .78, .68, .1));
+    bodyG.add(mesh(new THREE.SphereGeometry(.05, 5, 4), MC('#F6C95C', { glow: 1.3 }), .78, .68, -.1));
+    const tail = cyl(.04, .06, .7, 4, mats.dark, -.6, .55, 0); tail.rotation.z = .8; bodyG.add(tail);
+    for (const [x, z] of [[-.4, .18], [-.4, -.18], [.4, .18], [.4, -.18]])
+      bodyG.add(cyl(.06, .06, .35, 4, mats.dark, x, 0, z));
+    return g;
+  }
+  if (type === 'gorilla') { // a silverback of the deep green — a tiny boss
+    const b = mesh(new THREE.CapsuleGeometry(.55, .5, 3, 8), mats.dark, 0, .85, 0); bodyG.add(b);
+    bodyG.add(box(.7, .35, .3, mSteel, 0, .95, -.25));
+    bodyG.add(mesh(new THREE.SphereGeometry(.28, 7, 6), mats.dark, 0, 1.5, .15));
+    bodyG.add(mesh(new THREE.SphereGeometry(.06, 5, 4), mThreat, .1, 1.55, .4));
+    bodyG.add(mesh(new THREE.SphereGeometry(.06, 5, 4), mThreat, -.1, 1.55, .4));
+    for (const x of [-.6, .6]) { const arm = cyl(.14, .18, 1, 5, mats.dark, x, .2, .1); arm.rotation.z = x > 0 ? -.25 : .25; bodyG.add(arm); }
+    return g;
+  }
+  if (type === 'moonling') { // pale things that hop in the low gravity
+    const b = mesh(new THREE.IcosahedronGeometry(.5, 0), MC('#D8E6F5', { glow: .55 }), 0, .4, 0); b.scale.y = .85; bodyG.add(b);
+    bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), mats.dark, .17, .52, .35));
+    bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), mats.dark, -.17, .52, .35));
+    return g;
+  }
+  if (type === 'tyrant') { // a crater tyrant, hide like stone
+    const b = mesh(new THREE.IcosahedronGeometry(1.15, 0), mats.stoneDk, 0, 1, 0); b.scale.y = 1.1; bodyG.add(b);
+    bodyG.add(mesh(new THREE.SphereGeometry(.1, 5, 4), MC('#B9F0FF', { glow: 1.2 }), .25, 1.55, .8));
+    bodyG.add(mesh(new THREE.SphereGeometry(.1, 5, 4), MC('#B9F0FF', { glow: 1.2 }), -.25, 1.55, .8));
+    const club = cyl(.15, .24, 1.7, 6, mats.stone, 1.2, .9, 0); club.rotation.z = -.7; bodyG.add(club);
+    return g;
+  }
+  if (type === 'crab') { // sidles up from the trenches
+    const b = mesh(new THREE.SphereGeometry(.5, 8, 6), MC('#D96A4A', { glow: .2 }), 0, .4, 0); b.scale.set(1.3, .6, 1); bodyG.add(b);
+    for (const x of [-.5, .5]) for (const z of [-.35, .35]) {
+      const leg = cyl(.05, .05, .5, 4, mats.dark, x * 1.2, .15, z); leg.rotation.z = x > 0 ? -.8 : .8; bodyG.add(leg);
+    }
+    bodyG.add(cone(.16, .4, 5, MC('#D96A4A', { glow: .25 }), .55, .45, .35));
+    bodyG.add(cone(.16, .4, 5, MC('#D96A4A', { glow: .25 }), .55, .45, -.35));
+    bodyG.add(mesh(new THREE.SphereGeometry(.06, 5, 4), mats.dark, .3, .62, .15));
+    bodyG.add(mesh(new THREE.SphereGeometry(.06, 5, 4), mats.dark, .3, .62, -.15));
+    return g;
+  }
+  if (type === 'jelly') { // drifts over wall and blade alike
+    const mJel = MC('#8FD8F0', { glow: .6, transparent: true, opacity: .72 });
+    const dome = mesh(new THREE.SphereGeometry(.5, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), mJel, 0, 0, 0); bodyG.add(dome);
+    for (let i = 0; i < 4; i++)
+      bodyG.add(cyl(.03, .05, .7, 4, mJel, Math.cos(i * 1.57) * .25, -.6, Math.sin(i * 1.57) * .25));
+    g.userData.hoverY = 1.5;
+    bodyG.position.y = 1.5;
+    return g;
+  }
+  if (type === 'urchin') { // a rolling fortress of spines
+    const b = mesh(new THREE.IcosahedronGeometry(.8, 0), mats.dark, 0, .8, 0); bodyG.add(b);
+    for (let i = 0; i < 10; i++) {
+      const th = i / 10 * Math.PI * 2;
+      const sp = cone(.09, .7, 4, MC('#B07EC9', { glow: .35 }), Math.cos(th) * .7, .55, Math.sin(th) * .7);
+      sp.rotation.z = -th; bodyG.add(sp);
+    }
+    bodyG.add(mesh(new THREE.SphereGeometry(.09, 5, 4), mThreat, .3, 1.1, .55));
+    bodyG.add(mesh(new THREE.SphereGeometry(.09, 5, 4), mThreat, -.3, 1.1, .55));
+    return g;
+  }
   if (type === 'skeleton') { // the dead walk the deep hollows
     bodyG.add(mesh(new THREE.CapsuleGeometry(.2, .5, 3, 8), mats.snow, 0, .55, 0));
     bodyG.add(mesh(new THREE.SphereGeometry(.19, 7, 6), mats.snow, 0, 1.08, 0));
@@ -673,6 +796,118 @@ export function bossArt(kind) {
     g.scale.setScalar(1.3);
     return g;
   }
+  if (kind === 'starspawn') { // something that fell from farther than the moon
+    const g = enemyArt('jelly');
+    g.scale.setScalar(2.6);
+    g.userData.body.add(mesh(new THREE.IcosahedronGeometry(.2, 0), MC('#F0B429', { glow: 1.2 }), 0, .35, 0));
+    g.userData.hoverY = 2;
+    return g;
+  }
+  if (kind === 'tyrantking') { // the regolith giant
+    const g = enemyArt('tyrant');
+    g.scale.setScalar(1.8);
+    g.userData.body.add(cyl(.4, .5, .38, 6, mGold, 0, 2.1, 0));
+    return g;
+  }
+  if (kind === 'jellyqueen') {
+    const g = enemyArt('jelly');
+    g.scale.setScalar(2.3);
+    g.userData.body.add(cyl(.22, .3, .24, 6, mGold, 0, .3, 0));
+    return g;
+  }
+  if (kind === 'yeti') { // the mountain that walks
+    const g = new THREE.Group();
+    const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+    const b = mesh(new THREE.CapsuleGeometry(.9, .9, 3, 8), mats.snow, 0, 1.4, 0); bodyG.add(b);
+    bodyG.add(mesh(new THREE.SphereGeometry(.45, 8, 6), mats.snow, 0, 2.5, .2));
+    bodyG.add(mesh(new THREE.SphereGeometry(.09, 5, 4), MC('#7BC5E3', { glow: 1.4 }), .16, 2.6, .55));
+    bodyG.add(mesh(new THREE.SphereGeometry(.09, 5, 4), MC('#7BC5E3', { glow: 1.4 }), -.16, 2.6, .55));
+    bodyG.add(cone(.12, .5, 4, mats.stoneDk, .35, 2.85, .1));
+    bodyG.add(cone(.12, .5, 4, mats.stoneDk, -.35, 2.85, .1));
+    for (const x of [-.95, .95]) { const arm = cyl(.22, .3, 1.6, 5, mats.snow, x, .3, .1); arm.rotation.z = x > 0 ? -.2 : .2; bodyG.add(arm); }
+    return g;
+  }
+  if (kind === 'meg') { // the megalodon — teeth the size of gate doors
+    const g = new THREE.Group();
+    const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+    const mShark = MC('#7A8EA0', { glow: .1 });
+    const b = mesh(new THREE.SphereGeometry(1.4, 9, 7), mShark, .2, 1.1, 0); b.scale.set(1.7, .8, .7); bodyG.add(b);
+    bodyG.add(box(2.2, .4, 1, MC('#E8F0F6', { glow: .08 }), .4, .45, 0));
+    const fin = cone(.6, 1.5, 4, mShark, 0, 1.9, 0); bodyG.add(fin);
+    const tail = cone(.5, 1.3, 4, mShark, -2.3, 1.2, 0); tail.rotation.z = 1.3; bodyG.add(tail);
+    for (let i = 0; i < 6; i++) bodyG.add(cone(.1, .35, 4, mats.snow, 1.2 + (i % 3) * .3, .55, i < 3 ? .35 : -.35));
+    bodyG.add(mesh(new THREE.SphereGeometry(.12, 5, 4), mats.dark, 1.6, 1.3, .5));
+    bodyG.add(mesh(new THREE.SphereGeometry(.12, 5, 4), mats.dark, 1.6, 1.3, -.5));
+    return g;
+  }
+  if (kind === 'vinehorror') { // the jungle, awake and displeased
+    const g = new THREE.Group();
+    const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+    const mVine = MC('#4E8A3E', { glow: .2 });
+    bodyG.add(cyl(.7, 1, 2.2, 7, mats.trunk, 0, 0, 0));
+    for (let i = 0; i < 5; i++) {
+      const th = i / 5 * Math.PI * 2;
+      const t = cone(.18, 1.8, 5, mVine, Math.cos(th) * .8, 1.8, Math.sin(th) * .8);
+      t.rotation.z = Math.cos(th) * -.5; t.rotation.x = Math.sin(th) * .5; bodyG.add(t);
+    }
+    bodyG.add(mesh(new THREE.SphereGeometry(.5, 8, 6), MC('#E87A9C', { glow: .8 }), 0, 2.6, 0));
+    const gw = glow('#E87A9C', 4, .25, .8, true); gw.position.y = 2.6; g.add(gw);
+    return g;
+  }
+  if (kind === 'magmalord') { // the mountain's anger, walking
+    const g = new THREE.Group();
+    const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+    const b = mesh(new THREE.IcosahedronGeometry(1.3, 0), MC('#3A2320', { glow: .1 }), 0, 1.2, 0); b.scale.y = 1.1; bodyG.add(b);
+    for (const [x, y, z] of [[-.5, 1.5, .6], [.6, 1, .5], [0, .6, .9], [.4, 1.8, .2]])
+      bodyG.add(mesh(new THREE.IcosahedronGeometry(.28, 0), MC('#FF6A3D', { glow: 1.2 }), x, y, z));
+    bodyG.add(mesh(new THREE.SphereGeometry(.11, 5, 4), MC('#FFD97A', { glow: 1.6 }), .3, 1.9, .85));
+    bodyG.add(mesh(new THREE.SphereGeometry(.11, 5, 4), MC('#FFD97A', { glow: 1.6 }), -.3, 1.9, .85));
+    const club = cyl(.16, .26, 1.9, 6, mats.dark, 1.35, 1, 0); club.rotation.z = -.7; bodyG.add(club);
+    const gw = glow('#FF6A3D', 6, .4, .95, true); gw.position.y = 1.5; g.add(gw);
+    return g;
+  }
+  if (kind === 'wyrm') { // the dune wyrm, sand pouring off its back
+    const g = new THREE.Group();
+    const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+    const mWyrm = MC('#C9A45E', { glow: .15 });
+    const head = mesh(new THREE.SphereGeometry(1, 8, 7), mWyrm, .8, 1.2, 0); head.scale.set(1.2, 1, .9); bodyG.add(head);
+    for (let i = 0; i < 8; i++) bodyG.add(cone(.14, .5, 4, mats.snow, 1.5, 1 + (i % 4) * .2, (i < 4 ? .4 : -.4)));
+    bodyG.add(mesh(new THREE.SphereGeometry(.13, 5, 4), mThreat, 1.3, 1.7, .45));
+    bodyG.add(mesh(new THREE.SphereGeometry(.13, 5, 4), mThreat, 1.3, 1.7, -.45));
+    const hump1 = mesh(new THREE.SphereGeometry(.8, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), mWyrm, -1, .2, 0); bodyG.add(hump1);
+    const hump2 = mesh(new THREE.SphereGeometry(.6, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), mWyrm, -2.6, .1, 0); bodyG.add(hump2);
+    return g;
+  }
+  if (kind === 'roc') { // the storm roc, wings wide as a wall
+    const g = new THREE.Group();
+    const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+    const mRoc = MC('#586A8E', { glow: .2 });
+    const b = mesh(new THREE.CapsuleGeometry(.5, 1.1, 3, 8), mRoc, 0, 0, 0); b.rotation.z = Math.PI / 2; bodyG.add(b);
+    bodyG.add(mesh(new THREE.SphereGeometry(.35, 7, 6), mRoc, .95, .15, 0));
+    bodyG.add(cone(.12, .5, 4, MC('#F0B429', { glow: .6 }), 1.35, .1, 0)).rotation;
+    const w1 = mesh(new THREE.BoxGeometry(1.1, .08, 2.2), mRoc, -.1, .2, 1.3, false);
+    const w2 = mesh(new THREE.BoxGeometry(1.1, .08, 2.2), mRoc, -.1, .2, -1.3, false);
+    bodyG.add(w1); bodyG.add(w2);
+    g.userData.wings = [w1, w2]; // it truly flies
+    g.userData.hoverY = 2.4;
+    bodyG.position.y = 2.4;
+    return g;
+  }
+  if (kind === 'maw') { // the anglerfish that ate the trench
+    const g = new THREE.Group();
+    const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+    const mDeep = MC('#25384A', { glow: .12 });
+    const b = mesh(new THREE.SphereGeometry(1.5, 9, 7), mDeep, 0, 1.5, 0); b.scale.set(1.25, 1, .95); bodyG.add(b);
+    bodyG.add(box(2.2, .5, 1.6, MC('#8FCABB', { glow: .1 }), .4, .35, 0));
+    for (let i = 0; i < 5; i++) bodyG.add(cone(.12, .5, 4, mats.snow, -.6 + i * .45, .6, .75));
+    for (let i = 0; i < 5; i++) bodyG.add(cone(.12, .5, 4, mats.snow, -.6 + i * .45, .6, -.75));
+    bodyG.add(mesh(new THREE.SphereGeometry(.2, 6, 5), MC('#F6C95C', { glow: 1.4 }), .8, 2.2, .8));
+    const stalk = cyl(.04, .04, 1.4, 4, mDeep, .2, 2.4, 0); stalk.rotation.z = -.5; bodyG.add(stalk);
+    const lure = mesh(new THREE.SphereGeometry(.22, 6, 5), MC('#B9F0FF', { glow: 1.6 }), .85, 3.1, 0); bodyG.add(lure);
+    const gw = glow('#B9F0FF', 4, .3, .9, true); gw.position.set(.85, 3.1, 0); g.add(gw);
+    const fin = cone(.5, 1.1, 4, mDeep, -1.6, 1.7, 0); fin.rotation.z = 1.2; bodyG.add(fin);
+    return g;
+  }
   const g = enemyArt('wasp'); // the Broodmother
   g.scale.setScalar(2.1);
   g.userData.body.add(cyl(.22, .3, .26, 6, mGold, .45, .38, 0));
@@ -713,6 +948,101 @@ export function nuggetArt(s = 1) {
   g.add(mesh(new THREE.IcosahedronGeometry(.3 * s, 0), mGold, 0, .18 * s, 0));
   g.add(mesh(new THREE.IcosahedronGeometry(.18 * s, 0), mGold, .4 * s, .1 * s, .2 * s));
   return g;
+}
+export function palmArt(s = 1) {
+  const g = new THREE.Group();
+  const t = cyl(.12 * s, .18 * s, 2.4 * s, 5, mats.trunk); t.rotation.z = .15; g.add(t);
+  for (let i = 0; i < 5; i++) {
+    const th = i / 5 * Math.PI * 2;
+    const leaf = cone(.35 * s, 1.4 * s, 4, mats.pine, Math.cos(th) * .55 * s, 2.3 * s, Math.sin(th) * .55 * s);
+    leaf.rotation.z = Math.cos(th) * 1.25; leaf.rotation.x = -Math.sin(th) * 1.25; g.add(leaf);
+  }
+  return g;
+}
+export function cactusArt(s = 1) {
+  const g = new THREE.Group();
+  const m = MC('#4E8A3E', { glow: .12 });
+  g.add(cyl(.22 * s, .26 * s, 1.6 * s, 6, m));
+  g.add(cyl(.12 * s, .14 * s, .7 * s, 5, m, .35 * s, .6 * s, 0));
+  g.add(cyl(.12 * s, .14 * s, .5 * s, 5, m, -.32 * s, .8 * s, 0));
+  return g;
+}
+export function lavaPoolArt(r = 2) {
+  const g = new THREE.Group();
+  const p = cyl(r, r, .06, 14, lavaMat); p.castShadow = false; g.add(p);
+  const gw = glow('#FF6A3D', r * 2.4, .35, .9, true); gw.position.y = .4; g.add(gw);
+  return g;
+}
+export function floatRockArt(s = 1) {
+  const g = new THREE.Group();
+  const r = mesh(new THREE.IcosahedronGeometry(.9 * s, 0), mats.stoneDk, 0, 0, 0); r.scale.y = .7; g.add(r);
+  const ph = Math.random() * 9;
+  ANIMS.push((t) => { if (!g.parent) return; g.position.y = 2.2 + Math.sin(t * .7 + ph) * .5; g.rotation.y = t * .1 + ph; });
+  return g;
+}
+export function volcanoArt(s = 1) {
+  const g = new THREE.Group();
+  g.add(cone(4 * s, 6.5 * s, 6, mats.dark));
+  const lip = cyl(1.2 * s, 1.5 * s, .6 * s, 6, lavaMat, 0, 6 * s, 0); lip.castShadow = false; g.add(lip);
+  const gw = glow('#FF6A3D', 7 * s, .5, 1, true); gw.position.y = 6.6 * s; g.add(gw);
+  return g;
+}
+export function hillArt(r = 3, h = 1.2, pal = null) {
+  const m = TERRA[pal] ? TERRA[pal].grassLt : mats.grassLt;
+  const dome = mesh(new THREE.SphereGeometry(r, 9, 6, 0, Math.PI * 2, 0, Math.PI / 2), m);
+  dome.scale.y = h / r; dome.castShadow = false;
+  const g = new THREE.Group(); g.add(dome); return g;
+}
+/* ---------- the moon and the deep ---------- */
+export function spireArt(s = 1) {
+  const g = new THREE.Group();
+  g.add(cone(.7 * s, 4.5 * s, 5, mats.stoneDk));
+  g.add(cone(.4 * s, 2.2 * s, 5, mats.stone, 1 * s, 0, .4 * s));
+  return g;
+}
+export function earthArt() { // home, hanging in the black
+  const g = new THREE.Group();
+  const e = mesh(new THREE.SphereGeometry(3.4, 12, 10), MC('#4A90D9', { glow: .55 }), 0, 0, 0, false);
+  g.add(e);
+  for (const [x, y, z, s] of [[1, .9, 2.6, 1], [-1.5, -.4, 2.7, .75], [.3, -1.7, 2.6, .6]])
+    g.add(mesh(new THREE.SphereGeometry(.95 * s, 7, 6), MC('#7BC47F', { glow: .35 }), x, y, z, false));
+  const halo = glow('#9CC8FF', 12, .5, .9); g.add(halo);
+  return g;
+}
+export function coralArt(s = 1) {
+  const g = new THREE.Group();
+  const m1 = MC('#E87A9C', { glow: .35 }), m2 = MC('#F0A45C', { glow: .3 });
+  g.add(cone(.3 * s, 1.4 * s, 5, m1, 0, 0, 0));
+  g.add(cone(.22 * s, 1 * s, 5, m2, .5 * s, 0, .3 * s));
+  g.add(cone(.25 * s, 1.2 * s, 5, m1, -.45 * s, 0, .25 * s));
+  g.add(mesh(new THREE.IcosahedronGeometry(.4 * s, 0), m2, .1 * s, .2 * s, -.5 * s));
+  const gw = glow('#F0A45C', 2 * s, .15, .6); gw.position.y = .8 * s; g.add(gw);
+  return g;
+}
+export function kelpArt(s = 1) {
+  const g = new THREE.Group();
+  const stalks = [];
+  for (const [x, z, h] of [[0, 0, 3.4], [.5, .3, 2.6], [-.4, .2, 2.9]]) {
+    const k = cyl(.07 * s, .1 * s, h * s, 4, MC('#4E9A5E', { glow: .2 }), x * s, 0, z * s);
+    g.add(k); stalks.push([k, h]);
+  }
+  const ph = Math.random() * 9;
+  ANIMS.push((t) => {
+    if (!g.parent) return;
+    stalks.forEach(([k, h], i) => { k.rotation.z = Math.sin(t * 1.1 + ph + i) * .16; k.rotation.x = Math.cos(t * .9 + ph + i) * .12; });
+  });
+  return g;
+}
+export function bubblesAt(group, u, v) { // a slow column of light rising from the vents
+  for (let i = 0; i < 3; i++) {
+    const b = glow('#BFEAF5', .9 + Math.random() * .6, .3, .7);
+    group.add(b);
+    const off = Math.random() * 10, sp = .8 + Math.random() * .7;
+    ANIMS.push((t) => {
+      if (!b.parent) return;
+      b.position.set(u + Math.sin(t * .8 + off) * .5, ((t * sp + off) % 11), v + Math.cos(t * .7 + off) * .5);
+    });
+  }
 }
 
 /* ---------- fx meshes ---------- */

@@ -10,7 +10,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 /* ============================== renderer & scene ============================== */
 const canvas = $('#gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -76,12 +76,28 @@ function gateAt(u, v) {
   addTorch(g.userData.torch.clone().add(g.position));
 }
 
+/* map mastery is per map: nights survived THERE unlock the next world */
+let BESTS = {};
+try { BESTS = JSON.parse(localStorage.tf_bests || '{}'); } catch { /* fresh device */ }
+try { const legacy = +localStorage.tf_best || 0; if (legacy > (BESTS.nordfels || 0)) BESTS.nordfels = legacy; } catch { /* ok */ }
+function saveBests() { try { localStorage.tf_bests = JSON.stringify(BESTS); } catch { /* private mode */ } }
+function mapUnlocked(def) { const r = def.unlockAfter; return !r || (BESTS[r.map] || 0) >= r.nights; }
 const BOSS_DEFS = {
   warlord:   { name: 'THE OGRE WARLORD', kind: 'warlord', hp: 55, speed: .55, dmg: 6, rate: 2.2 },
   brood:     { name: 'THE BROODMOTHER', kind: 'brood', hp: 45, speed: 1.05, dmg: 3, rate: 1.6, fly: true, brood: 7 },
   skeleking: { name: 'THE SKELETON KING', kind: 'skeleking', hp: 60, speed: .6, dmg: 4, rate: 2, brood: 6, broodType: 'skeleton' },
   landship:  { name: 'THE LANDSHIP', kind: 'landship', hp: 70, speed: .5, dmg: 7, rate: 2.1 },
   acewing:   { name: 'THE ACE WING', kind: 'acewing', hp: 50, speed: 1.1, dmg: 3, rate: 1.5, fly: true, brood: 8 },
+  starspawn: { name: 'THE STARSPAWN', kind: 'starspawn', hp: 65, speed: 1, dmg: 4, rate: 1.6, fly: true, brood: 7, broodType: 'moonling' },
+  tyrantking:{ name: 'THE REGOLITH GIANT', kind: 'tyrantking', hp: 80, speed: .5, dmg: 7, rate: 2.2 },
+  maw:       { name: 'THE MAW', kind: 'maw', hp: 75, speed: .6, dmg: 5, rate: 2 },
+  jellyqueen:{ name: 'THE JELLY QUEEN', kind: 'jellyqueen', hp: 50, speed: 1.1, dmg: 3, rate: 1.5, fly: true, brood: 6, broodType: 'jelly' },
+  yeti:      { name: 'THE YETI', kind: 'yeti', hp: 85, speed: .55, dmg: 6, rate: 2 },
+  meg:       { name: 'THE MEGALODON', kind: 'meg', hp: 70, speed: .9, dmg: 5, rate: 1.8 },
+  vinehorror:{ name: 'THE VINE HORROR', kind: 'vinehorror', hp: 70, speed: .5, dmg: 5, rate: 2, brood: 8, broodType: 'slime' },
+  magmalord: { name: 'THE MAGMA LORD', kind: 'magmalord', hp: 90, speed: .5, dmg: 7, rate: 2.1 },
+  wyrm:      { name: 'THE DUNE WYRM', kind: 'wyrm', hp: 80, speed: 1.2, dmg: 5, rate: 1.8 },
+  roc:       { name: 'THE STORM ROC', kind: 'roc', hp: 70, speed: 1.2, dmg: 4, rate: 1.5, fly: true, brood: 7, broodType: 'sprite' },
 };
 const MAPS = {
   nordfels: {
@@ -166,11 +182,15 @@ const MAPS = {
       place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
       place(ART.wallRun(3.4), 18.6, 32.5, Math.PI / 2); place(ART.wallRun(3.4), 28, 32.5, Math.PI / 2);
       for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5],[22.8,32.5],[27.2,32.5]]) gateAt(u, v);
+      for (const [u0, v0, r, h] of [[10,8,4,1.4],[40,10,5,1.6],[8,40,4.5,1.3],[42,44,4,1.5],[36,14,3.2,1.1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.hillArt(r, h), u, v);
+      }
       place(ART.boat(), 59.5, 48.5, .6);
     },
   },
   leviathan: {
-    id: 'leviathan', name: 'Leviathan', unlockBest: 3, extraWasps: 3,
+    id: 'leviathan', name: 'Leviathan', unlockAfter: { map: 'nordfels', nights: 3 }, extraWasps: 3,
     serpent: true, serpPos: { u: 45, v: 49 }, camZoom: 1.12,
     bounds: { u: [-17, 67], v: [-1, 51] },
     laneIds: ['A', 'B', 'C'],
@@ -180,7 +200,7 @@ const MAPS = {
       C: [[25, -4], [24.8, 3], [25, 9], [24.8, 14], [25, 18], [25, 21.6]],
     },
     terrain: { sx: 1.45, sz: .9, sc: 1.25, pond: false },
-    boss: BOSS_DEFS.brood, bosses: [BOSS_DEFS.brood, BOSS_DEFS.warlord],
+    boss: BOSS_DEFS.brood, bosses: [BOSS_DEFS.brood, BOSS_DEFS.meg],
     slots: [
       { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
       { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
@@ -248,7 +268,7 @@ const MAPS = {
     },
   },
   deephollow: {
-    id: 'deephollow', name: 'Deephollow', unlockBest: 6,
+    id: 'deephollow', name: 'Deephollow', unlockAfter: { map: 'leviathan', nights: 5 },
     saboteur: true, camZoom: 1.05,
     bounds: { u: [-14, 64], v: [-14, 64] },
     laneIds: ['A', 'B', 'C'],
@@ -314,7 +334,7 @@ const MAPS = {
     },
   },
   ironfront: {
-    id: 'ironfront', name: 'Ironfront', unlockBest: 10,
+    id: 'ironfront', name: 'Ironfront', unlockAfter: { map: 'deephollow', nights: 6 },
     saboteur: true, skin: 'ww2', camZoom: 1.05,
     terrain: { sx: 1, sz: 1, sc: 1.9, pond: false },
     laneIds: ['A', 'B', 'C', 'D'],
@@ -349,6 +369,424 @@ const MAPS = {
       for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5],[22.8,32.5],[27.2,32.5]]) gateAt(u, v);
     },
   },
+  lunaris: {
+    id: 'lunaris', name: 'Lunaris', unlockAfter: { map: 'ironfront', nights: 6 },
+    camZoom: 1.05, mini: 'tyrant',
+    bounds: { u: [-12, 62], v: [-12, 62] },
+    laneIds: ['A', 'B', 'C'],
+    lanePts: {
+      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
+      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
+      C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
+    },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'moon' },
+    sub: { slime: 'moonling' },
+    boss: BOSS_DEFS.starspawn, bosses: [BOSS_DEFS.starspawn, BOSS_DEFS.tyrantking],
+    slots: [
+      { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
+      { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
+      { id: 's5', u: 22,   v: 31.5, type: 'house' },   { id: 's6', u: 27.5, v: 31.5, type: 'house' },
+      { id: 's7', u: 17,   v: 35,   type: 'mill' },    { id: 's9', u: 30.5, v: 33.5, type: 'house' },
+      { id: 's10', u: 7.5, v: 21,   type: 'mine' },
+      { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
+      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 22 } },
+      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 22 } },
+      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 22 } },
+      { id: 'w4', type: 'wall', wall: { lane: 'A', d: 8 },  hidden: true, unlockDay: 2 },
+      { id: 'w5', type: 'wall', wall: { lane: 'B', d: 8 },  hidden: true, unlockDay: 2 },
+      { id: 'w6', type: 'wall', wall: { lane: 'C', d: 8 },  hidden: true, unlockDay: 3 },
+      { id: 'l1', u: 21.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'l2', u: 28.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'l3', u: 8,    v: 12,   type: 'mine',     hidden: true, unlockDay: 2 },
+      { id: 'l4', u: 42,   v: 12,   type: 'mine',     hidden: true, unlockDay: 3 },
+      { id: 'l5', u: 12,   v: 10,   type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'l6', u: 38,   v: 9,    type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'l7', u: 40,   v: 30,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'l8', u: 29.5, v: 9,    type: 'barracks', hidden: true, unlockDay: 3 },
+      { id: 'l9', u: 10,   v: 30,   type: 'tower',    hidden: true, unlockDay: 4 },
+      { id: 'l10', u: 40,  v: 40,   type: 'mine',     hidden: true, unlockDay: 4 },
+      { id: 'l11', u: 12,  v: 40,   type: 'house',    hidden: true, unlockDay: 4 },
+      { id: 'l12', u: 36,  v: 17,   type: 'range',    hidden: true, unlockDay: 5 },
+    ],
+    decor() {
+      const P = (u, v) => [25 + (u - 25) * 1.45, 25 + (v - 25) * 1.45];
+      for (const [u0, v0, s] of [[10,14,1.3],[36,10,1],[42,30,1.6],[12,38,1.2],[30,44,1.1],[6,26,1],[44,18,1.1],[20,6,1.2],[24,47,1.3],[46,42,1],[8,8,1.4],[42,44,1.2]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.craterArt(s), u, v, Math.random() * 6);
+      }
+      for (const [u0, v0, s] of [[6,9,1],[42,6.5,.9],[45,38,1],[10,45,.9],[25,45,.8],[45,25,.7]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.spireArt(s), u, v, Math.random() * 6);
+      }
+      for (const [u, v, s] of [[8,26,1.1],[42,24,1],[20,42,.9],[30,40,1.1],[16,12,1],[34,12,.9],[24,8,1.1],[44,32,1],[6,36,.9],[38,38,.9]])
+        place(ART.rock(s * 1.3), 25 + (u - 25) * 1.35, 25 + (v - 25) * 1.35, Math.random() * 6);
+      for (const [u0, v0, r, h] of [[12,8,4,1.4],[38,42,5,1.6],[8,40,4,1.2],[42,10,4.5,1.4]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.hillArt(r, h, 'moon'), u, v);
+      }
+      const earth = place(ART.earthArt(), -6, -4);
+      earth.position.y = 32;
+      place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
+      place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
+      place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
+      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5]]) gateAt(u, v);
+    },
+  },
+  abyss: {
+    id: 'abyss', name: 'The Abyss', unlockAfter: { map: 'lunaris', nights: 6 },
+    camZoom: 1.05, mini: 'urchin',
+    bounds: { u: [-12, 62], v: [-12, 62] },
+    laneIds: ['A', 'B', 'C'],
+    lanePts: {
+      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
+      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
+      C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
+    },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'abyss' },
+    sub: { slime: 'crab', wasp: 'jelly' },
+    boss: BOSS_DEFS.maw, bosses: [BOSS_DEFS.maw, BOSS_DEFS.jellyqueen],
+    slots: [
+      { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
+      { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
+      { id: 's5', u: 22,   v: 31.5, type: 'house' },   { id: 's6', u: 28,   v: 30.5, type: 'house' },
+      { id: 's7', u: 17,   v: 35,   type: 'mill' },    { id: 's9', u: 30.5, v: 33.5, type: 'house' },
+      { id: 's8', u: 38.5, v: 34.5, type: 'harbour' }, { id: 's10', u: 7.5, v: 21,   type: 'mine' },
+      { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
+      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 22 } },
+      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 22 } },
+      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 22 } },
+      { id: 'w4', type: 'wall', wall: { lane: 'A', d: 8 },  hidden: true, unlockDay: 2 },
+      { id: 'w5', type: 'wall', wall: { lane: 'B', d: 8 },  hidden: true, unlockDay: 2 },
+      { id: 'w6', type: 'wall', wall: { lane: 'C', d: 8 },  hidden: true, unlockDay: 3 },
+      { id: 'a1', u: 22,   v: 38,   type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'a2', u: 28.5, v: 38,   type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'a3', u: 10,   v: 12,   type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'a4', u: 40,   v: 12,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'a5', u: 12,   v: 40,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'a6', u: 40,   v: 42,   type: 'harbour',  hidden: true, unlockDay: 4 },
+      { id: 'a7', u: 8,    v: 32,   type: 'mine',     hidden: true, unlockDay: 4 },
+      { id: 'a8', u: 42,   v: 26,   type: 'mine',     hidden: true, unlockDay: 5 },
+      { id: 'a9', u: 20,   v: 42,   type: 'barracks', hidden: true, unlockDay: 3 },
+      { id: 'a10', u: 36,  v: 17,   type: 'range',    hidden: true, unlockDay: 5 },
+    ],
+    decor() {
+      const P = (u, v) => [25 + (u - 25) * 1.45, 25 + (v - 25) * 1.45];
+      for (const [u0, v0, s] of [[10,14,1.2],[36,10,1],[42,30,1.4],[12,38,1.1],[30,44,1],[6,26,1],[44,18,1.1],[20,6,1],[46,42,1.2],[8,8,1.1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.coralArt(s), u, v, Math.random() * 6);
+      }
+      for (const [u0, v0, s] of [[8,20,1],[40,22,1.1],[14,44,1],[38,42,1.2],[22,4,1],[30,3,1],[4,32,1],[46,34,1],[16,8,1.1],[34,46,1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.kelpArt(s), u, v, Math.random() * 6);
+      }
+      for (const [u, v, s] of [[8,26,1.1],[42,24,1],[20,42,.9],[16,12,1],[34,12,.9],[44,32,1]])
+        place(ART.rock(s * 1.2), 25 + (u - 25) * 1.35, 25 + (v - 25) * 1.35, Math.random() * 6);
+      for (const [u0, v0, r, h] of [[12,8,4,1.2],[38,42,5,1.4],[8,40,4,1.1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.hillArt(r, h, 'abyss'), u, v);
+      }
+      for (const [u0, v0] of [[14,18],[36,32],[24,44],[42,8]]) {
+        const [u, v] = P(u0, v0);
+        ART.bubblesAt(mapGroup, u, v);
+      }
+      place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
+      place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
+      place(ART.wallRun(3.4), 18.6, 32.5, Math.PI / 2); place(ART.wallRun(3.4), 28, 32.5, Math.PI / 2);
+      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[22.8,32.5],[27.2,32.5]]) gateAt(u, v);
+    },
+  },
+  frostmaw: {
+    id: 'frostmaw', name: 'Frostmaw', unlockAfter: { map: 'abyss', nights: 6 },
+    camZoom: 1.05, coldSnap: true,
+    bounds: { u: [-12, 62], v: [-12, 62] },
+    laneIds: ['A', 'B', 'C'],
+    lanePts: {
+      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
+      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
+      C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
+    },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ice' },
+    sub: { slime: 'iceling' },
+    boss: BOSS_DEFS.yeti, bosses: [BOSS_DEFS.yeti, BOSS_DEFS.tyrantking],
+    slots: [
+      { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
+      { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
+      { id: 's5', u: 22,   v: 31.5, type: 'house' },   { id: 's6', u: 27.5, v: 31.5, type: 'house' },
+      { id: 's7', u: 17,   v: 35,   type: 'mill' },    { id: 's9', u: 30.5, v: 33.5, type: 'house' },
+      { id: 's10', u: 7.5, v: 21,   type: 'mine' },
+      { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
+      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 22 } },
+      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 22 } },
+      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 22 } },
+      { id: 'w4', type: 'wall', wall: { lane: 'A', d: 8 }, hidden: true, unlockDay: 2 },
+      { id: 'w5', type: 'wall', wall: { lane: 'B', d: 8 }, hidden: true, unlockDay: 2 },
+      { id: 'w6', type: 'wall', wall: { lane: 'C', d: 8 }, hidden: true, unlockDay: 3 },
+      { id: 'fr1', u: 21.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'fr2', u: 28.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'fr3', u: 10,   v: 12,   type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'fr4', u: 40,   v: 12,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'fr5', u: 12,   v: 40,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'fr6', u: 40,   v: 40,   type: 'mine',     hidden: true, unlockDay: 4 },
+      { id: 'fr7', u: 29.5, v: 9,    type: 'barracks', hidden: true, unlockDay: 3 },
+      { id: 'fr8', u: 36,   v: 17,   type: 'range',    hidden: true, unlockDay: 5 },
+      { id: 'fr9', u: 8,    v: 32,   type: 'mine',     hidden: true, unlockDay: 5 },
+    ],
+    decor() {
+      const P = (u, v) => [25 + (u - 25) * 1.45, 25 + (v - 25) * 1.45];
+      for (const [u0, v0, s] of [[6,9,1.2],[5,15,.9],[12,4.5,1],[23,3.5,1.4],[34,4,1],[42,6.5,1.1],[45,38,1.1],[38,45,1.3],[10,45,1],[45,25,.9],[25,46,1.1],[6,32,1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.mountain(), u, v, Math.random() * 6, s);
+      }
+      for (const [u0, v0, s] of [[9,12,.9],[16,7,1],[40,7,1],[45,13,.9],[14,42,1],[33,45,.9],[21,44,.8],[36,30,.8],[4,22,.9],[46,29,.9]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.treePine(s), u, v, Math.random() * 6);
+      }
+      for (const [u, v, s] of [[8,26,1.1],[42,24,1],[20,42,.9],[16,12,1],[34,12,.9],[44,32,1],[12,34,.9]])
+        place(ART.rock(s * 1.2), 25 + (u - 25) * 1.35, 25 + (v - 25) * 1.35, Math.random() * 6);
+      for (const [u0, v0, r, h] of [[12,8,4,1.4],[38,42,5,1.6],[8,40,4,1.2],[42,10,4,1.3]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.hillArt(r, h, 'ice'), u, v);
+      }
+      place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
+      place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
+      place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
+      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5]]) gateAt(u, v);
+    },
+  },
+  verdania: {
+    id: 'verdania', name: 'Verdania', unlockAfter: { map: 'frostmaw', nights: 6 },
+    camZoom: 1.05, mini: 'gorilla',
+    bounds: { u: [-12, 62], v: [-12, 62] },
+    laneIds: ['A', 'B', 'C'],
+    lanePts: {
+      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
+      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
+      C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
+    },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'jungle' },
+    sub: { runner: 'panther' },
+    boss: BOSS_DEFS.vinehorror, bosses: [BOSS_DEFS.vinehorror, BOSS_DEFS.warlord],
+    slots: [
+      { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
+      { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
+      { id: 's5', u: 22,   v: 31.5, type: 'house' },   { id: 's6', u: 28,   v: 30.5, type: 'house' },
+      { id: 's7', u: 17,   v: 35,   type: 'mill' },    { id: 's9', u: 30.5, v: 33.5, type: 'house' },
+      { id: 's10', u: 7.5, v: 21,   type: 'mine' },
+      { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
+      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 22 } },
+      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 22 } },
+      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 22 } },
+      { id: 'w4', type: 'wall', wall: { lane: 'A', d: 8 }, hidden: true, unlockDay: 2 },
+      { id: 'w5', type: 'wall', wall: { lane: 'B', d: 8 }, hidden: true, unlockDay: 2 },
+      { id: 'w6', type: 'wall', wall: { lane: 'C', d: 8 }, hidden: true, unlockDay: 3 },
+      { id: 'v1', u: 22,   v: 38,   type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'v2', u: 28.5, v: 38,   type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'v3', u: 10,   v: 12,   type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'v4', u: 40,   v: 12,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'v5', u: 12,   v: 40,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'v6', u: 40,   v: 42,   type: 'mine',     hidden: true, unlockDay: 4 },
+      { id: 'v7', u: 20,   v: 42,   type: 'barracks', hidden: true, unlockDay: 3 },
+      { id: 'v8', u: 36,   v: 17,   type: 'range',    hidden: true, unlockDay: 5 },
+      { id: 'v9', u: 8,    v: 32,   type: 'mill',     hidden: true, unlockDay: 4 },
+    ],
+    decor() {
+      const P = (u, v) => [25 + (u - 25) * 1.45, 25 + (v - 25) * 1.45];
+      /* the green presses in on every side */
+      for (const [u0, v0, s] of [[9,12,1.2],[7,28.5,1.1],[11,33,1.3],[9,44,1.1],[16,7,1.3],[28,5,1.1],[40,7,1.3],[45,13,1.2],[44,19,1],[14,42,1.3],[33,45,1.2],[45,44,1.1],[21,44,1],[36,30,1],[4,22,1.2],[46,29,1.1],[30,47,1.2],[18,48,1.1],[6,36,1.2],[42,36,1.1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.treeRound(s * 1.25), u, v, Math.random() * 6);
+      }
+      for (const [u0, v0, s] of [[12,21.5,1],[31,16.5,1.1],[39.5,23,.9],[20,35,1],[28,43,.9],[9,31,.8],[34,9,.9],[14,44,.85],[44,40,.8],[24,10,1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.bush(s * 1.3), u, v, Math.random() * 6);
+      }
+      for (const [u0, v0, r, h] of [[12,8,4,1.3],[38,42,5,1.5],[8,40,4,1.1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.hillArt(r, h), u, v);
+      }
+      for (const [u, v, s] of [[8,26,1],[42,24,.9],[16,12,.9]])
+        place(ART.rock(s), 25 + (u - 25) * 1.35, 25 + (v - 25) * 1.35, Math.random() * 6);
+      place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
+      place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
+      place(ART.wallRun(3.4), 18.6, 32.5, Math.PI / 2); place(ART.wallRun(3.4), 28, 32.5, Math.PI / 2);
+      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[22.8,32.5],[27.2,32.5]]) gateAt(u, v);
+    },
+  },
+  cinderpeak: {
+    id: 'cinderpeak', name: 'Cinderpeak', unlockAfter: { map: 'verdania', nights: 6 },
+    camZoom: 1.05, mini: 'tyrant',
+    bounds: { u: [-12, 62], v: [-12, 62] },
+    laneIds: ['A', 'B', 'C'],
+    lanePts: {
+      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
+      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
+      C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
+    },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ash' },
+    sub: { slime: 'cinderling' },
+    boss: BOSS_DEFS.magmalord, bosses: [BOSS_DEFS.magmalord, BOSS_DEFS.tyrantking],
+    slots: [
+      { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
+      { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
+      { id: 's5', u: 22,   v: 31.5, type: 'house' },   { id: 's6', u: 27.5, v: 31.5, type: 'house' },
+      { id: 's7', u: 17,   v: 35,   type: 'mill' },    { id: 's9', u: 30.5, v: 33.5, type: 'house' },
+      { id: 's10', u: 7.5, v: 21,   type: 'mine' },
+      { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
+      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 22 } },
+      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 22 } },
+      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 22 } },
+      { id: 'w4', type: 'wall', wall: { lane: 'A', d: 8 }, hidden: true, unlockDay: 2 },
+      { id: 'w5', type: 'wall', wall: { lane: 'B', d: 8 }, hidden: true, unlockDay: 2 },
+      { id: 'w6', type: 'wall', wall: { lane: 'C', d: 8 }, hidden: true, unlockDay: 3 },
+      { id: 'c1', u: 21.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'c2', u: 28.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'c3', u: 10,   v: 12,   type: 'mine',     hidden: true, unlockDay: 2 },
+      { id: 'c4', u: 40,   v: 12,   type: 'mine',     hidden: true, unlockDay: 3 },
+      { id: 'c5', u: 12,   v: 10,   type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'c6', u: 38,   v: 9,    type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'c7', u: 12,   v: 40,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'c8', u: 29.5, v: 9,    type: 'barracks', hidden: true, unlockDay: 3 },
+      { id: 'c9', u: 40,   v: 40,   type: 'tower',    hidden: true, unlockDay: 4 },
+      { id: 'c10', u: 36,  v: 17,   type: 'range',    hidden: true, unlockDay: 5 },
+    ],
+    decor() {
+      const P = (u, v) => [25 + (u - 25) * 1.45, 25 + (v - 25) * 1.45];
+      place(ART.volcanoArt(1.4), 25 + (8 - 25) * 1.45, 25 + (8 - 25) * 1.45, .5);
+      place(ART.volcanoArt(1), 25 + (44 - 25) * 1.45, 25 + (40 - 25) * 1.45, 2.2);
+      for (const [u0, v0, r] of [[14,10,2.2],[38,14,1.8],[10,36,2],[36,42,1.6],[44,26,1.5]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.lavaPoolArt(r), u, v);
+      }
+      for (const [u0, v0, s] of [[6,20,1],[42,8,1.1],[20,6,1],[30,44,1.1],[46,34,1],[8,44,1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.mountain(s ? s : 1), u, v, Math.random() * 6, s);
+      }
+      for (const [u0, v0, s] of [[9,12,1],[16,7,1],[40,7,1],[14,42,1],[33,45,1],[36,30,.9],[4,22,1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.deadTreeArt(s), u, v, Math.random() * 6);
+      }
+      for (const [u, v, s] of [[8,26,1.2],[42,24,1.1],[20,42,1],[16,12,1.1],[34,12,1],[44,32,1.1]])
+        place(ART.rock(s * 1.3), 25 + (u - 25) * 1.35, 25 + (v - 25) * 1.35, Math.random() * 6);
+      place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
+      place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
+      place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
+      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5]]) gateAt(u, v);
+    },
+  },
+  sandsea: {
+    id: 'sandsea', name: 'Sandsea', unlockAfter: { map: 'cinderpeak', nights: 6 },
+    camZoom: 1.05,
+    bounds: { u: [-12, 62], v: [-12, 62] },
+    laneIds: ['A', 'B', 'C'],
+    lanePts: {
+      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
+      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
+      C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
+    },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'dune' },
+    sub: { slime: 'scarab' },
+    boss: BOSS_DEFS.wyrm, bosses: [BOSS_DEFS.wyrm, BOSS_DEFS.warlord],
+    slots: [
+      { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
+      { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
+      { id: 's5', u: 22,   v: 31.5, type: 'house' },   { id: 's6', u: 28,   v: 30.5, type: 'house' },
+      { id: 's7', u: 17,   v: 35,   type: 'mill' },    { id: 's9', u: 30.5, v: 33.5, type: 'house' },
+      { id: 's10', u: 7.5, v: 21,   type: 'mine' },
+      { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
+      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 22 } },
+      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 22 } },
+      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 22 } },
+      { id: 'w4', type: 'wall', wall: { lane: 'A', d: 8 }, hidden: true, unlockDay: 2 },
+      { id: 'w5', type: 'wall', wall: { lane: 'B', d: 8 }, hidden: true, unlockDay: 2 },
+      { id: 'w6', type: 'wall', wall: { lane: 'C', d: 8 }, hidden: true, unlockDay: 3 },
+      { id: 'sd1', u: 22,   v: 38,   type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'sd2', u: 28.5, v: 38,   type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'sd3', u: 10,   v: 12,   type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'sd4', u: 40,   v: 12,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'sd5', u: 12,   v: 40,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'sd6', u: 40,   v: 42,   type: 'mine',     hidden: true, unlockDay: 4 },
+      { id: 'sd7', u: 20,   v: 42,   type: 'barracks', hidden: true, unlockDay: 3 },
+      { id: 'sd8', u: 36,   v: 17,   type: 'range',    hidden: true, unlockDay: 5 },
+      { id: 'sd9', u: 8,    v: 32,   type: 'mine',     hidden: true, unlockDay: 5 },
+    ],
+    decor() {
+      const P = (u, v) => [25 + (u - 25) * 1.45, 25 + (v - 25) * 1.45];
+      for (const [u0, v0, r, h] of [[12,8,5,1.6],[38,42,6,1.8],[8,40,4.5,1.3],[42,10,5,1.5],[25,44,4,1.2],[6,24,4,1.2]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.hillArt(r, h, 'dune'), u, v);
+      }
+      for (const [u0, v0, s] of [[10,14,1],[36,10,1.1],[42,30,1],[12,38,1],[30,44,1],[44,18,1],[16,8,1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.palmArt(s), u, v, Math.random() * 6);
+      }
+      for (const [u0, v0, s] of [[8,20,1],[40,22,1],[14,44,1],[22,4,1],[4,32,1],[46,34,1],[34,46,1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.cactusArt(s), u, v, Math.random() * 6);
+      }
+      for (const [u, v, s] of [[8,26,1],[42,24,1],[16,12,1],[34,12,.9]])
+        place(ART.rock(s), 25 + (u - 25) * 1.35, 25 + (v - 25) * 1.35, Math.random() * 6);
+      for (const [u0, v0] of [[18,10],[32,38],[44,27]]) place(ART.nuggetArt(.8), ...P(u0, v0), 0);
+      place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
+      place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
+      place(ART.wallRun(3.4), 18.6, 32.5, Math.PI / 2); place(ART.wallRun(3.4), 28, 32.5, Math.PI / 2);
+      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[22.8,32.5],[27.2,32.5]]) gateAt(u, v);
+    },
+  },
+  aetherreach: {
+    id: 'aetherreach', name: 'Aetherreach', unlockAfter: { map: 'sandsea', nights: 8 },
+    camZoom: 1.05, mini: 'urchin',
+    bounds: { u: [-12, 62], v: [-12, 62] },
+    laneIds: ['A', 'B', 'C'],
+    lanePts: {
+      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
+      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
+      C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
+    },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'sky' },
+    sub: { wasp: 'sprite' },
+    boss: BOSS_DEFS.roc, bosses: [BOSS_DEFS.roc, BOSS_DEFS.starspawn],
+    slots: [
+      { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
+      { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
+      { id: 's5', u: 22,   v: 31.5, type: 'house' },   { id: 's6', u: 27.5, v: 31.5, type: 'house' },
+      { id: 's7', u: 17,   v: 35,   type: 'mill' },    { id: 's9', u: 30.5, v: 33.5, type: 'house' },
+      { id: 's10', u: 7.5, v: 21,   type: 'mine' },
+      { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
+      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 22 } },
+      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 22 } },
+      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 22 } },
+      { id: 'w4', type: 'wall', wall: { lane: 'A', d: 8 }, hidden: true, unlockDay: 2 },
+      { id: 'w5', type: 'wall', wall: { lane: 'B', d: 8 }, hidden: true, unlockDay: 2 },
+      { id: 'w6', type: 'wall', wall: { lane: 'C', d: 8 }, hidden: true, unlockDay: 3 },
+      { id: 'ae1', u: 21.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'ae2', u: 28.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 'ae3', u: 10,   v: 12,   type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'ae4', u: 40,   v: 12,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'ae5', u: 12,   v: 40,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'ae6', u: 40,   v: 40,   type: 'mine',     hidden: true, unlockDay: 4 },
+      { id: 'ae7', u: 29.5, v: 9,    type: 'barracks', hidden: true, unlockDay: 3 },
+      { id: 'ae8', u: 36,   v: 17,   type: 'range',    hidden: true, unlockDay: 5 },
+    ],
+    decor() {
+      const P = (u, v) => [25 + (u - 25) * 1.45, 25 + (v - 25) * 1.45];
+      for (const [u0, v0, s] of [[6,9,1],[42,6.5,.9],[45,38,1],[10,45,.9],[25,45,.8],[45,25,.7],[8,30,.9],[36,8,.8]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.spireArt(s), u, v, Math.random() * 6);
+      }
+      for (const [u0, v0, s] of [[10,14,1],[36,10,.9],[42,30,1.1],[12,38,1],[30,44,.9],[44,18,1],[20,6,1],[46,42,.9]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.floatRockArt(s), u, v);
+      }
+      for (const [u0, v0, r, h] of [[12,8,4,1.3],[38,42,5,1.5],[8,40,4,1.1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.hillArt(r, h, 'sky'), u, v);
+      }
+      place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
+      place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
+      place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
+      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5]]) gateAt(u, v);
+    },
+  },
 };
 /* the Ironfront is fought over Nordfels' ground plan — same roads, same plots, different war */
 MAPS.ironfront.lanePts = MAPS.nordfels.lanePts;
@@ -366,12 +804,22 @@ function onLand(u, v) {
   const wob = Math.sin(th * 3 + 1.7) * 1.1 + Math.sin(th * 5 + .4) * .7 + Math.sin(th * 8 + 2.9) * .45;
   return rr <= (base + wob) * sc + .8; // riders may reach the wet sand, not the waves
 }
-function slideMove(o, nx, nz) { // clamp to map bounds, then slide along the coastline
+function blockedBy(u, v) { // stone and timber stop a horse; crops and open gates do not
+  if (Math.hypot(u - 25, v - 24) < 3.4) return true; // the keep itself
+  for (const sl of SLOTS) {
+    const b = S.builds[sl.id];
+    if (!b || b.type === 'wall' || b.type === 'field') continue;
+    if (Math.hypot(u - sl.u, v - sl.v) < 1.5) return true;
+  }
+  return false;
+}
+const passable = (u, v) => onLand(u, v) && !blockedBy(u, v);
+function slideMove(o, nx, nz) { // clamp to map bounds, then slide along coast and walls
   const bu = (MAP.bounds || {}).u || [1.5, 48.5], bv = (MAP.bounds || {}).v || [1.5, 48.5];
   nx = Math.max(bu[0], Math.min(bu[1], nx)); nz = Math.max(bv[0], Math.min(bv[1], nz));
-  if (onLand(nx, nz)) { o.u = nx; o.v = nz; return; }
-  if (onLand(nx, o.v)) { o.u = nx; return; }
-  if (onLand(o.u, nz)) o.v = nz;
+  if (passable(nx, nz)) { o.u = nx; o.v = nz; return; }
+  if (passable(nx, o.v)) { o.u = nx; return; }
+  if (passable(o.u, nz)) o.v = nz;
 }
 
 function loadMap(id) {
@@ -467,6 +915,7 @@ const PERKS = {
   warhorn:    { name: 'War Horn',        desc: 'Rally lasts 10 s and heals the King' },
   beacons:    { name: 'Signal Beacons',  desc: 'Towers see 15% farther', req: 'beacons' },
   pockets:    { name: 'Deep Pockets',    desc: 'Begin every run with +4 gold', req: 'pockets' },
+  outriders:  { name: 'Outriders',       desc: 'Soldiers march 25% faster' },
 };
 let perkSet = new Set();
 try {
@@ -507,9 +956,9 @@ function dawnRows() {
     const b = S.builds[id];
     if (b.type === 'house') houses += b.upg2 ? 3 : b.upg ? 2 : 1;
     else if (b.type === 'field') fields += 1;
-    else if (b.type === 'mill') mills += 1;
+    else if (b.type === 'mill') mills += b.upg ? 2 : 1;
     else if (b.type === 'mine') rows.push({ l: 'Gold Mine (decaying)', n: Math.max(0, 6 - (b.upg ? Math.floor(b.age / 2) : b.age)) });
-    else if (b.type === 'harbour') { const nb = Math.min(5, b.boats + 1); rows.push({ l: `Harbour (${nb} boat${nb > 1 ? 's' : ''})`, n: nb * (b.upg ? 2 : 1) }); }
+    else if (b.type === 'harbour') { const nb = Math.min(b.upg2 ? 7 : 5, b.boats + 1); rows.push({ l: `Harbour (${nb} boat${nb > 1 ? 's' : ''})`, n: nb * (b.upg ? 2 : 1) }); }
   }
   if (houses) rows.splice(1, 0, { l: 'Houses', n: houses });
   if (mills) rows.push({ l: 'Windmill', n: mills });
@@ -520,7 +969,7 @@ function applyDawn() {
   for (const id in S.builds) {
     const b = S.builds[id];
     if (b.type === 'mine') b.age++;
-    if (b.type === 'harbour') b.boats = Math.min(5, b.boats + 1);
+    if (b.type === 'harbour') b.boats = Math.min(b.upg2 ? 7 : 5, b.boats + 1);
   }
 }
 
@@ -576,6 +1025,17 @@ const ETYPES = {
   shade:   { hp: 4,  speed: 2.2, dmg: 2, rate: 1.3, fly: true },  // drifts over walls and soldiers alike
   chief:   { hp: 12, speed: .9,  dmg: 2, rate: 1.6, buff: 5 },    // drives nearby monsters onward
   skeleton:{ hp: 3,  speed: 1.7, dmg: 1, rate: 1.2 },             // the dead of the deep hollows
+  moonling:{ hp: 3,  speed: 1.8, dmg: 1, rate: 1.3 },             // hops in the low gravity
+  tyrant:  { hp: 30, speed: .8,  dmg: 4, rate: 1.8 },             // a crater tyrant — a tiny boss
+  crab:    { hp: 4,  speed: 1.3, dmg: 1, rate: 1.5 },
+  jelly:   { hp: 3,  speed: 2.2, dmg: 1, rate: 1.2, fly: true },
+  urchin:  { hp: 26, speed: .6,  dmg: 3, rate: 2 },               // a rolling tiny boss
+  iceling: { hp: 3,  speed: 1.6, dmg: 1, rate: 1.3 },
+  panther: { hp: 2,  speed: 3.8, dmg: 2, rate: 1.1 },             // fast and mean
+  gorilla: { hp: 28, speed: .9,  dmg: 4, rate: 1.7 },             // a tiny boss of the green
+  cinderling:{ hp: 3, speed: 1.7, dmg: 1, rate: 1.3 },
+  scarab:  { hp: 4,  speed: 1.5, dmg: 1, rate: 1.4 },
+  sprite:  { hp: 2,  speed: 2.8, dmg: 1, rate: 1.1, fly: true },
 };
 /* endless campaign: nights 1–3 are authored, then the horde scales forever.
    Enemies rotate across every road the map has. */
@@ -586,7 +1046,8 @@ function nightPlan(n) {
   const xw = MAP.extraWasps || 0;
   /* a share of the light troops break for the farms instead of the keep */
   const done = () => {
-    if (n >= 2) q.forEach(s => { if ((s.type === 'slime' || s.type === 'runner') && Math.random() < .27) s.raid = true; });
+    if (MAP.mini && n >= 4) { p(MAP.mini); if (n >= 8) p(MAP.mini); }
+    if (n >= 2) q.forEach(s => { if ((s.type === 'slime' || s.type === 'runner') && Math.random() < .32) s.raid = true; });
     return q;
   };
   if (n === 1) { for (let i = 0; i < 10; i++) q.push({ type: 'slime', lane: ids[0] }); return q; }
@@ -603,9 +1064,9 @@ function nightPlan(n) {
     p('ogre');
     return done();
   }
-  const slimes = Math.min(34, 6 + 2 * n), barrels = Math.min(20, n),
-    wasps = Math.min(16, n - 1) + xw, runners = Math.min(18, (n - 3) * 2),
-    spitters = Math.min(10, n - 4), ogres = n % 3 === 0 ? Math.min(6, Math.floor(n / 3)) : 0,
+  const slimes = Math.min(40, 8 + Math.round(2.4 * n)), barrels = Math.min(24, n + 2),
+    wasps = Math.min(20, n) + xw, runners = Math.min(22, Math.round((n - 3) * 2.5)),
+    spitters = Math.min(12, n - 4), ogres = n % 3 === 0 ? Math.min(8, Math.floor(n / 3) + 1) : 0,
     shades = n >= 8 ? Math.min(12, n - 6) : 0,
     chiefs = n >= 10 && n % 2 === 0 ? Math.min(4, Math.floor((n - 8) / 2)) : 0;
   for (let i = 0; i < slimes; i++) p('slime');
@@ -693,7 +1154,7 @@ function updateGroundCoins(dt) {
   for (let i = groundCoins.length - 1; i >= 0; i--) {
     const c = groundCoins[i];
     c.m.rotation.y += 4 * dt;
-    if (!c.magnet && S.view === 'game' && !(K.down > 0) && Math.hypot(c.x - K.u, c.z - K.v) < 2.5) c.magnet = true;
+    if (!c.magnet && S.view === 'game' && !(K.down > 0) && Math.hypot(c.x - K.u, c.z - K.v) < 3.4) c.magnet = true;
     if (c.magnet) {
       _a.set(K.u - c.x, 1 - c.y, K.v - c.z);
       const d = _a.length();
@@ -702,7 +1163,7 @@ function updateGroundCoins(dt) {
         sfx.coin(); refreshGold();
         continue;
       }
-      _a.normalize().multiplyScalar(Math.min(16 * dt, d));
+      _a.normalize().multiplyScalar(Math.min(21 * dt, d));
       c.x += _a.x; c.y += _a.y; c.z += _a.z;
     } else if (!c.settled) { // scatter under gravity
       c.vy -= 20 * dt; c.x += c.vx * dt; c.z += c.vz * dt; c.y += c.vy * dt;
@@ -776,6 +1237,7 @@ function setWeapon(w) {
   try { localStorage.tf_weapon = w; } catch { /* private mode */ }
   const props = K.mesh.userData.weapons;
   for (const key in props) props[key].visible = key === w;
+  K.wpBase = { spear: -.9, bow: -.4, hammer: -.8, staff: -.5 }[w] || -.9;
   $$('.wcard').forEach(c => c.classList.toggle('on', c.dataset.w === w));
   refreshKingHUD();
 }
@@ -814,8 +1276,9 @@ function updateKing(dt) {
   const im = Math.hypot(ax, az);
   if (im) { ax /= im; az /= im; }
   /* momentum: the horse leans into a gallop and eases out of it */
-  K.vx = THREE.MathUtils.damp(K.vx, ax * K.spd, 11, dt);
-  K.vz = THREE.MathUtils.damp(K.vz, az * K.spd, 11, dt);
+  const sprint = keys.shift ? 1.4 : 1; // lean low over the mane and gallop
+  K.vx = THREE.MathUtils.damp(K.vx, ax * K.spd * sprint, 11, dt);
+  K.vz = THREE.MathUtils.damp(K.vz, az * K.spd * sprint, 11, dt);
   const moving = im > 0;
   if (Math.abs(K.vx) > .15 || Math.abs(K.vz) > .15)
     slideMove(K, K.u + K.vx * dt, K.v + K.vz * dt);
@@ -829,6 +1292,11 @@ function updateKing(dt) {
   K.gallop = THREE.MathUtils.damp(K.gallop || 0, moving ? 1 : 0, 8, dt);
   body.position.y = Math.abs(Math.sin(perf * 11)) * .16 * K.gallop;
   body.rotation.x = Math.sin(perf * 11) * .05 * K.gallop;
+  const wp = K.mesh.userData.weapons[S.weapon];
+  if (K.atkAnim > 0 && wp) { // the arm remembers the blow
+    K.atkAnim -= dt;
+    wp.rotation.z = (K.wpBase || -.9) - Math.sin(Math.max(0, K.atkAnim) / .3 * Math.PI) * .9;
+  }
   const fal = K.mesh.userData.falcon;
   if (fal) { // Maren's falcon rides her wake
     const a = perf * 2.4;
@@ -869,18 +1337,19 @@ function opt(attr, ic, nm, ds, cost, can) {
 function upgradable(sl) {
   const b = S.builds[sl.id];
   if (!b) return null;
-  if (b.type === 'house') return !b.upg ? { label: 'Second Storey', cost: 2 } : !b.upg2 ? { label: 'Manor', cost: 3 } : null;
-  if (b.type === 'tower') return !b.upg ? { label: 'Choose a spire', cost: 3 } : !b.upg2 ? { label: 'Masterwork Arms', cost: 4 } : null;
-  if (b.type === 'harbour' && !b.upg) return { label: 'Big Docks', cost: 3 };
+  if (b.type === 'house') return !b.upg ? { label: 'Second Storey', cost: 3 } : !b.upg2 ? { label: 'Manor', cost: 4 } : null;
+  if (b.type === 'tower') return !b.upg ? { label: 'Choose a spire', cost: 4 } : !b.upg2 ? { label: 'Masterwork Arms', cost: 5 } : null;
+  if (b.type === 'harbour') return !b.upg ? { label: 'Big Docks', cost: 3 } : !b.upg2 ? { label: 'Lighthouse', cost: 4 } : null;
+  if (b.type === 'mill' && !b.upg) return { label: 'Great Sails', cost: 3 };
   if (b.type === 'wall' && !b.upg2) return { label: 'Reinforce', cost: 3 };
   if (b.type === 'mine' && !b.upg) return { label: 'Deep Shaft', cost: 4 };
-  if (b.type === 'barracks' && !b.upg2) return { label: 'Veteran Company', cost: 4 };
-  if (b.type === 'range' && !b.upg2) return { label: "Fletchers' Guild", cost: 4 };
+  if (b.type === 'barracks' && !b.upg2) return { label: 'Veteran Company', cost: 5 };
+  if (b.type === 'range' && !b.upg2) return { label: "Fletchers' Guild", cost: 5 };
   return null;
 }
-const CASTLE_TIERS = [null, { cost: 8, hp: 10, desc: '+10 castle HP · heavier arrows' },
-  { cost: 14, hp: 10, desc: '+10 castle HP · rapid volleys' },
-  { cost: 20, hp: 15, desc: '+15 castle HP · twin ballistae' }];
+const CASTLE_TIERS = [null, { cost: 10, hp: 10, desc: '+10 castle HP · heavier arrows' },
+  { cost: 17, hp: 10, desc: '+10 castle HP · rapid volleys' },
+  { cost: 24, hp: 15, desc: '+15 castle HP · twin ballistae' }];
 function castleMenu() {
   const tier = (S.castleLvl === 3 && !META.owned.bastion) ? null : CASTLE_TIERS[S.castleLvl];
   if (!tier) {
@@ -905,6 +1374,7 @@ function castleMenu() {
 const UPG_DESCS = {
   'Second Storey': '+2 gold at dawn instead of +1', 'Manor': '+3 gold at dawn — a lord in residence',
   'Big Docks': 'Each boat pays 2 gold', 'Reinforce': 'Braces and buttresses — +12 wall HP',
+  'Lighthouse': 'Boats fish farther — up to 7 return', 'Great Sails': 'The mill pays 2 gold at dawn',
   'Deep Shaft': 'The gold vein decays half as fast', 'Veteran Company': 'One more soldier, and all of them tougher',
   "Fletchers' Guild": 'One more archer at the range', 'Masterwork Arms': '+1 damage to every shot from this tower',
 };
@@ -915,9 +1385,9 @@ function slotAction(sl) {
   if (!b) { tryBuild(sl); return; }
   if (b.type === 'tower' && !b.upg)
     openMenu(sl, 'Choose a spire',
-      opt('data-u="sniper"', '🎯', "Sniper's Perch", '+range, +damage', 3, S.gold >= 3) +
-      opt('data-u="archer"', '🏹', "Archer's Spire", 'Shoots twice as fast', 3, S.gold >= 3) +
-      opt('data-u="frost"', '❄', 'Frost Spire', 'Arrows chill the horde to a crawl', 3, S.gold >= 3));
+      opt('data-u="sniper"', '🎯', "Sniper's Perch", '+range, +damage', 4, S.gold >= 4) +
+      opt('data-u="archer"', '🏹', "Archer's Spire", 'Shoots twice as fast', 4, S.gold >= 4) +
+      opt('data-u="frost"', '❄', 'Frost Spire', 'Arrows chill the horde to a crawl', 4, S.gold >= 4));
   else {
     const up = upgradable(sl);
     if (!up) {
@@ -931,7 +1401,7 @@ function slotAction(sl) {
   bmenu.querySelectorAll('[data-u]').forEach(btn => btn.addEventListener('click', () => {
     const u = btn.dataset.u;
     const spire = u === 'sniper' || u === 'archer' || u === 'frost';
-    const cost = spire ? 3 : (upgradable(sl) || {}).cost;
+    const cost = spire ? 4 : (upgradable(sl) || {}).cost;
     if (cost == null || S.gold < cost) return;
     S.gold -= cost;
     if (spire) b.upg = u;
@@ -1045,7 +1515,7 @@ function startNight() {
     queue.push({ type: 'boss', lane: MAP.laneIds[S.day % MAP.laneIds.length] });
   }
   N = { queue, total: queue.filter(x => !x.lull).length, spawned: 0, killed: 0, enemies: [], units: [], towers: [], walls: [], bldgs: [], boss: null,
-    spawnEvery: Math.max(.3, 1.05 - S.day * .07), spawnT: .6, kingCd: 0, abQ: 0, abE: 0, hornUntil: 0, t: 0, over: false };
+    spawnEvery: Math.max(.26, 1.02 - S.day * .075), spawnT: .6, kingCd: 0, abQ: 0, abE: 0, hornUntil: 0, t: 0, over: false };
   for (const sl of SLOTS) {
     const b = S.builds[sl.id]; if (!b) continue;
     if (b.type !== 'wall') // everything else can burn
@@ -1090,7 +1560,7 @@ function startNight() {
   $('#waveTitle').textContent = 'NIGHT ' + S.day;
   $('#remainNum').textContent = N.total;
   setClock('#clockNight', 0);
-  if (S.day === 2) setTimeout(() => flashBanner('BARREL KNIGHTS ON THE ROADS'), 1600);
+  if (S.day === 2) setTimeout(() => flashBanner(MAP.skin === 'ww2' ? 'PANZERS ON THE ROADS' : 'BARREL KNIGHTS ON THE ROADS'), 1600);
   if (S.day === 1) setTimeout(() => { if (N && !N.over) flashBanner('ORDERS — 1 HOLD · 2 CHARGE · 3 FOLLOW ME'); }, 6000);
   S.stance = 'hold';
   $$('.tchip').forEach(x => x.classList.toggle('on', x.dataset.stance === 'hold'));
@@ -1134,7 +1604,7 @@ function spawnEnemy(spec) {
   const lane = LANES[spec.lane];
   const mesh = isBoss ? ART.bossArt(MAP.boss.kind) : ART.enemyArt(type, MAP.skin);
   scene.add(mesh);
-  const hpScale = 1 + Math.max(0, S.day - 3) * .22; // endless nights harden the horde
+  const hpScale = 1 + Math.max(0, S.day - 2) * .24; // endless nights harden the horde
   const e = { type, laneId: spec.lane, lane, d: 0, hp: Math.round(T.hp * hpScale), max: Math.round(T.hp * hpScale),
     speed: T.speed, dmg: T.dmg, rate: T.rate, ranged: T.ranged || 0,
     atkCd: .8, fly: T.fly, mesh, dead: false, ph: Math.random() * 9, hpEl: null, kCd: .5, uCd: .7, pop: 1, flinch: 0,
@@ -1158,6 +1628,8 @@ function spawnEnemy(spec) {
     flashBanner(MAP.boss.name + ' EMERGES');
     sfx.night();
   }
+  const MINI_LINES = { tyrant: 'A CRATER TYRANT LUMBERS IN', urchin: 'A DREADURCHIN ROLLS FORTH', gorilla: 'A SILVERBACK BEATS THE DRUMS OF WAR' };
+  if (MINI_LINES[type] && !N['_seen' + type]) { N['_seen' + type] = true; flashBanner(MINI_LINES[type]); }
   if (spec.type === 'ogre') flashBanner('AN OGRE APPROACHES');
   if (spec.type === 'spitter' && !N._spitSeen) { N._spitSeen = true; flashBanner('SPITTERS LOB FILTH FROM AFAR'); }
   if (spec.type === 'shade' && !N._shadeSeen) { N._shadeSeen = true; flashBanner('SHADES DRIFT OVER WALL AND BLADE'); }
@@ -1322,14 +1794,18 @@ function hurtWall(w, dmg) {
     poof(w.u, 1, w.v, true);
     sfx.castleHit();
     w.sl.holder.scale.y = .16; // battered to rubble until dawn
+    const t = N.towers.find(x => x.id === w.sl.id); // gatehouse archers flee the rubble
+    if (t) { t.dead = true; if (t.ring) t.ring.visible = false; }
     if (w.hpEl) { ehpPool.release(w.hpEl); w.hpEl = null; }
     flashBanner('THE WALL IS BREACHED');
   }
 }
-let shakeT = 0;
+let shakeT = 0, flashT = null;
 function hurtCastle(n) {
   S.castleHP = Math.max(0, S.castleHP - n);
   sfx.castleHit();
+  const fl = $('#hitFlash'); // the throne room feels every blow
+  if (fl) { fl.style.opacity = '.32'; clearTimeout(flashT); flashT = setTimeout(() => { fl.style.opacity = '0'; }, 70); }
   $('#castleFill').style.width = (100 * S.castleHP / S.castleMax) + '%';
   if (S.settings.shake && !matchMedia('(prefers-reduced-motion: reduce)').matches) shakeT = .25;
   poof(25, 2, 26.5);
@@ -1352,6 +1828,15 @@ function simTick(dt) {
     else { N.spawnT = N.spawnEvery; spawnEnemy(nx); }
   }
   if (N.serpentAt && !N.serp && N.t >= N.serpentAt) N.serp = spawnSerpent();
+  if (MAP.coldSnap && S.day >= 2) { // the cold cares nothing for banners
+    N.snapT = (N.snapT == null ? 14 : N.snapT) - dt;
+    if (N.snapT <= 0) {
+      N.snapT = 24 + Math.random() * 10;
+      N.units.forEach(un => { if (!un.dead) { un.stunT = 1.8; poof(un.u, .6, un.v); } });
+      flashBanner('COLD SNAP — YOUR SOLDIERS FREEZE');
+      sfx.freeze();
+    }
+  }
   if (N.sabAt && !N.sab && N.t >= N.sabAt) N.sab = spawnSaboteur();
   const chiefPos = N.enemies.some(e => !e.dead && e.type === 'chief')
     ? N.enemies.filter(e => !e.dead && e.type === 'chief').map(e => epos(e)) : null;
@@ -1396,7 +1881,7 @@ function simTick(dt) {
     }
     if (foe) {
       e.uCd -= dt;
-      if (e.uCd <= 0) { e.uCd = e.rate; hurtUnit(foe, e.dmg); }
+      if (e.uCd <= 0) { e.uCd = e.rate; e.atkAnim = .35; hurtUnit(foe, e.dmg); }
     } else if (e.free) { // raiders and saboteurs cut across country toward their prize
       const g = e.tgt;
       if (!g || g.dead) {
@@ -1413,12 +1898,12 @@ function simTick(dt) {
           e.fz += (g.v - e.fz) / d * e.speed * mult * dt;
         } else {
           e.atkCd -= dt;
-          if (e.atkCd <= 0) { e.atkCd = e.rate; hurtBldg(g, e.dmg); }
+          if (e.atkCd <= 0) { e.atkCd = e.rate; e.atkAnim = .35; hurtBldg(g, e.dmg); }
         }
       }
     } else if (bldg) { // siege the roadside building
       e.atkCd -= dt;
-      if (e.atkCd <= 0) { e.atkCd = e.rate; hurtBldg(bldg, e.dmg); }
+      if (e.atkCd <= 0) { e.atkCd = e.rate; e.atkAnim = .35; hurtBldg(bldg, e.dmg); }
     } else if (e.d < stop) {
       e.uCd = .7;
       let mult = e.slowT > 0 ? .6 : 1;
@@ -1430,7 +1915,7 @@ function simTick(dt) {
     }
     else if (wall) {
       e.atkCd -= dt;
-      if (e.atkCd <= 0) { e.atkCd = e.rate; hurtWall(wall, e.dmg); }
+      if (e.atkCd <= 0) { e.atkCd = e.rate; e.atkAnim = .35; hurtWall(wall, e.dmg); }
     } else {
       e.atkCd -= dt;
       if (e.atkCd <= 0) {
@@ -1438,7 +1923,7 @@ function simTick(dt) {
         if (e.ranged) { // spitters lob filth; the Leviathan lobs brine
           const sp = epos(e);
           arrow(new THREE.Vector3(sp.u, e.serpent ? 4.4 : 1, sp.v), new THREE.Vector3(25, 2, 24.8), 3, () => hurtCastle(e.dmg), e.serpent);
-        } else hurtCastle(e.dmg);
+        } else { e.atkAnim = .35; hurtCastle(e.dmg); }
       }
     }
     if (e.serpent) continue; // its body is animated by serpentTick, not the lane
@@ -1458,15 +1943,19 @@ function simTick(dt) {
       e.mesh.scale.set(1 + s, 1 - s, 1 + s);
     }
     const body = e.mesh.userData.body;
-    if (e.type === 'slime' || e.type === 'runner') {
+    if (['slime', 'runner', 'moonling', 'iceling', 'cinderling'].includes(e.type)) {
       const sq = e.type === 'runner' ? 14 : 9;
       body.scale.y = 1 + Math.sin(N.t * sq + e.ph) * .16;
       body.position.y = Math.abs(Math.sin(N.t * sq + e.ph)) * .22;
     } else if (e.fly) {
       const a = Math.sin(N.t * 40 + e.ph) * .6, w = e.mesh.userData.wings;
       if (w) { w[0].rotation.x = -.9 + a * .3; w[1].rotation.x = .9 - a * .3; }
-      else body.position.y = 1 + Math.sin(N.t * 3 + e.ph) * .22; // shades hover
+      else body.position.y = (e.mesh.userData.hoverY || 1) + Math.sin(N.t * 3 + e.ph) * .22; // shades and machines hover at their own height
     } else body.rotation.z = Math.sin(N.t * 7 + e.ph) * .07;
+    if (e.atkAnim > 0) { // the blow itself: a whole-body lunge
+      e.atkAnim -= dt;
+      body.rotation.x = -Math.sin(Math.max(0, e.atkAnim) / .35 * Math.PI) * .5;
+    }
     /* brawlers turn on the king when he rides into them */
     if (!e.fly && !K.down && Math.hypot(p.u - K.u, p.v - K.v) < 1.35) {
       e.kCd -= dt;
@@ -1492,6 +1981,7 @@ function simTick(dt) {
   const horn = N.t < N.hornUntil; // the rally horn quickens king and soldiers alike
   for (const un of N.units) {
     if (un.dead) continue;
+    if (un.stunT > 0) { un.stunT -= dt; continue; } // rimed solid for a breath
     un.cd -= dt;
     if (un.pop > 0) { // muster pop
       un.pop = Math.max(0, un.pop - dt * 2.5);
@@ -1516,6 +2006,7 @@ function simTick(dt) {
     }
     /* anyone without an active order drifts back to his post */
     if (tx === null && !charge && !un.following && Math.hypot(un.pu - un.u, un.pv - un.v) > .4) { tx = un.pu; tz = un.pv; sp = 4.2; }
+    if (hasPerk('outriders')) sp *= 1.25;
     if (!charge) un.tgt = null;
     let walking = false;
     if (tx !== null) {
@@ -1557,6 +2048,7 @@ function simTick(dt) {
       if (W.ranged) arrow(new THREE.Vector3(K.u, 2, K.v), new THREE.Vector3(p.u, e.fly ? 1.7 : .6, p.v), 1.3,
         () => { hurt(e, W.dmg, .2); if (W.chill) e.slowT = 2; });
       else {
+        K.atkAnim = .3;
         hurt(e, W.dmg, W.splash ? .7 : .45); poof(p.u, .9, p.v, !!W.splash);
         if (W.splash) for (const o of [...N.enemies]) {
           const q2 = epos(o);
@@ -1670,6 +2162,7 @@ function endNight(win) {
     win ? sfx.victory() : sfx.defeat();
     if (win) {
       try { const b = +localStorage.tf_best || 0; if (S.day > b) localStorage.tf_best = S.day; } catch { /* private mode */ }
+      BESTS[S.map] = Math.max(BESTS[S.map] || 0, S.day); saveBests(); // mastery of THIS map unlocks the next
       refreshMapCards();
       const dr = dawnRows(), flaw = integ === 100 ? 2 : 0;
       $('#vicSub').textContent = S.day % 5 === 0
@@ -1704,7 +2197,7 @@ $('#vicNext').addEventListener('click', () => {
     if (b.type === 'house') v = b.upg2 ? 3 : b.upg ? 2 : 1;
     else if (b.type === 'field' || b.type === 'mill') v = 1;
     else if (b.type === 'mine') v = Math.max(0, 6 - (b.upg ? Math.floor(b.age / 2) : b.age));
-    else if (b.type === 'harbour') v = Math.min(5, b.boats + 1) * (b.upg ? 2 : 1);
+    else if (b.type === 'harbour') v = Math.min(b.upg2 ? 7 : 5, b.boats + 1) * (b.upg ? 2 : 1);
     if (v) drops.push([sl.u, sl.v, v]);
   }
   applyDawn(); S.day++; S.castleHP = S.castleMax;
@@ -1722,6 +2215,10 @@ $('#vicNext').addEventListener('click', () => {
     $('#ovCleared').style.display = 'grid';
     sfx.victory();
   }
+});
+$('#vicMenu').addEventListener('click', () => { // retire with honors — crowns are already banked
+  $('#ovVictory').style.display = 'none';
+  N = null; resetRun(); setView('menu'); refreshMapCards();
 });
 $('#defRetry').addEventListener('click', () => { $('#ovDefeat').style.display = 'none'; N = null; startNight(); });
 $('#defMenu').addEventListener('click', () => { $('#ovDefeat').style.display = 'none'; N = null; resetRun(); setView('menu'); });
@@ -1756,21 +2253,22 @@ function setPhase(p) {
 }
 $('#playBtn').addEventListener('click', () => { resetRun(); setPhase('day'); setView('game'); refreshDayHUD(); });
 function refreshMapCards() {
-  let best = 0; try { best = +localStorage.tf_best || 0; } catch { /* private mode */ }
   $$('.mcard').forEach(c => {
     const def = MAPS[c.dataset.m];
-    const locked = best < (def.unlockBest || 0);
+    const locked = !mapUnlocked(def);
     c.classList.toggle('locked', locked);
     const lk = c.querySelector('.lock');
-    if (lk) lk.style.display = locked ? '' : 'none';
+    if (lk) {
+      if (def.unlockAfter) lk.textContent = '🔒 ' + def.unlockAfter.nights + ' nights in ' + MAPS[def.unlockAfter.map].name;
+      lk.style.display = locked ? '' : 'none';
+    }
     c.classList.toggle('on', c.dataset.m === S.map);
   });
 }
 $$('.mcard').forEach(c => c.addEventListener('click', () => {
   const id = c.dataset.m;
   if (id === S.map) return;
-  let best = 0; try { best = +localStorage.tf_best || 0; } catch { /* private mode */ }
-  if ((MAPS[id].unlockBest || 0) > best) { sfx.error(); return; }
+  if (!mapUnlocked(MAPS[id])) { sfx.error(); return; }
   loadMap(id); refreshMapCards(); refreshDayHUD();
 }));
 $$('.pchip').forEach(c => c.addEventListener('click', () => togglePerk(c.dataset.p)));
@@ -1835,7 +2333,7 @@ $$('.tchip').forEach(c => c.addEventListener('click', () => {
 }));
 document.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
-  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { keys[k] = true; if (k.startsWith('arrow')) e.preventDefault(); return; }
+  if (['w', 'a', 's', 'd', 'shift', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { keys[k] = true; if (k.startsWith('arrow')) e.preventDefault(); return; }
   if (e.repeat) return;
   if (e.key === ' ' && S.view === 'game' && S.phaseName === 'day' && !anyOverlay()) { e.preventDefault(); startNight(); }
   else if (k === 'e' && S.view === 'game' && S.phaseName === 'day' && nearSlot && !anyOverlay()) {
@@ -1949,8 +2447,8 @@ try { setChar(S.char); } catch { setChar('aldric'); }
 {
   let mapStart = 'nordfels';
   try {
-    const m = localStorage.tf_map, best = +localStorage.tf_best || 0;
-    if (MAPS[m] && (MAPS[m].unlockBest || 0) <= best) mapStart = m;
+    const m = localStorage.tf_map;
+    if (MAPS[m] && mapUnlocked(MAPS[m])) mapStart = m;
   } catch { /* private mode */ }
   loadMap(mapStart);
   refreshMapCards();
@@ -1964,6 +2462,7 @@ applyOwned();
 refreshArmory();
 refreshDayHUD();
 setPhase('day'); setView('menu');
+{ const bs = $('#boot'); if (bs) { bs.style.opacity = '0'; setTimeout(() => bs.remove(), 700); } }
 {
   const q = new URLSearchParams(location.search);
   const sc = q.get('scenario');
