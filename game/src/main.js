@@ -187,6 +187,7 @@ const MAPS = {
         place(ART.hillArt(r, h), u, v);
       }
       place(ART.boat(), 59.5, 48.5, .6);
+      ART.birdsOver(mapGroup, 1.9);
     },
   },
   leviathan: {
@@ -551,6 +552,7 @@ const MAPS = {
       place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
       place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
       for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5]]) gateAt(u, v);
+      ART.weatherSnow(mapGroup, 1.5);
     },
   },
   verdania: {
@@ -610,6 +612,7 @@ const MAPS = {
       place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
       place(ART.wallRun(3.4), 18.6, 32.5, Math.PI / 2); place(ART.wallRun(3.4), 28, 32.5, Math.PI / 2);
       for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[22.8,32.5],[27.2,32.5]]) gateAt(u, v);
+      ART.birdsOver(mapGroup, 1.45);
     },
   },
   cinderpeak: {
@@ -667,6 +670,10 @@ const MAPS = {
       }
       for (const [u, v, s] of [[8,26,1.2],[42,24,1.1],[20,42,1],[16,12,1.1],[34,12,1],[44,32,1.1]])
         place(ART.rock(s * 1.3), 25 + (u - 25) * 1.35, 25 + (v - 25) * 1.35, Math.random() * 6);
+      for (const [u0, v0] of [[14,10],[38,14],[10,36],[8,8]]) {
+        const [u, v] = P(u0, v0);
+        ART.bubblesAt(mapGroup, u, v, '#FFB35C');
+      }
       place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
       place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
       place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
@@ -817,6 +824,7 @@ const passable = (u, v) => onLand(u, v) && !blockedBy(u, v);
 function slideMove(o, nx, nz) { // clamp to map bounds, then slide along coast and walls
   const bu = (MAP.bounds || {}).u || [1.5, 48.5], bv = (MAP.bounds || {}).v || [1.5, 48.5];
   nx = Math.max(bu[0], Math.min(bu[1], nx)); nz = Math.max(bv[0], Math.min(bv[1], nz));
+  if (!passable(o.u, o.v)) { if (onLand(nx, nz)) { o.u = nx; o.v = nz; } return; } // trapped inside? any road out is legal
   if (passable(nx, nz)) { o.u = nx; o.v = nz; return; }
   if (passable(nx, o.v)) { o.u = nx; return; }
   if (passable(o.u, nz)) o.v = nz;
@@ -844,15 +852,15 @@ function loadMap(id) {
       sl.ang = Math.atan2(-(q.v - p.v), q.u - p.u);
     }
     sl.marker = place(ART.slotMarker(BTYPES[sl.type].cost), sl.u, sl.v);
-    const hit = ART.hitCylinder(1.7, 3);
-    hit.position.set(sl.u, 1.5, sl.v); hit.userData.slot = sl;
+    const hit = ART.hitCylinder(2.3, 4.5);
+    hit.position.set(sl.u, 2.25, sl.v); hit.userData.slot = sl;
     mapGroup.add(hit); hitMeshes.push(hit);
     sl.holder = new THREE.Group(); sl.holder.position.set(sl.u, 0, sl.v);
     if (sl.ang) sl.holder.rotation.y = sl.ang;
     mapGroup.add(sl.holder);
     sl.pop = 0;
   }
-  const chit = ART.hitCylinder(4, 12);
+  const chit = ART.hitCylinder(4.6, 12);
   chit.position.set(25, 0, 24); chit.userData.slot = CASTLE_SLOT;
   mapGroup.add(chit); hitMeshes.push(chit);
   SERP = def.serpPos || { u: 40, v: 46 };
@@ -1453,6 +1461,14 @@ function build(sl, extra) {
   S.gold -= cost;
   S.builds[sl.id] = { type: sl.type, age: 0, boats: 0, ...extra };
   renderBuild(sl); closeBmenu(); refreshDayHUD();
+  if (sl.type !== 'wall' && sl.type !== 'field') { // never wall the king into his own house
+    const d = Math.hypot(K.u - sl.u, K.v - sl.v);
+    if (d < 1.9) {
+      const ang = d < .05 ? Math.PI / 4 : Math.atan2(K.v - sl.v, K.u - sl.u);
+      K.u = sl.u + Math.cos(ang) * 2.1; K.v = sl.v + Math.sin(ang) * 2.1;
+      K.vx = 0; K.vz = 0;
+    }
+  }
   poof(sl.u, .5, sl.v);
   sfx.build();
   if (sl.type === 'mill') {

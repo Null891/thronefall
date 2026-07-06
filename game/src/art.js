@@ -987,6 +987,36 @@ export function volcanoArt(s = 1) {
   const gw = glow('#FF6A3D', 7 * s, .5, 1, true); gw.position.y = 6.6 * s; g.add(gw);
   return g;
 }
+
+export function weatherSnow(group, sc = 1) { // it never stops snowing here
+  for (let i = 0; i < 26; i++) {
+    const f = glow('#FFFFFF', .45 + Math.random() * .3, .55, .75);
+    group.add(f);
+    const cx = 25 + (Math.random() - .5) * 40 * sc, cz = 25 + (Math.random() - .5) * 40 * sc;
+    const off = Math.random() * 12, sp = .9 + Math.random() * .8, dr = Math.random() * 9;
+    ANIMS.push((t) => {
+      if (!f.parent) return;
+      f.position.set(cx + Math.sin(t * .7 + dr) * 2.5, 11 - ((t * sp + off) % 11), cz + Math.cos(t * .5 + dr) * 2);
+    });
+  }
+}
+export function birdsOver(group, sc = 1) { // a far flock, wheeling over the island
+  for (let k = 0; k < 2; k++) {
+    const flock = new THREE.Group();
+    for (let i = 0; i < 3; i++) {
+      const b = mesh(new THREE.ConeGeometry(.12, .5, 3), mWhite, i * .8 - .8, (i % 2) * .3, (i % 2) * .6, false);
+      b.rotation.x = Math.PI / 2; flock.add(b);
+    }
+    group.add(flock);
+    const ph = k * Math.PI, r1 = (14 + k * 6) * sc, sp = .07 + k * .02;
+    ANIMS.push((t) => {
+      if (!flock.parent) return;
+      const a = t * sp + ph;
+      flock.position.set(25 + Math.cos(a) * r1, 8.5 + Math.sin(t * .9 + ph) * .7, 25 + Math.sin(a) * r1 * .8);
+      flock.rotation.y = -a - Math.PI / 2;
+    });
+  }
+}
 export function hillArt(r = 3, h = 1.2, pal = null) {
   const m = TERRA[pal] ? TERRA[pal].grassLt : mats.grassLt;
   const dome = mesh(new THREE.SphereGeometry(r, 9, 6, 0, Math.PI * 2, 0, Math.PI / 2), m);
@@ -1033,9 +1063,9 @@ export function kelpArt(s = 1) {
   });
   return g;
 }
-export function bubblesAt(group, u, v) { // a slow column of light rising from the vents
+export function bubblesAt(group, u, v, color = '#BFEAF5') { // a slow column of light rising
   for (let i = 0; i < 3; i++) {
-    const b = glow('#BFEAF5', .9 + Math.random() * .6, .3, .7);
+    const b = glow(color, .9 + Math.random() * .6, .3, .7);
     group.add(b);
     const off = Math.random() * 10, sp = .8 + Math.random() * .7;
     ANIMS.push((t) => {
