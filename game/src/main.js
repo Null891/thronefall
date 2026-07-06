@@ -81,7 +81,7 @@ let MAP = null, mapGroup = null, castle = null;
 let SLOTS = [], hitMeshes = [], LANES = {};
 const CASTLE_SLOT = { castle: true, id: 'castle', u: 25, v: 26.5 };
 
-function place(obj, u, v, ry = 0, s = 1) { obj.position.set(u, 0, v); obj.rotation.y = ry; obj.scale.setScalar(s); mapGroup.add(obj); return obj; }
+function place(obj, u, v, ry = 0, s = 1) { obj.position.set(u, ART.plateauAt(u, v), v); obj.rotation.y = ry; obj.scale.setScalar(s); mapGroup.add(obj); return obj; }
 function gateAt(u, v) {
   const g = place(ART.gateTower(), u, v);
   addTorch(g.userData.torch.clone().add(g.position));
@@ -121,7 +121,7 @@ const MAPS = {
       C: [[25, -15], [24.6, -6], [25.2, 3], [24.8, 10], [25, 17], [25, 21.6]],
       D: [[25, 63], [25.4, 54], [24.7, 46], [25.2, 38], [25, 33], [25, 28.8]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.9, pond: true },
+    terrain: { sx: 1, sz: 1, sc: 1.9, pond: true, plateau: 1.8 },
     boss: BOSS_DEFS.warlord, bosses: [BOSS_DEFS.warlord, BOSS_DEFS.brood],
     slots: [
       /* the old town around the keep */
@@ -212,7 +212,7 @@ const MAPS = {
       B: [[64, 25.7], [56, 25.6], [49, 25.4], [42, 25.2], [36, 25], [29.6, 25], [28.3, 25]],
       C: [[25, -4], [24.8, 3], [25, 9], [24.8, 14], [25, 18], [25, 21.6]],
     },
-    terrain: { sx: 1.45, sz: .9, sc: 1.25, pond: false, shape: 'spine' },
+    terrain: { sx: 1.45, sz: .9, sc: 1.25, pond: false, shape: 'spine', plateau: 1.4 },
     sky: { dayBg: '#96C8D8', daySun: '#F4E6C0', nightBg: '#0A1420' },
     boss: BOSS_DEFS.brood, bosses: [BOSS_DEFS.brood, BOSS_DEFS.meg],
     slots: [
@@ -291,7 +291,7 @@ const MAPS = {
       B: [[60, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, -11], [24.7, -3], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.6, pond: false, shape: 'cross' },
+    terrain: { sx: 1, sz: 1, sc: 1.6, pond: false, shape: 'cross', plateau: 2.8 },
     sky: { dayBg: '#8E86A8', daySun: '#D8C8E8', daySunInt: 1.9, dayHemi: '#8E86B8', dayExp: .98, nightBg: '#0E0A1A', fog: [55, 190] },
     castleStyle: 'bone', theme: 'dark', slotXform: 'mirrorX',
     sub: { slime: 'skeleton' }, // the dead walk these hills
@@ -352,7 +352,7 @@ const MAPS = {
   ironfront: {
     id: 'ironfront', name: 'Ironfront', unlockAfter: { map: 'deephollow', nights: 10 },
     saboteur: true, skin: 'ww2', castleStyle: 'bunker', theme: 'ww2', camZoom: 1.05,
-    terrain: { sx: 1, sz: 1, sc: 1.9, pond: false, shape: 'shatter' },
+    terrain: { sx: 1, sz: 1, sc: 1.9, pond: false, shape: 'shatter', plateau: 1.2 },
     sky: { dayBg: '#9A968A', daySun: '#D8D2C0', daySunInt: 1.8, dayHemi: '#A8A498', dayGnd: '#6A6858', dayExp: .95, nightBg: '#0C0E12', fog: [60, 200] },
     laneIds: ['A', 'B', 'C', 'D'],
     boss: BOSS_DEFS.landship, bosses: [BOSS_DEFS.landship, BOSS_DEFS.acewing],
@@ -396,7 +396,7 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'moon', shape: 'round' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'moon', shape: 'round', plateau: 2.2 },
     sky: { dayBg: '#0A0D1A', daySun: '#F0F4FF', daySunInt: 3, dayHemi: '#2A3450', dayGnd: '#3A4050', dayExp: 1.05, nightBg: '#05070F', nightHemi: '#0E1428', fog: [90, 300] },
     castleStyle: 'crystal', theme: 'crystal', slotXform: 'rot90',
     sub: { slime: 'moonling' },
@@ -467,7 +467,7 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'abyss', shape: 'ripple' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'abyss', shape: 'ripple', plateau: 1.5 },
     sky: { dayBg: '#1E4A5E', daySun: '#7BC5E3', daySunInt: 1.7, dayHemi: '#2E6E7E', dayGnd: '#1E4A46', dayExp: .95, nightBg: '#0A2028', nightSun: '#3E7D8A', fog: [35, 130] },
     castleStyle: 'coral', theme: 'coral', slotXform: 'mirrorZ',
     sub: { slime: 'crab', wasp: 'jelly' },
@@ -533,7 +533,7 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ice', shape: 'cross' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ice', shape: 'cross', plateau: 2.4 },
     sky: { dayBg: '#DDE8F2', daySun: '#E8F0FF', daySunInt: 2.8, dayHemi: '#D8E4F0', dayExp: 1.15, nightBg: '#101A2E', fog: [60, 210] },
     sub: { slime: 'iceling' },
     boss: BOSS_DEFS.yeti, bosses: [BOSS_DEFS.yeti, BOSS_DEFS.tyrantking],
@@ -594,7 +594,7 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'jungle', shape: 'jungle' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'jungle', shape: 'jungle', plateau: 2 },
     sky: { dayBg: '#9CC8A8', daySun: '#F4E8AC', daySunInt: 2.2, dayHemi: '#A8D0B0', dayGnd: '#4E7A48', nightBg: '#0A1610', fog: [50, 170] },
     castleStyle: 'vine', theme: 'vine', merchant: true, slotXform: 'rot90',
     sub: { runner: 'panther' },
@@ -657,7 +657,7 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ash', shape: 'volcanic' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ash', shape: 'volcanic', plateau: 2.6 },
     sky: { dayBg: '#4A3230', daySun: '#FFB35C', daySunInt: 2.2, dayHemi: '#5E4038', dayGnd: '#3A2A24', dayExp: 1.0, nightBg: '#1A0E0C', nightSun: '#B06040', fog: [50, 170] },
     castleStyle: 'magma', theme: 'magma', merchant: true, slotXform: 'mirrorZ',
     sub: { slime: 'cinderling' },
@@ -724,7 +724,7 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'dune', shape: 'drift' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'dune', shape: 'drift', plateau: 2.2 },
     sky: { dayBg: '#E8C88E', daySun: '#FFE7C0', daySunInt: 3, dayHemi: '#F0D8A8', dayGnd: '#C0A068', dayExp: 1.2, nightBg: '#141020', fog: [70, 230] },
     castleStyle: 'dune', theme: 'dune', merchant: true, slotXform: 'rot90',
     sub: { slime: 'scarab' },
@@ -786,7 +786,7 @@ const MAPS = {
       B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'sky', shape: 'shard' },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'sky', shape: 'shard', plateau: 2.4 },
     sky: { dayBg: '#BFE4FF', daySun: '#FFFFFF', daySunInt: 3, dayHemi: '#CFEAFF', dayExp: 1.25, nightBg: '#0E1830', fog: [80, 260] },
     castleStyle: 'crystal', theme: 'crystal', merchant: true, slotXform: 'mirrorX',
     sub: { wasp: 'sprite' },
@@ -878,7 +878,7 @@ function slideMove(o, nx, nz) { // clamp to map bounds, then glide around whatev
 
 let HILLS = [];
 function heightAt(u, v) { // the land rises where the hills were raised
-  let y = 0;
+  let y = ART.plateauAt(u, v);
   for (const [hu, hv, r, h] of HILLS) {
     const d = Math.hypot(u - hu, v - hv);
     if (d < r) { const c = Math.cos(d / r * Math.PI / 2); y = Math.max(y, h * c * c); }
@@ -904,8 +904,7 @@ function loadMap(id) {
   for (const lid of def.laneIds) { LANES[lid] = sampleLane(def.lanePts[lid]); LANES[lid].start = def.lanePts[lid][0]; }
   ART.buildTerrain(mapGroup, def.laneIds.map(l => def.lanePts[l]), def.terrain);
   def.decor();
-  castle = place(ART.castleArt(), 25, 24);
-  if (def.castleStyle) castle.add(ART.castleDress(def.castleStyle));
+  castle = place(ART.castleArt(def.castleStyle), 25, 24);
   for (const p of castle.userData.torches) addTorch(p.clone().add(castle.position));
   for (const lid of def.laneIds) place(ART.spawnFlagArt(), LANES[lid].start[0], LANES[lid].start[1]);
   SLOTS = def.slots.map(s => ({ ...s }));
@@ -968,6 +967,7 @@ const ACHS = {
   maps3:   { n: 'Wayfarer',        d: 'Unlock three realms' },
   crowns50:{ n: 'Royal Treasury',  d: 'Bank 50 crowns in total' },
   raze0:   { n: 'Not One Stone',   d: 'Survive night 6+ with no building razed' },
+  demon:   { n: 'Riftbane',        d: 'Slay the Demon Prince who steps through the rift' },
 };
 let ACH = {};
 try { ACH = JSON.parse(localStorage.tf_ach || '{}'); } catch { /* fresh device */ }
@@ -1712,6 +1712,8 @@ function startNight() {
   N.serp = null;
   N.sabAt = (MAP.saboteur && S.day >= 3 && N.bldgs.length) ? 10 + Math.random() * 14 : 0;
   N.sab = null;
+  N.riftAt = (!S._rift && S.day >= 7 && Math.random() < .3) ? 14 + Math.random() * 14 : 0;
+  N.demonAt = 0; N.demon = null; N.riftPos = null;
   $('#serpWrap').style.display = 'none';
   if (S.settings.ranges) for (const t of N.towers) {
     if (t.castle) continue;
@@ -1849,6 +1851,39 @@ function hurtBldg(g, dmg) {
     flashBanner('THE ' + BTYPES[g.type].name.toUpperCase() + ' IS RAZED');
   }
 }
+let riftMesh = null;
+function spawnRift() { // the veil tears where no road runs
+  const axis = MAP.laneIds.length * 0;
+  const ang = (Math.floor(Math.random() * 4) * 90 + 45) * Math.PI / 180; // always between the roads
+  const t = MAP.terrain || {}, sc = t.sc || 1;
+  const r = 15 + Math.random() * 5;
+  const u = 25 + Math.cos(ang) * r * (t.sx || 1), v = 25 + Math.sin(ang) * r * (t.sz || 1);
+  riftMesh = place(ART.portalArt(), u, v, Math.random() * 6);
+  N.riftPos = { u, v };
+  N.demonAt = N.t + 6;
+  flashBanner('A RIFT TEARS OPEN — SOMETHING IS COMING');
+  sfx.roar();
+  if (S.settings.shake && !matchMedia('(prefers-reduced-motion: reduce)').matches) shakeT = .4;
+}
+function spawnDemon() {
+  N.demonAt = 0; // one prince per tear in the veil
+  const { u, v } = N.riftPos;
+  const mesh = ART.demonArt();
+  scene.add(mesh);
+  const hpScale = 1 + Math.max(0, S.day - 2) * .24;
+  const hp = Math.round(120 * hpScale);
+  const e = { type: 'demon', hunt: true, extra: true, laneId: MAP.laneIds[0], lane: LANES[MAP.laneIds[0]], d: 0,
+    hp, max: hp, speed: 2.1, dmg: 8, rate: 1.4, ranged: 0, atkCd: .8, fly: false, mesh, dead: false,
+    ph: Math.random() * 9, hpEl: null, kCd: .5, uCd: .7, pop: 1, flinch: 0, boss: false, brood: 0,
+    free: true, fx: u, fz: v };
+  N.enemies.push(e);
+  N.demon = e;
+  $('#bossWrap').style.display = 'block';
+  $('#bossName').textContent = 'THE DEMON PRINCE';
+  $('#bossFill').style.width = '100%';
+  flashBanner('THE DEMON PRINCE HUNTS THE KING');
+  sfx.roar();
+}
 function spawnSaboteur() { // he comes for your buildings out of nowhere, and keeps coming
   const targets = N.bldgs.filter(g => !g.dead);
   if (!targets.length) return null;
@@ -1953,7 +1988,7 @@ function hurt(e, dmg) {
   e.hp -= dmg;
   const p = epos(e);
   dmgNum(p.u, e.fly ? 2.6 : 1.4, p.v, dmg);
-  if (e.boss) {
+  if (e.boss || e.hunt) {
     $('#bossFill').style.width = Math.max(0, 100 * e.hp / e.max) + '%';
     if (!e.enraged && e.hp < e.max * .4) { // wounded, it stops playing
       e.enraged = true; e.rate *= .68; e.speed *= 1.35;
@@ -1970,7 +2005,14 @@ function hurt(e, dmg) {
     const big = e.boss || e.type === 'ogre' || e.type === 'barrel';
     poof(p.u, e.fly ? 1.7 : .5, p.v, big);
     sfx.kill(big);
-    if (e.boss) { $('#bossWrap').style.display = 'none'; N.boss = null; dropCoins(p.u, p.v, 6); flashBanner(MAP.boss.name + ' IS SLAIN'); award('boss'); }
+    if (e.hunt) {
+      $('#bossWrap').style.display = 'none'; N.demon = null;
+      dropCoins(p.u, p.v, 10); earnCrowns(3); award('demon');
+      if (riftMesh) { mapGroup.remove(riftMesh); riftMesh = null; }
+      flashBanner('THE DEMON PRINCE FALLS — THE RIFT SEALS');
+      sfx.kill(true);
+    }
+    else if (e.boss) { $('#bossWrap').style.display = 'none'; N.boss = null; dropCoins(p.u, p.v, 6); flashBanner(MAP.boss.name + ' IS SLAIN'); award('boss'); }
     else if (e.sab) dropCoins(p.u, p.v, 3);
     else if (e.type === 'barrel') dropCoins(p.u, p.v, 1);   // the heavies carry loot
     else if (e.type === 'ogre') dropCoins(p.u, p.v, 2);
@@ -2040,6 +2082,8 @@ function simTick(dt) {
     }
   }
   if (N.sabAt && !N.sab && N.t >= N.sabAt) N.sab = spawnSaboteur();
+  if (N.riftAt && !N.riftPos && N.t >= N.riftAt) { S._rift = true; spawnRift(); }
+  if (N.demonAt && !N.demon && N.t >= N.demonAt) spawnDemon();
   const chiefPos = N.enemies.some(e => !e.dead && e.type === 'chief')
     ? N.enemies.filter(e => !e.dead && e.type === 'chief').map(e => epos(e)) : null;
   for (const e of N.enemies) {
@@ -2084,6 +2128,15 @@ function simTick(dt) {
     if (foe) {
       e.uCd -= dt;
       if (e.uCd <= 0) { e.uCd = e.rate; e.atkAnim = .35; hurtUnit(foe, e.dmg); }
+    } else if (e.free && e.hunt) { // the Demon Prince wants one thing only
+      if (!K.down) {
+        const d = Math.hypot(K.u - e.fx, K.v - e.fz);
+        if (d > 1.2) { e.fx += (K.u - e.fx) / d * e.speed * dt; e.fz += (K.v - e.fz) / d * e.speed * dt; }
+      } else { // the king is down — take the castle instead
+        const d = Math.hypot(25 - e.fx, 24.8 - e.fz);
+        if (d > 3.6) { e.fx += (25 - e.fx) / d * e.speed * dt; e.fz += (24.8 - e.fz) / d * e.speed * dt; }
+        else { e.atkCd -= dt; if (e.atkCd <= 0) { e.atkCd = e.rate; e.atkAnim = .35; hurtCastle(e.dmg); } }
+      }
     } else if (e.free) { // raiders and saboteurs cut across country toward their prize
       const g = e.tgt;
       if (!g || g.dead) {
@@ -2135,7 +2188,7 @@ function simTick(dt) {
         e.atkCd = e.rate;
         if (e.ranged) { // spitters lob filth; the Leviathan lobs brine
           const sp = epos(e);
-          arrow(new THREE.Vector3(sp.u, e.serpent ? 4.4 : 1, sp.v), new THREE.Vector3(25, 2, 24.8), 3, () => hurtCastle(e.dmg), e.serpent);
+          arrow(new THREE.Vector3(sp.u, e.serpent ? 4.4 : 1, sp.v), new THREE.Vector3(25, 2 + ART.plateauAt(25, 24.8), 24.8), 3, () => hurtCastle(e.dmg), e.serpent);
         } else { e.atkAnim = .35; hurtCastle(e.dmg); }
       }
     }
@@ -2363,6 +2416,7 @@ function cleanupNight() {
   N.walls.forEach(w => { if (w.hpEl) ehpPool.release(w.hpEl); });
   N.bldgs.forEach(g => { if (g.hpEl) ehpPool.release(g.hpEl); });
   if (N.serp && !N.serp.dead) S.serpent.hp = N.serp.hp; // it remembers its wounds
+  if (riftMesh) { mapGroup.remove(riftMesh); riftMesh = null; } // an unslain prince withdraws at dawn
   $('#bossWrap').style.display = 'none';
   $('#serpWrap').style.display = 'none';
   rangeRings.forEach(r => scene.remove(r)); rangeRings.length = 0;
@@ -2466,7 +2520,8 @@ function resetRun() {
   S.castleLvl = 1; S.castleMax = 15 + (hasPerk('masonry') ? 8 : 0); S.castleHP = S.castleMax;
   S.serpent = MAP.serpent ? { hp: 140, max: 140, slain: false } : null;
   S._saga = false;
-  S._meteor = 0; S._guard = false;
+  S._meteor = 0; S._guard = false; S._rift = false;
+  if (riftMesh) { mapGroup.remove(riftMesh); riftMesh = null; }
   if (typeof refreshScroll === 'function') try { refreshScroll(); } catch { /* pre-dom */ }
   if (ballistaMesh) { mapGroup.remove(ballistaMesh); ballistaMesh = null; }
   trapPosts.forEach(tp => mapGroup.remove(tp.mesh)); trapPosts = [];
@@ -2623,7 +2678,7 @@ function updateFloaters() {
     } else el.style.display = 'none';
   }
   const cb = $('#castleWrap');
-  if (S.view === 'game' && S.phaseName === 'night') { cb.style.display = 'block'; anchor(cb, 25, 13.6, 24); }
+  if (S.view === 'game' && S.phaseName === 'night') { cb.style.display = 'block'; anchor(cb, 25, 13.6 + ART.plateauAt(25, 24), 24); }
   else cb.style.display = 'none';
   $('#kingFill').style.width = (100 * K.hp / K.max) + '%';
 }
@@ -2909,6 +2964,10 @@ window.cheat = (code) => {
   }
   if (code === 'god') { CHEAT.god = true; S.castleMax = 999; S.castleHP = 999; K.max = 200; K.hp = 200; return 'castle and king fortified (kept through PLAY)'; }
   if (code === 'night') { if (S.phaseName === 'day' && S.view === 'game') { startNight(); return 'night falls at your command'; } return 'only by day, in the field'; }
+  if (code === 'rift') {
+    if (N && !N.over) { S._rift = false; N.riftAt = N.t + 1; return 'the veil thins…'; }
+    return 'the veil only tears at night';
+  }
   if (code === 'win') {
     if (N && !N.over) {
       N.queue.length = 0;
@@ -2920,7 +2979,7 @@ window.cheat = (code) => {
     return 'no battle to win';
   }
   if (code === 'medals') { for (const k in ACHS) award(k); return 'all medals'; }
-  if (code === 'sovereign') return 'words of power: gold · crowns · unlock · day N · god · medals · night · win';
+  if (code === 'sovereign') return 'words of power: gold · crowns · unlock · day N · god · medals · night · win · rift';
   return 'nothing happens';
 };
 

@@ -190,9 +190,19 @@ const TERRA = {
   abyss: { grass: M2('#3E7D8A', '#1E3A4A'), grassLt: M2('#4E96A0', '#26485A'), sand: M2('#7BAF9E', '#2E5450'), path: M2('#5E9AA6', '#2A4A56') },
 };
 const spaceMat = new THREE.MeshBasicMaterial({ color: '#0A0D18' });
+let PLATEAU_H = 0;
+export function plateauAt(u, v) {
+  if (!PLATEAU_H) return 0;
+  const d = Math.hypot(u - 25, v - 25);
+  if (d <= 6.5) return PLATEAU_H;
+  if (d >= 11.5) return 0;
+  const t = 1 - (d - 6.5) / 5;
+  return PLATEAU_H * t * t * (3 - 2 * t); // smoothstep shoulder
+}
 let seaMesh = null; // the open sea persists across maps
 export function buildTerrain(group, lanes, opts = {}) {
-  const { sx = 1, sz = 1, sc = 1, pond = true, pal = null, shape = null } = opts;
+  const { sx = 1, sz = 1, sc = 1, pond = true, pal = null, shape = null, plateau = 1.8 } = opts;
+  PLATEAU_H = plateau;
   const T = TERRA[pal] || mats;
   const SP = (u, v) => [25 + (u - 25) * sc, 25 + (v - 25) * sc]; // decorative coords stretch with the island
   if (!seaMesh) {
@@ -206,13 +216,19 @@ export function buildTerrain(group, lanes, opts = {}) {
   group.add(shallow);
   group.add(blob(1.1, .6, T.sand, -.06, sx, sz, sc, shape));
   group.add(blob(0, 2.6, T.grass, 0, sx, sz, sc, shape));
+  if (PLATEAU_H > 0) { // the old town stands on a raised shelf of land
+    const mound = cyl(6.9, 11.6, PLATEAU_H, 24, T.grass, 25, 0, 25);
+    mound.castShadow = false; group.add(mound);
+    const cap = cyl(7.1, 7.1, .12, 24, T.grassLt, 25, PLATEAU_H - .06, 25);
+    cap.castShadow = false; group.add(cap);
+  }
   /* meadow patches */
   for (const [u0, v0, r] of [[14,20,3],[33,36,4],[24,10,2.5],[40,20,3],[10,37,2.6],[38,8,3.2],[8,10,2.8],[42,44,3]]) {
     const [u, v] = SP(u0, v0);
     const p = cyl(r * sc, r * sc, .04, 24, T.grassLt, u, .02, v); p.castShadow = false; group.add(p);
   }
   /* lanes as rounded plates */
-  const plate = (u, v, r, m, y) => { const p = cyl(r, r, .05, 14, m, u, y, v); p.castShadow = false; group.add(p); };
+  const plate = (u, v, r, m, y) => { const p = cyl(r, r, .05, 14, m, u, y + plateauAt(u, v), v); p.castShadow = false; group.add(p); };
   for (const pts of lanes) {
     for (let i = 0; i < pts.length - 1; i++) {
       const [au, av] = pts[i], [bu, bv] = pts[i + 1];
@@ -317,7 +333,103 @@ function turret(x, z) {
   g.add(cone(.78, 1.7, 7, T_roofB(), 0, 5.42, 0));
   return g;
 }
-export function castleArt() {
+function castleShell(g, gateZ = 2.02) { // shared: gate + banner + torch bookkeeping
+  g.add(box(1.15, 1.7, .15, mats.dark, 0, .4, gateZ));
+  const bf = flag(CONST.gold, 1.4); bf.position.y = 11.6; g.add(bf);
+  g.userData.torches = [new THREE.Vector3(-1.3, 2.1, 2.6), new THREE.Vector3(1.3, 2.1, 2.6)];
+  const f1 = mesh(new THREE.SphereGeometry(.17, 6, 5), flameMat(), -1.3, 1.9, 2.6); f1.castShadow = false; g.add(f1);
+  const f2 = mesh(new THREE.SphereGeometry(.17, 6, 5), flameMat(), 1.3, 1.9, 2.6); f2.castShadow = false; g.add(f2);
+  const gw1 = glow('#FFB35C', 3.8, 0, .9, true); gw1.position.set(-1.3, 2, 2.6); g.add(gw1);
+  const gw2 = glow('#FFB35C', 3.8, 0, .9, true); gw2.position.set(1.3, 2, 2.6); g.add(gw2);
+}
+export function castleArt(style) {
+  if (style === 'bunker') { // a command post, not a palace
+    const g = new THREE.Group();
+    g.add(box(7, 1.1, 7, mats.stoneDk));
+    g.add(box(4.4, 2.2, 3.2, mats.stone, -1, 1.1, -.6));
+    g.add(box(3, 1.6, 4.2, mats.stone, 1.8, 1.1, .8));
+    g.add(cyl(1.1, 1.2, 3.6, 8, mats.stoneDk, 1.8, 2.7, -1.6));
+    const barrel = cyl(.09, .09, 2, 5, mats.dark, 2.6, 5.6, -1.6); barrel.rotation.z = -1.2; g.add(barrel);
+    g.add(cyl(.06, .06, 6.5, 4, mats.dark, -2.4, 1.1, -2.2)); // mast
+    g.add(box(1.2, .08, .08, mats.dark, -2.4, 7.2, -2.2));
+    for (let i = 0; i < 8; i++) { const th = i / 8 * Math.PI * 2; g.add(box(.8, .5, .45, MC('#8A8578', { glow: .04 }), Math.cos(th) * 4.6, .55, Math.sin(th) * 4.6)); }
+    const sl = glow('#FFF2C9', 6, .15, 1, true); sl.position.set(1.8, 5.4, -1.6); g.add(sl);
+    castleShell(g, 3.55);
+    return g;
+  }
+  if (style === 'crystal') { // a grown place, not a built one
+    const g = new THREE.Group();
+    g.add(mesh(new THREE.IcosahedronGeometry(3.4, 0), mats.stoneDk, 0, .6, 0)).scale.y = .5;
+    const core = cone(1.7, 9.5, 6, MC('#9FD8F0', { glow: .55 }), 0, .8, 0); g.add(core);
+    for (const [x, z, h, r] of [[-2.5, -1.5, 5, .8], [2.4, -1.8, 5.8, .9], [-1.8, 2.2, 4.6, .7], [2, 2, 4.2, .75]]) {
+      const sh = cone(r, h, 5, MC('#BFD8FF', { glow: .7 }), x, .5, z); sh.rotation.z = x * .06; sh.rotation.x = -z * .06; g.add(sh);
+    }
+    const halo = glow('#9FD8F0', 9, .35, .95); halo.position.y = 9; g.add(halo);
+    castleShell(g);
+    return g;
+  }
+  if (style === 'dune' || style === 'bone') { // ziggurats of gold, or of the dead
+    const g = new THREE.Group();
+    const gold = style === 'dune';
+    const m1 = gold ? MC('#D9B87A', { glow: .06 }) : mats.snow;
+    const m2 = gold ? MC('#C9A45E', { glow: .06 }) : mats.stone;
+    for (const [w, y] of [[7.4, 0], [5.8, 1.3], [4.2, 2.6], [2.8, 3.9]]) g.add(box(w, 1.3, w, w === 5.8 || w === 2.8 ? m2 : m1, 0, y, 0));
+    g.add(box(1.8, 1.6, 1.8, m2, 0, 5.2, 0));
+    if (gold) g.add(mesh(new THREE.SphereGeometry(1.05, 9, 7, 0, Math.PI * 2, 0, Math.PI / 2), MC(CONST.gold, { glow: .3 }), 0, 6.8, 0));
+    else { g.add(mesh(new THREE.TorusGeometry(1.5, .15, 5, 12, Math.PI), mats.snow, 0, 6.8, 0)); g.add(cone(.3, 1.4, 5, mats.snow, 0, 6.8, 0)); }
+    g.add(box(1.6, 4, .5, m2, 0, .2, 3.4)); // grand stair block
+    castleShell(g, 3.7);
+    return g;
+  }
+  if (style === 'coral') { // the reef built this keep
+    const g = new THREE.Group();
+    g.add(mesh(new THREE.SphereGeometry(3.4, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), MC('#8FCABB', { glow: .12 }), 0, 0, 0));
+    for (const [x, z, h, c] of [[-2, -1.6, 6.5, '#E87A9C'], [2.2, -1, 8, '#F0A45C'], [.4, 2.4, 5.5, '#E87A9C']]) {
+      g.add(cyl(.55, .75, h, 7, MC(c, { glow: .3 }), x, 0, z));
+      const tip = glow(c, 2.6, .25, .8, true); tip.position.set(x, h + .4, z); g.add(tip);
+    }
+    for (let i = 0; i < 6; i++) { const th = i / 6 * Math.PI * 2; g.add(cone(.3, 1.2, 5, MC('#E87A9C', { glow: .25 }), Math.cos(th) * 4.4, 0, Math.sin(th) * 4.4)); }
+    castleShell(g, 3.3);
+    return g;
+  }
+  if (style === 'ice') { // a mead-hall against the endless winter
+    const g = new THREE.Group();
+    const r1 = box(6.4, .9, 4.6, mats.stone, 0, 0, 0); g.add(r1);
+    const a1 = box(6.6, 5.2, .5, mats.snow, 0, .8, 1.55); a1.rotation.x = -.42; g.add(a1);
+    const a2 = box(6.6, 5.2, .5, mats.snow, 0, .8, -1.55); a2.rotation.x = .42; g.add(a2);
+    g.add(box(.4, 6, 3.4, mats.stone, -3, .5, 0)); g.add(box(.4, 6, 3.4, mats.stone, 3, .5, 0));
+    g.add(box(.9, 1.2, .1, windowMat(), -3.22, 3.4, 0)); g.add(box(.9, 1.2, .1, windowMat(), 3.22, 3.4, 0));
+    for (let i = 0; i < 7; i++) { const th = i / 7 * Math.PI * 2; g.add(cone(.45, 2.2, 4, MC('#BFE4F5', { glow: .3 }), Math.cos(th) * 4.9, 0, Math.sin(th) * 4.9)); }
+    castleShell(g, 2.4);
+    return g;
+  }
+  if (style === 'vine') { // the Great Tree holds the throne
+    const g = new THREE.Group();
+    g.add(cyl(1.5, 2.2, 6.5, 8, mats.trunk));
+    const c1 = mesh(new THREE.IcosahedronGeometry(3.6, 0), mats.pineDk, 0, 8.4, 0); c1.scale.y = .8; g.add(c1);
+    g.add(mesh(new THREE.IcosahedronGeometry(2.2, 0), mats.pine, -2.2, 7, 1.2));
+    g.add(mesh(new THREE.IcosahedronGeometry(1.9, 0), mats.pine, 2.3, 7.4, -.9));
+    g.add(box(2, 1.6, 1.8, T_wood(), 0, 5.2, 1.6)); // the hall in the boughs
+    g.add(box(.5, .7, .1, windowMat(), 0, 5.6, 2.52));
+    const gw = glow('#FFD97A', 2.6, 0, .6); gw.position.set(0, 5.8, 2.7); g.add(gw);
+    g.add(mesh(new THREE.SphereGeometry(.5, 7, 6), MC('#E87A9C', { glow: .5 }), 1.6, 9.6, .8));
+    castleShell(g, 2.3);
+    return g;
+  }
+  if (style === 'magma') { // an obsidian citadel over a burning heart
+    const g = new THREE.Group();
+    g.add(cone(2.6, 9.5, 6, mats.dark, 0, .4, 0));
+    for (const [x, z, h] of [[-2.2, -1.4, 5], [2.3, -1.2, 5.6], [-1.4, 2.2, 4.4], [1.8, 2, 4.8]]) {
+      const sh = cone(.9, h, 5, mats.dark, x, .2, z); sh.rotation.z = x * .07; g.add(sh);
+    }
+    g.add(cyl(2.9, 2.9, .35, 8, lavaMat, 0, 2.6, 0));
+    for (const [x, y, z] of [[-.8, 4.5, .9], [1, 6, .4], [.2, 8, .3]])
+      g.add(mesh(new THREE.IcosahedronGeometry(.22, 0), MC('#FF6A3D', { glow: 1.3 }), x, y, z));
+    const gw = glow('#FF6A3D', 8, .4, 1, true); gw.position.y = 4; g.add(gw);
+    castleShell(g, 2.6);
+    return g;
+  }
+  /* the classic four-turret keep of the green realms */
   const g = new THREE.Group();
   g.add(box(5.6, .9, 5.6, mats.stoneDk));
   g.add(box(4, 4.6, 4, mats.stone, 0, .9, 0));
@@ -1244,6 +1356,36 @@ export function castleDress(style) {
   } else if (style === 'dune') { // Sandsea: the gilded dome
     g.add(mesh(new THREE.SphereGeometry(1.5, 9, 7, 0, Math.PI * 2, 0, Math.PI / 2), mGold, 0, 9.1, 0));
   }
+  return g;
+}
+export function portalArt() { // a wound in the world
+  const g = new THREE.Group();
+  const ring = mesh(new THREE.TorusGeometry(1.7, .22, 7, 18), MC('#6B4FA0', { glow: .9 }), 0, 2.4, 0);
+  g.add(ring); g.userData.ring = ring;
+  const eye = mesh(new THREE.CircleGeometry(1.45, 18), new THREE.MeshBasicMaterial({ color: '#12081F', side: THREE.DoubleSide }), 0, 2.4, 0);
+  eye.castShadow = false; g.add(eye);
+  const gw = glow('#B07EC9', 8, .55, 1, true); gw.position.y = 2.4; g.add(gw);
+  const beam = cyl(.35, .9, 6, 6, new THREE.MeshBasicMaterial({ color: '#6B4FA0', transparent: true, opacity: .25 }), 0, 4.2, 0);
+  beam.castShadow = false; g.add(beam);
+  ANIMS.push((t) => { if (!g.parent) return; ring.rotation.z = t * 1.6; });
+  return g;
+}
+export function demonArt() { // the prince behind the veil
+  const g = new THREE.Group();
+  const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+  const mDemon = MC('#1E1224', { glow: .15 });
+  bodyG.add(mesh(new THREE.CapsuleGeometry(.55, 1.1, 3, 8), mDemon, 0, 1.3, 0));
+  bodyG.add(mesh(new THREE.SphereGeometry(.4, 8, 7), mDemon, 0, 2.5, 0));
+  bodyG.add(mesh(new THREE.SphereGeometry(.11, 5, 4), MC('#FF3B30', { glow: 2 }), .15, 2.6, .3));
+  bodyG.add(mesh(new THREE.SphereGeometry(.11, 5, 4), MC('#FF3B30', { glow: 2 }), -.15, 2.6, .3));
+  const h1 = cone(.14, .8, 5, mats.snow, .34, 2.8, 0); h1.rotation.z = -.5; bodyG.add(h1);
+  const h2 = cone(.14, .8, 5, mats.snow, -.34, 2.8, 0); h2.rotation.z = .5; bodyG.add(h2);
+  const wingM = new THREE.MeshBasicMaterial({ color: '#12081F', side: THREE.DoubleSide, transparent: true, opacity: .85 });
+  bodyG.add(mesh(new THREE.PlaneGeometry(1.6, 1.1), wingM, -.9, 1.9, -.4, false)).rotation.y = .7;
+  bodyG.add(mesh(new THREE.PlaneGeometry(1.6, 1.1), wingM, .9, 1.9, -.4, false)).rotation.y = -.7;
+  const blade = box(.14, 2.2, .05, MC('#B07EC9', { glow: .8 }), .85, 1.2, 0); blade.rotation.z = -.35; bodyG.add(blade);
+  const aura = glow('#B07EC9', 6, .35, .9, true); aura.position.y = 1.6; g.add(aura);
+  g.scale.setScalar(1.35);
   return g;
 }
 /* ---------- fx meshes ---------- */
