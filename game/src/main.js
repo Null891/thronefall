@@ -28,7 +28,7 @@ addEventListener('resize', resize); resize();
 const sun = new THREE.DirectionalLight('#FFE7C0', 2.6);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -36, right: 36, top: 36, bottom: -36, near: 5, far: 160 });
+Object.assign(sun.shadow.camera, { left: -52, right: 52, top: 52, bottom: -52, near: 5, far: 220 });
 sun.shadow.bias = -0.0006;
 sun.target.position.set(25, 0, 25);
 scene.add(sun, sun.target);
@@ -68,7 +68,7 @@ function applyPhase() {
 /* ============================== maps ============================== */
 let MAP = null, mapGroup = null, castle = null;
 let SLOTS = [], hitMeshes = [], LANES = {};
-const CASTLE_SLOT = { castle: true, u: 25, v: 26.5 };
+const CASTLE_SLOT = { castle: true, id: 'castle', u: 25, v: 26.5 };
 
 function place(obj, u, v, ry = 0, s = 1) { obj.position.set(u, 0, v); obj.rotation.y = ry; obj.scale.setScalar(s); mapGroup.add(obj); return obj; }
 function gateAt(u, v) {
@@ -76,63 +76,111 @@ function gateAt(u, v) {
   addTorch(g.userData.torch.clone().add(g.position));
 }
 
+const BOSS_DEFS = {
+  warlord:   { name: 'THE OGRE WARLORD', kind: 'warlord', hp: 55, speed: .55, dmg: 6, rate: 2.2 },
+  brood:     { name: 'THE BROODMOTHER', kind: 'brood', hp: 45, speed: 1.05, dmg: 3, rate: 1.6, fly: true, brood: 7 },
+  skeleking: { name: 'THE SKELETON KING', kind: 'skeleking', hp: 60, speed: .6, dmg: 4, rate: 2, brood: 6, broodType: 'skeleton' },
+  landship:  { name: 'THE LANDSHIP', kind: 'landship', hp: 70, speed: .5, dmg: 7, rate: 2.1 },
+  acewing:   { name: 'THE ACE WING', kind: 'acewing', hp: 50, speed: 1.1, dmg: 3, rate: 1.5, fly: true, brood: 8 },
+};
 const MAPS = {
   nordfels: {
     id: 'nordfels', name: 'Nordfels',
-    laneIds: ['A', 'B'],
+    laneIds: ['A', 'B', 'C', 'D'],
+    bounds: { u: [-19, 69], v: [-19, 69] },
     lanePts: {
-      A: [[0, 25.5], [7, 25.2], [14, 25], [19.5, 25], [21.7, 25]],
-      B: [[50, 25.5], [42, 25.2], [36, 25], [29.6, 25], [28.3, 25]],
+      A: [[-16, 25.5], [-6, 25.2], [4, 25], [12, 25.2], [19.5, 25], [21.7, 25]],
+      B: [[66, 25.5], [56, 25.2], [46, 25], [38, 24.8], [29.6, 25], [28.3, 25]],
+      C: [[25, -15], [24.6, -6], [25.2, 3], [24.8, 10], [25, 17], [25, 21.6]],
+      D: [[25, 63], [25.4, 54], [24.7, 46], [25.2, 38], [25, 33], [25, 28.8]],
     },
-    terrain: { sx: 1, sz: 1, pond: true },
-    boss: { name: 'THE OGRE WARLORD', kind: 'warlord', hp: 55, speed: .55, dmg: 6, rate: 2.2 },
+    terrain: { sx: 1, sz: 1, sc: 1.9, pond: true },
+    boss: BOSS_DEFS.warlord, bosses: [BOSS_DEFS.warlord, BOSS_DEFS.brood],
     slots: [
+      /* the old town around the keep */
       { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
       { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
-      { id: 's5', u: 22,   v: 31.5, type: 'house' },   { id: 's6', u: 26.5, v: 31.5, type: 'house' },
+      { id: 's5', u: 22,   v: 31.5, type: 'house' },   { id: 's6', u: 28,   v: 30.5, type: 'house' },
       { id: 's9', u: 30.5, v: 33.5, type: 'house' },   { id: 's7', u: 17,   v: 35,   type: 'mill' },
       { id: 's8', u: 38.5, v: 34.5, type: 'harbour' }, { id: 's10', u: 7.5, v: 21,   type: 'mine' },
       { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
-      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 13 } },
-      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 13 } },
-      { id: 'w3', type: 'wall', wall: { lane: 'A', d: 6.5 }, hidden: true, unlockDay: 2 },
-      { id: 'w4', type: 'wall', wall: { lane: 'B', d: 6.5 }, hidden: true, unlockDay: 2 },
       { id: 'x1', u: 33.5, v: 36.5, type: 'house',    hidden: true, unlockDay: 2 },
       { id: 'x2', u: 10.5, v: 22.7, type: 'tower',    hidden: true, unlockDay: 3 },
       { id: 'x3', u: 39.5, v: 27.5, type: 'tower',    hidden: true, unlockDay: 3 },
-      { id: 'x4', u: 26,   v: 17.5, type: 'barracks', hidden: true, unlockDay: 4 },
+      { id: 'x4', u: 20.5, v: 19.5, type: 'barracks', hidden: true, unlockDay: 4 },
       { id: 'x5', u: 19.5, v: 39.5, type: 'house',    hidden: true, unlockDay: 4 },
       { id: 'x6', u: 44.5, v: 28,   type: 'mine',     hidden: true, unlockDay: 5 },
       { id: 'x7', u: 36.5, v: 13.5, type: 'range',    hidden: true, unlockDay: 5 },
       { id: 'x8', u: 12,   v: 27.5, type: 'house',    hidden: true, unlockDay: 6 },
+      /* gate walls on all four roads, and a far ring for the late game */
+      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 29 } },
+      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 29 } },
+      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 28 } },
+      { id: 'w4', type: 'wall', wall: { lane: 'D', d: 29 } },
+      { id: 'w5', type: 'wall', wall: { lane: 'A', d: 10 }, hidden: true, unlockDay: 2 },
+      { id: 'w6', type: 'wall', wall: { lane: 'B', d: 10 }, hidden: true, unlockDay: 2 },
+      { id: 'w7', type: 'wall', wall: { lane: 'C', d: 11 }, hidden: true, unlockDay: 3 },
+      { id: 'w8', type: 'wall', wall: { lane: 'D', d: 11 }, hidden: true, unlockDay: 3 },
+      /* the outskirts: hamlets spread along all four roads as the days pass */
+      { id: 'o1',  u: 6,    v: 28,   type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'o5',  u: 43,   v: 27.5, type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'o10', u: 21.5, v: 11,   type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'o15', u: 22,   v: 39.5, type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'o2',  u: -1,   v: 22.5, type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'o6',  u: 50,   v: 22.5, type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'o11', u: 29,   v: 9,    type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'o16', u: 28.5, v: 41.5, type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'o3',  u: -4,   v: 28,   type: 'tower',    hidden: true, unlockDay: 3 },
+      { id: 'o7',  u: 53,   v: 27.5, type: 'tower',    hidden: true, unlockDay: 3 },
+      { id: 'o12', u: 16.5, v: 7,    type: 'mill',     hidden: true, unlockDay: 4 },
+      { id: 'nf1', u: 12,   v: 5,    type: 'field', hidden: true }, { id: 'nf2', u: 11.5, v: 10, type: 'field', hidden: true },
+      { id: 'o13', u: 20,   v: 3,    type: 'tower',    hidden: true, unlockDay: 4 },
+      { id: 'o17', u: 32.5, v: 46,   type: 'tower',    hidden: true, unlockDay: 4 },
+      { id: 'o18', u: 17.5, v: 45.5, type: 'barracks', hidden: true, unlockDay: 4 },
+      { id: 'o9',  u: 45,   v: 33,   type: 'house',    hidden: true, unlockDay: 4 },
+      { id: 'o4',  u: -12,  v: 22,   type: 'mine',     hidden: true, unlockDay: 5 },
+      { id: 'o8',  u: 58,   v: 22,   type: 'barracks', hidden: true, unlockDay: 5 },
+      { id: 'o14', u: 30.5, v: 2.5,  type: 'range',    hidden: true, unlockDay: 5 },
+      { id: 'o19', u: 33,   v: 52,   type: 'mine',     hidden: true, unlockDay: 5 },
+      { id: 'o20', u: 24,   v: 56,   type: 'house',    hidden: true, unlockDay: 6 },
     ],
     decor() {
-      for (const [u, v, s] of [[6,9,1],[5,15,.8],[5,31,.9],[7.5,39,.7],[12,4.5,.9],[23,3.5,1.25],[34,4,.85],[42,6.5,.95],[45.5,11,.7]])
+      const P = (u, v) => [25 + (u - 25) * 1.85, 25 + (v - 25) * 1.85];
+      for (const [u0, v0, s] of [[6,9,1],[5,15,.8],[5,31,.9],[7.5,39,.7],[12,4.5,.9],[23,3.5,1.25],[34,4,.85],[42,6.5,.95],[45.5,11,.7],[45,38,.9],[38,45,1.1],[10,45,.8]]) {
+        const [u, v] = P(u0, v0);
         place(ART.mountain(), u, v, Math.random() * 6, s);
-      for (const [u, v, s] of [[9,12,.9],[7,28.5,.8],[11,33,1],[9,44,.85],[16,7,1],[28,5,.8],[40,7,1],[45,13,.9],[44,19,.75],[14,42,1],[33,45,.9],[45,44,.8],[21,44,.7],[36,30,.7]])
+      }
+      for (const [u0, v0, s] of [[9,12,.9],[7,28.5,.8],[11,33,1],[9,44,.85],[16,7,1],[28,5,.8],[40,7,1],[45,13,.9],[44,19,.75],[14,42,1],[33,45,.9],[45,44,.8],[21,44,.7],[36,30,.7],[4,22,.9],[46,29,.85],[30,47,.95],[18,48,.8],[48,35,.9],[2,35,.85]]) {
+        const [u, v] = P(u0, v0);
         place(ART.treePine(s), u, v, Math.random() * 6);
-      for (const [u, v, s] of [[26,6.5,.9],[41.5,33,.85],[11,36.5,.8],[33,42.5,.75],[43,23,.7]])
+      }
+      /* an inner belt of woods keeps the middle from feeling empty */
+      for (const [u, v, s] of [[9,12,.9],[11,36.5,.85],[26,6.5,.9],[41.5,33,.85],[43,23,.7],[36,42,.8],[7,32,.75],[41,10,.85],[13,15,.8],[38,38.5,.75]])
         place(ART.treeRound(s), u, v, Math.random() * 6);
-      for (const [u, v, s] of [[12,21.5,.9],[31,16.5,1],[39.5,23,.8],[20,35,.9],[28,43,.8],[9,31,.7]])
+      for (const [u, v, s] of [[12,21.5,.9],[31,16.5,1],[39.5,23,.8],[20,35,.9],[28,43,.8],[9,31,.7],[34,9,.8],[14,44,.75],[44,40,.7]])
         place(ART.bush(s), u, v, Math.random() * 6);
-      place(ART.rock(1), 6.5, 19.5); place(ART.rock(.7), 37.5, 38.5);
+      place(ART.rock(1), 6.5, 19.5); place(ART.rock(.7), 37.5, 38.5); place(ART.rock(.9), 40, 5); place(ART.rock(.8), 8, 42);
+      /* the inner bailey: gate towers on all four roads */
       place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
       place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
-      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27]]) gateAt(u, v);
-      place(ART.boat(), 43.5, 37.5, .6);
+      place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
+      place(ART.wallRun(3.4), 18.6, 32.5, Math.PI / 2); place(ART.wallRun(3.4), 28, 32.5, Math.PI / 2);
+      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5],[22.8,32.5],[27.2,32.5]]) gateAt(u, v);
+      place(ART.boat(), 59.5, 48.5, .6);
     },
   },
   leviathan: {
     id: 'leviathan', name: 'Leviathan', unlockBest: 3, extraWasps: 3,
-    serpent: true, camZoom: 1.12, bounds: { u: [-6, 56], v: [4, 46] },
+    serpent: true, serpPos: { u: 45, v: 49 }, camZoom: 1.12,
+    bounds: { u: [-17, 67], v: [-1, 51] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
-      A: [[-6, 25.6], [1, 25.4], [7, 25.2], [14, 25], [19.5, 25], [21.7, 25]],
-      B: [[56, 25.6], [49, 25.4], [42, 25.2], [36, 25], [29.6, 25], [28.3, 25]],
-      C: [[25, 2], [24.8, 8], [25, 13], [25, 18], [25, 21.6]],
+      A: [[-14, 25.7], [-6, 25.6], [1, 25.4], [7, 25.2], [14, 25], [19.5, 25], [21.7, 25]],
+      B: [[64, 25.7], [56, 25.6], [49, 25.4], [42, 25.2], [36, 25], [29.6, 25], [28.3, 25]],
+      C: [[25, -4], [24.8, 3], [25, 9], [24.8, 14], [25, 18], [25, 21.6]],
     },
-    terrain: { sx: 1.45, sz: .9, pond: false },
-    boss: { name: 'THE BROODMOTHER', kind: 'brood', hp: 45, speed: 1.05, dmg: 3, rate: 1.6, fly: true, brood: 7 },
+    terrain: { sx: 1.45, sz: .9, sc: 1.25, pond: false },
+    boss: BOSS_DEFS.brood, bosses: [BOSS_DEFS.brood, BOSS_DEFS.warlord],
     slots: [
       { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
       { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
@@ -140,31 +188,44 @@ const MAPS = {
       { id: 's7', u: 17,   v: 35,   type: 'mill' },    { id: 's9', u: 30.5, v: 33.5, type: 'house' },
       { id: 's8', u: 38.5, v: 34.5, type: 'harbour' }, { id: 's10', u: 7.5, v: 21,   type: 'mine' },
       { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
-      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 20 } },
-      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 20 } },
-      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 13 } },
-      { id: 'w4', type: 'wall', wall: { lane: 'A', d: 13.5 }, hidden: true, unlockDay: 2 },
-      { id: 'w5', type: 'wall', wall: { lane: 'B', d: 13.5 }, hidden: true, unlockDay: 2 },
-      { id: 'w6', type: 'wall', wall: { lane: 'C', d: 7.5 }, hidden: true, unlockDay: 3 },
+      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 27 } },
+      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 27 } },
+      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 19 } },
+      { id: 'w4', type: 'wall', wall: { lane: 'A', d: 12 }, hidden: true, unlockDay: 2 },
+      { id: 'w5', type: 'wall', wall: { lane: 'B', d: 12 }, hidden: true, unlockDay: 2 },
+      { id: 'w6', type: 'wall', wall: { lane: 'C', d: 10 }, hidden: true, unlockDay: 3 },
       { id: 'n1', u: 21.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
       { id: 'n2', u: 28.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
       { id: 'n3', u: 20.5, v: 9.5,  type: 'house',    hidden: true, unlockDay: 3 },
       { id: 'n4', u: 29.5, v: 9,    type: 'barracks', hidden: true, unlockDay: 3 },
       { id: 'x1', u: 41,   v: 27.5, type: 'mine',     hidden: true, unlockDay: 4 },
       { id: 'x2', u: 36,   v: 17,   type: 'house',    hidden: true, unlockDay: 4 },
+      { id: 'le1', u: -4,  v: 27.5, type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'le3', u: 54,  v: 27.5, type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'le6', u: 2,   v: 33,   type: 'house',    hidden: true, unlockDay: 3 },
+      { id: 'le2', u: -8,  v: 22,   type: 'tower',    hidden: true, unlockDay: 4 },
+      { id: 'le4', u: 58,  v: 22,   type: 'tower',    hidden: true, unlockDay: 4 },
+      { id: 'le5', u: 46,  v: 38,   type: 'mine',     hidden: true, unlockDay: 5 },
     ],
     decor() {
+      const P = (u, v) => [25 + (u - 25) * 1.25, 25 + (v - 25) * 1.25];
       /* the island rests on a titan's bones: rib arches straddle the roads */
       for (const [x, s] of [[10, 1.1], [15.5, 1.25], [34.5, 1.25], [40, 1.1]])
         place(ART.ribArt(s), x, 25, Math.PI / 2);
       place(ART.ribArt(1.1), 25, 9.5); place(ART.ribArt(1.2), 25, 13.5);
-      place(ART.skullArt(1.5), 5, 31.5, 2.6);
-      for (const [u, v, s] of [[8,19,1.2],[12,30,.9],[30,7,1],[37,32,1.3],[44,21,.9],[20,6,1.1],[31,42,1],[13,41,1.2],[42,15,.8]])
+      place(ART.skullArt(1.5), 0, 33, 2.6);
+      for (const [u0, v0, s] of [[8,19,1.2],[12,30,.9],[30,7,1],[37,32,1.3],[44,21,.9],[20,6,1.1],[31,42,1],[13,41,1.2],[42,15,.8],[48,28,1],[2,20,.9]]) {
+        const [u, v] = P(u0, v0);
         place(ART.boneSpike(s), u, v, Math.random() * 6);
-      for (const [u, v, s] of [[45,8,.9],[5,42,.8],[44,42,.85]])
+      }
+      for (const [u0, v0, s] of [[45,8,.9],[5,42,.8],[44,42,.85]]) {
+        const [u, v] = P(u0, v0);
         place(ART.mountain(), u, v, Math.random() * 6, s);
-      for (const [u, v, s] of [[9,38,.9],[40,39,.8],[16,42,.75],[44,31,.7],[35,41,.85]])
+      }
+      for (const [u0, v0, s] of [[9,38,.9],[40,39,.8],[16,42,.75],[44,31,.7],[35,41,.85],[3,29,.8],[47,33,.9]]) {
+        const [u, v] = P(u0, v0);
         place(ART.treePine(s), u, v, Math.random() * 6);
+      }
       for (const [u, v, s] of [[12,17,.9],[38,20,.8],[8,28,.7],[28,40,.8]])
         place(ART.rock(s), u, v, Math.random() * 6);
       for (const [u, v, s] of [[20,33,.9],[30,17.5,.8],[41,24,.7]])
@@ -173,31 +234,137 @@ const MAPS = {
       place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
       place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
       for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5]]) gateAt(u, v);
-      place(ART.boat(), 43.5, 36, .6);
+      place(ART.boat(), 48, 39, .6);
       for (let i = 0; i < 2; i++) { // something old circles the island, day and night
         const fin = place(ART.finArt(), 0, 0);
         const ph = i * Math.PI;
         ART.ANIMS.push((t) => {
           if (!fin.parent) return;
           const a = t * .1 + ph;
-          fin.position.set(25 + Math.cos(a) * 42, -.2, 25 + Math.sin(a) * 27);
+          fin.position.set(25 + Math.cos(a) * 52, -.2, 25 + Math.sin(a) * 33);
           fin.rotation.y = -a;
         });
       }
     },
   },
+  deephollow: {
+    id: 'deephollow', name: 'Deephollow', unlockBest: 6,
+    saboteur: true, camZoom: 1.05,
+    bounds: { u: [-14, 64], v: [-14, 64] },
+    laneIds: ['A', 'B', 'C'],
+    lanePts: {
+      A: [[-10, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
+      B: [[60, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
+      C: [[25, -11], [24.7, -3], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
+    },
+    terrain: { sx: 1, sz: 1, sc: 1.6, pond: false },
+    sub: { slime: 'skeleton' }, // the dead walk these hills
+    boss: BOSS_DEFS.skeleking, bosses: [BOSS_DEFS.skeleking, BOSS_DEFS.warlord],
+    slots: [
+      { id: 's1', u: 18,   v: 21,   type: 'range' },   { id: 's2', u: 18,   v: 29,   type: 'tower' },
+      { id: 's3', u: 32,   v: 21,   type: 'tower' },   { id: 's4', u: 32,   v: 29,   type: 'barracks' },
+      { id: 's5', u: 22,   v: 31.5, type: 'house' },   { id: 's6', u: 27.5, v: 31.5, type: 'house' },
+      { id: 's7', u: 17,   v: 35,   type: 'mill' },    { id: 's9', u: 30.5, v: 33.5, type: 'house' },
+      { id: 's10', u: 7.5, v: 21,   type: 'mine' },
+      { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
+      { id: 'w1', type: 'wall', wall: { lane: 'A', d: 23 } },
+      { id: 'w2', type: 'wall', wall: { lane: 'B', d: 23 } },
+      { id: 'w3', type: 'wall', wall: { lane: 'C', d: 24 } },
+      { id: 'w4', type: 'wall', wall: { lane: 'A', d: 8 },  hidden: true, unlockDay: 2 },
+      { id: 'w5', type: 'wall', wall: { lane: 'B', d: 8 },  hidden: true, unlockDay: 2 },
+      { id: 'w6', type: 'wall', wall: { lane: 'C', d: 10 }, hidden: true, unlockDay: 3 },
+      /* the hollows are honeycombed with mineshafts — gold everywhere, if you can hold it */
+      { id: 'm1', u: 6,    v: 10,   type: 'mine',     hidden: true, unlockDay: 2 },
+      { id: 'm2', u: 44,   v: 10,   type: 'mine',     hidden: true, unlockDay: 3 },
+      { id: 'm3', u: 6,    v: 40,   type: 'mine',     hidden: true, unlockDay: 3 },
+      { id: 'm4', u: 44,   v: 40,   type: 'mine',     hidden: true, unlockDay: 4 },
+      { id: 'd1', u: 12,   v: 10,   type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'd2', u: 38,   v: 8,    type: 'house',    hidden: true, unlockDay: 2 },
+      { id: 'd3', u: 10,   v: 38,   type: 'house',    hidden: true, unlockDay: 4 },
+      { id: 'd4', u: 40,   v: 42,   type: 'house',    hidden: true, unlockDay: 4 },
+      { id: 't1', u: 21.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 't2', u: 28.5, v: 13.5, type: 'tower',    hidden: true, unlockDay: 2 },
+      { id: 't3', u: 12,   v: 30,   type: 'tower',    hidden: true, unlockDay: 3 },
+      { id: 't4', u: 38,   v: 30,   type: 'tower',    hidden: true, unlockDay: 3 },
+      { id: 'bb', u: 29.5, v: 9,    type: 'barracks', hidden: true, unlockDay: 3 },
+      { id: 'rr2', u: 36,  v: 17,   type: 'range',    hidden: true, unlockDay: 5 },
+    ],
+    decor() {
+      const P = (u, v) => [25 + (u - 25) * 1.55, 25 + (v - 25) * 1.55];
+      /* hills upon hills — the hollows are dug into them */
+      for (const [u0, v0, s] of [[6,9,1.1],[5,15,.9],[5,31,1],[7.5,39,.8],[12,4.5,1],[23,3.5,1.3],[34,4,.95],[42,6.5,1.05],[45.5,11,.8],[45,38,1],[38,45,1.2],[10,45,.9],[45,25,.9],[25,46,1],[14,25.5,0]]) {
+        if (!s) continue;
+        const [u, v] = P(u0, v0);
+        place(ART.mountain(), u, v, Math.random() * 6, s);
+      }
+      for (const [u0, v0] of [[10,16],[40,16],[10,34],[40,34],[25,44]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.mineArt(true), u, v, Math.random() * 6, 1.1); // abandoned shafts
+        place(ART.nuggetArt(1), u + 2.2, v + 1, Math.random() * 6);
+      }
+      for (const [u, v, s] of [[8,26,1],[42,24,.9],[20,42,.8],[30,40,1],[16,12,.9],[34,12,.8],[24,8,1],[44,32,.9],[6,36,.8]])
+        place(ART.rock(s * 1.2), 25 + (u - 25) * 1.4, 25 + (v - 25) * 1.4, Math.random() * 6);
+      for (const [u, v, s] of [[14,40,.8],[36,42,.75],[12,20,.7],[38,20,.7]])
+        place(ART.deadTreeArt(s * 1.3), 25 + (u - 25) * 1.4, 25 + (v - 25) * 1.4, Math.random() * 6);
+      for (const [u, v] of [[18,10],[32,38],[6,24],[44,27]]) place(ART.nuggetArt(.8), u, v, Math.random() * 6);
+      place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
+      place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
+      place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
+      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5]]) gateAt(u, v);
+    },
+  },
+  ironfront: {
+    id: 'ironfront', name: 'Ironfront', unlockBest: 10,
+    saboteur: true, skin: 'ww2', camZoom: 1.05,
+    terrain: { sx: 1, sz: 1, sc: 1.9, pond: false },
+    laneIds: ['A', 'B', 'C', 'D'],
+    boss: BOSS_DEFS.landship, bosses: [BOSS_DEFS.landship, BOSS_DEFS.acewing],
+    decor() {
+      const P = (u, v) => [25 + (u - 25) * 1.85, 25 + (v - 25) * 1.85];
+      /* a churned battlefield: craters, wire and the stumps of a burned wood */
+      for (const [u0, v0, s] of [[10,14,1.2],[36,10,1],[42,30,1.4],[12,38,1.1],[30,44,1],[6,26,.9],[44,18,1],[20,6,1.1],[24,47,1.2],[46,42,1]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.craterArt(s), u, v, Math.random() * 6);
+      }
+      for (const [u0, v0, ry] of [[8,20,.3],[40,22,-.4],[14,44,1.2],[38,42,.8],[22,4,0],[30,3,.2],[4,32,1.5],[46,34,1.6]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.wireArt(3.5), u, v, ry);
+      }
+      for (const [u0, v0, s] of [[9,12,1],[7,28.5,.9],[16,7,1.1],[40,7,1],[45,13,.9],[14,42,1],[33,45,1],[45,44,.9],[21,44,.8],[36,30,.8],[4,22,1],[46,29,.9]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.deadTreeArt(s), u, v, Math.random() * 6);
+      }
+      for (const [u0, v0, s] of [[6,9,1],[42,6.5,.95],[45,38,.9],[10,45,.8]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.mountain(), u, v, Math.random() * 6, s);
+      }
+      for (const [u0, v0] of [[12,22],[38,22],[22,12],[28,38]]) {
+        const [u, v] = P(u0, v0);
+        place(ART.bunkerArt(), u, v, Math.random() * 6);
+      }
+      place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
+      place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
+      place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
+      place(ART.wallRun(3.4), 18.6, 32.5, Math.PI / 2); place(ART.wallRun(3.4), 28, 32.5, Math.PI / 2);
+      for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5],[22.8,32.5],[27.2,32.5]]) gateAt(u, v);
+    },
+  },
 };
+/* the Ironfront is fought over Nordfels' ground plan — same roads, same plots, different war */
+MAPS.ironfront.lanePts = MAPS.nordfels.lanePts;
+MAPS.ironfront.slots = MAPS.nordfels.slots;
+MAPS.ironfront.bounds = MAPS.nordfels.bounds;
 
 /* the coast is the real boundary: same superellipse+wobble the terrain is built from */
 function onLand(u, v) {
-  const t = MAP.terrain || {}, sx = t.sx || 1, sz = t.sz || 1;
+  const t = MAP.terrain || {}, sx = t.sx || 1, sz = t.sz || 1, sc = t.sc || 1;
   const x = (u - 25) / sx, z = (v - 25) / sz;
   const rr = Math.hypot(x, z);
-  if (rr < 12) return true;
+  if (rr < 12 * sc) return true;
   const th = Math.atan2(z, x);
   const base = 24 / Math.pow(Math.max(Math.abs(Math.cos(th)), Math.abs(Math.sin(th))), 0.72);
   const wob = Math.sin(th * 3 + 1.7) * 1.1 + Math.sin(th * 5 + .4) * .7 + Math.sin(th * 8 + 2.9) * .45;
-  return rr <= base + wob + .8; // riders may reach the wet sand, not the waves
+  return rr <= (base + wob) * sc + .8; // riders may reach the wet sand, not the waves
 }
 function slideMove(o, nx, nz) { // clamp to map bounds, then slide along the coastline
   const bu = (MAP.bounds || {}).u || [1.5, 48.5], bv = (MAP.bounds || {}).v || [1.5, 48.5];
@@ -240,6 +407,7 @@ function loadMap(id) {
   const chit = ART.hitCylinder(4, 12);
   chit.position.set(25, 0, 24); chit.userData.slot = CASTLE_SLOT;
   mapGroup.add(chit); hitMeshes.push(chit);
+  SERP = def.serpPos || { u: 40, v: 46 };
   $('#mapName').textContent = def.name;
   resetRun();
 }
@@ -267,7 +435,7 @@ const META = { crowns: 0, owned: {} };
 try { Object.assign(META, JSON.parse(localStorage.tf_meta || '{}')); } catch { /* fresh device */ }
 function saveMeta() { try { localStorage.tf_meta = JSON.stringify(META); } catch { /* private mode */ } }
 const ARMORY = {
-  frost:   { cost: 10 }, seal: { cost: 12 }, beacons: { cost: 6 }, pockets: { cost: 6 }, bastion: { cost: 8 },
+  frost: { cost: 10 }, seal: { cost: 12 }, beacons: { cost: 6 }, pockets: { cost: 6 }, bastion: { cost: 8 }, arcana: { cost: 8 },
 };
 function earnCrowns(n) { META.crowns += n; saveMeta(); refreshArmory(); }
 function refreshArmory() {
@@ -325,7 +493,10 @@ function refreshMarkers() {
 function renderBuild(sl) {
   sl.holder.clear();
   const b = S.builds[sl.id];
-  if (b) { sl.holder.add(ART.BUILD_ART[b.type](b.upg, b.upg2)); sl.pop = 1; sl.holder.scale.setScalar(.2); }
+  if (b) {
+    sl.holder.add(ART.BUILD_ART[b.type](b.type === 'wall' ? b.kind : b.upg, b.upg2));
+    sl.pop = 1; sl.holder.scale.setScalar(.2);
+  }
 }
 
 /* ============================== economy ============================== */
@@ -404,6 +575,7 @@ const ETYPES = {
   ogre:    { hp: 18, speed: .7,  dmg: 3, rate: 1.8 },
   shade:   { hp: 4,  speed: 2.2, dmg: 2, rate: 1.3, fly: true },  // drifts over walls and soldiers alike
   chief:   { hp: 12, speed: .9,  dmg: 2, rate: 1.6, buff: 5 },    // drives nearby monsters onward
+  skeleton:{ hp: 3,  speed: 1.7, dmg: 1, rate: 1.2 },             // the dead of the deep hollows
 };
 /* endless campaign: nights 1–3 are authored, then the horde scales forever.
    Enemies rotate across every road the map has. */
@@ -412,25 +584,30 @@ function nightPlan(n) {
   let li = 0;
   const q = []; const p = (type) => q.push({ type, lane: ids[li++ % ids.length] });
   const xw = MAP.extraWasps || 0;
+  /* a share of the light troops break for the farms instead of the keep */
+  const done = () => {
+    if (n >= 2) q.forEach(s => { if ((s.type === 'slime' || s.type === 'runner') && Math.random() < .27) s.raid = true; });
+    return q;
+  };
   if (n === 1) { for (let i = 0; i < 10; i++) q.push({ type: 'slime', lane: ids[0] }); return q; }
   if (n === 2) {
     for (let i = 0; i < 8; i++) p('slime');
     for (let i = 0; i < 4; i++) p('barrel');
     for (let i = 0; i < 3 + xw; i++) p('wasp');
-    return q;
+    return done();
   }
   if (n === 3) {
     for (let i = 0; i < 10; i++) p('slime');
     for (let i = 0; i < 6; i++) p('barrel');
     for (let i = 0; i < 5 + xw; i++) p('wasp');
     p('ogre');
-    return q;
+    return done();
   }
-  const slimes = Math.min(24, 6 + 2 * n), barrels = Math.min(14, n),
-    wasps = Math.min(10, n - 1) + xw, runners = Math.min(12, (n - 3) * 2),
-    spitters = Math.min(6, n - 4), ogres = n % 3 === 0 ? Math.min(4, Math.floor(n / 3)) : 0,
-    shades = n >= 8 ? Math.min(8, n - 6) : 0,
-    chiefs = n >= 10 && n % 2 === 0 ? Math.min(3, Math.floor((n - 8) / 2)) : 0;
+  const slimes = Math.min(34, 6 + 2 * n), barrels = Math.min(20, n),
+    wasps = Math.min(16, n - 1) + xw, runners = Math.min(18, (n - 3) * 2),
+    spitters = Math.min(10, n - 4), ogres = n % 3 === 0 ? Math.min(6, Math.floor(n / 3)) : 0,
+    shades = n >= 8 ? Math.min(12, n - 6) : 0,
+    chiefs = n >= 10 && n % 2 === 0 ? Math.min(4, Math.floor((n - 8) / 2)) : 0;
   for (let i = 0; i < slimes; i++) p('slime');
   for (let i = 0; i < barrels; i++) p('barrel');
   for (let i = 0; i < runners; i++) p('runner');
@@ -439,7 +616,7 @@ function nightPlan(n) {
   for (let i = 0; i < shades; i++) p('shade');
   for (let i = 0; i < chiefs; i++) p('chief');
   for (let i = 0; i < ogres; i++) p('ogre');
-  return q;
+  return done();
 }
 function towerSpec(b) {
   const s = b.upg === 'sniper' ? { range: 13.5, rate: 1.2, dmg: 3 }
@@ -576,9 +753,9 @@ const WEAPONS = {
 };
 /* the riders — each defends Nordfels in their own way */
 const CHARS = {
-  aldric:   { name: 'King Aldric', icon: '👑', hp: 20, spd: 9 },
-  maren:    { name: 'Lady Maren',  icon: '🦅', hp: 14, spd: 10.5, falcon: true },
-  grimbold: { name: 'Grimbold',    icon: '🛡', hp: 28, spd: 7.5, aura: 6 },
+  aldric:   { name: 'King Aldric', icon: '👑', hp: 20, spd: 10.5 },
+  maren:    { name: 'Lady Maren',  icon: '🦅', hp: 14, spd: 12.5, falcon: true },
+  grimbold: { name: 'Grimbold',    icon: '🛡', hp: 28, spd: 8.5, aura: 6 },
 };
 S.weapon = 'spear'; S.char = 'aldric';
 try { if (localStorage.tf_weapon in WEAPONS) S.weapon = localStorage.tf_weapon; } catch { /* private mode */ }
@@ -695,7 +872,7 @@ function upgradable(sl) {
   if (b.type === 'house') return !b.upg ? { label: 'Second Storey', cost: 2 } : !b.upg2 ? { label: 'Manor', cost: 3 } : null;
   if (b.type === 'tower') return !b.upg ? { label: 'Choose a spire', cost: 3 } : !b.upg2 ? { label: 'Masterwork Arms', cost: 4 } : null;
   if (b.type === 'harbour' && !b.upg) return { label: 'Big Docks', cost: 3 };
-  if (b.type === 'wall' && !b.upg) return { label: 'Stone Bulwark', cost: 3 };
+  if (b.type === 'wall' && !b.upg2) return { label: 'Reinforce', cost: 3 };
   if (b.type === 'mine' && !b.upg) return { label: 'Deep Shaft', cost: 4 };
   if (b.type === 'barracks' && !b.upg2) return { label: 'Veteran Company', cost: 4 };
   if (b.type === 'range' && !b.upg2) return { label: "Fletchers' Guild", cost: 4 };
@@ -727,7 +904,7 @@ function castleMenu() {
 }
 const UPG_DESCS = {
   'Second Storey': '+2 gold at dawn instead of +1', 'Manor': '+3 gold at dawn — a lord in residence',
-  'Big Docks': 'Each boat pays 2 gold', 'Stone Bulwark': 'Stone over timber — nearly twice the HP',
+  'Big Docks': 'Each boat pays 2 gold', 'Reinforce': 'Braces and buttresses — +12 wall HP',
   'Deep Shaft': 'The gold vein decays half as fast', 'Veteran Company': 'One more soldier, and all of them tougher',
   "Fletchers' Guild": 'One more archer at the range', 'Masterwork Arms': '+1 damage to every shot from this tower',
 };
@@ -758,7 +935,7 @@ function slotAction(sl) {
     if (cost == null || S.gold < cost) return;
     S.gold -= cost;
     if (spire) b.upg = u;
-    else if (!b.upg && b.type !== 'barracks' && b.type !== 'range') b.upg = true;
+    else if (!b.upg && b.type !== 'barracks' && b.type !== 'range' && b.type !== 'wall') b.upg = true;
     else b.upg2 = true;
     renderBuild(sl); refreshDayHUD(); closeBmenu();
     sfx.upgrade();
@@ -781,19 +958,34 @@ function tryBuild(sl) {
     bmenu.querySelectorAll('[data-k]').forEach(btn => btn.addEventListener('click', () => build(sl, { kind: btn.dataset.k })));
     return;
   }
-  build(sl, {});
+  if (sl.type === 'wall') { // a proper fortress offers more than one wall
+    openMenu(sl, 'Raise a wall',
+      opt('data-k="palisade"', '🪵', 'Palisade', 'Quick timber · 12 HP', 2, S.gold >= 2) +
+      opt('data-k="stone"', '🧱', 'Stone Wall', 'Mortared stone · 24 HP', 4, S.gold >= 4) +
+      opt('data-k="gate"', '🏰', 'Gatehouse', '30 HP · archers on the parapet', 6, S.gold >= 6));
+    const WCOST = { palisade: 2, stone: 4, gate: 6 };
+    bmenu.querySelectorAll('[data-k]').forEach(btn => btn.addEventListener('click', () =>
+      build(sl, { kind: btn.dataset.k, cost: WCOST[btn.dataset.k] })));
+    return;
+  }
+  /* gold is irreversible — show what the coin buys before it leaves the purse */
+  openMenu(sl, 'Build ' + t.name,
+    opt('data-b="1"', t.icon, t.name, t.desc, t.cost, S.gold >= t.cost));
+  const btn = bmenu.querySelector('[data-b]');
+  if (btn) btn.addEventListener('click', () => build(sl, {}));
 }
 function build(sl, extra) {
   const t = BTYPES[sl.type];
-  if (S.gold < t.cost) return;
-  S.gold -= t.cost;
+  const cost = extra.cost != null ? extra.cost : t.cost;
+  if (S.gold < cost) return;
+  S.gold -= cost;
   S.builds[sl.id] = { type: sl.type, age: 0, boats: 0, ...extra };
   renderBuild(sl); closeBmenu(); refreshDayHUD();
   poof(sl.u, .5, sl.v);
   sfx.build();
   if (sl.type === 'mill') {
     SLOTS.filter(x => x.type === 'field').forEach(x => x.hidden = false);
-    refreshMarkers(); flashHint('The Windmill opened two Field plots nearby');
+    refreshMarkers(); flashHint('The Windmill opened the field plots');
   }
 }
 /* raycast picking */
@@ -848,12 +1040,18 @@ function startNight() {
   refreshGold();
   const queue = nightPlan(S.day);
   if (S.day >= 3) queue.splice(Math.ceil(queue.length * .55), 0, { lull: true });
-  if (S.day % 5 === 0) queue.push({ type: 'boss', lane: MAP.laneIds[S.day % MAP.laneIds.length] });
-  N = { queue, total: queue.filter(x => !x.lull).length, spawned: 0, killed: 0, enemies: [], units: [], towers: [], walls: [], boss: null,
-    spawnEvery: Math.max(.35, 1.05 - S.day * .07), spawnT: .6, kingCd: 0, abQ: 0, abE: 0, hornUntil: 0, t: 0, over: false };
+  if (S.day % 5 === 0) { // the bosses take turns leading the horde
+    if (MAP.bosses) MAP.boss = MAP.bosses[(S.day / 5 - 1) % MAP.bosses.length];
+    queue.push({ type: 'boss', lane: MAP.laneIds[S.day % MAP.laneIds.length] });
+  }
+  N = { queue, total: queue.filter(x => !x.lull).length, spawned: 0, killed: 0, enemies: [], units: [], towers: [], walls: [], bldgs: [], boss: null,
+    spawnEvery: Math.max(.3, 1.05 - S.day * .07), spawnT: .6, kingCd: 0, abQ: 0, abE: 0, hornUntil: 0, t: 0, over: false };
   for (const sl of SLOTS) {
     const b = S.builds[sl.id]; if (!b) continue;
-    if (b.type === 'tower') N.towers.push({ u: sl.u, v: sl.v, z: sl.holder.children[0]?.userData.z || 4, cd: .4 + Math.random() * .4, spec: towerSpec(b) });
+    if (b.type !== 'wall') // everything else can burn
+      N.bldgs.push({ sl, id: sl.id, type: b.type, u: sl.u, v: sl.v,
+        hp: BHP[b.type] + (b.upg ? 3 : 0) + (b.upg2 ? 3 : 0), max: BHP[b.type] + (b.upg ? 3 : 0) + (b.upg2 ? 3 : 0), dead: false, hpEl: null });
+    if (b.type === 'tower') N.towers.push({ id: sl.id, u: sl.u, v: sl.v, z: sl.holder.children[0]?.userData.z || 4, cd: .4 + Math.random() * .4, spec: towerSpec(b) });
     if (b.type === 'barracks') {
       const offs = [[.3,-3.2],[-1.3,-2.4],[1.7,-2.5],[.3,-1.6]];
       if (b.upg2) offs.push([-.7,-3.4]); // the veteran company musters five
@@ -866,8 +1064,11 @@ function startNight() {
     }
     if (b.type === 'wall') { // repaired overnight, manned at dusk
       sl.holder.scale.y = 1;
-      const hp = (b.upg ? 22 : 12) + (hasPerk('masonry') ? 8 : 0);
+      const WHP = { palisade: 12, stone: 24, gate: 30 };
+      const hp = (WHP[b.kind] || 12) + (b.upg2 ? 12 : 0) + (hasPerk('masonry') ? 8 : 0);
       N.walls.push({ sl, lane: sl.wall.lane, d: sl.wall.d, u: sl.u, v: sl.v, hp, max: hp, broken: false, hpEl: null });
+      if (b.kind === 'gate') // archers man the gatehouse parapet
+        N.towers.push({ id: sl.id, u: sl.u, v: sl.v, z: 3.2, cd: .6, spec: { range: 7, rate: 1.1, dmg: 1 } });
     }
   }
   if (hasPerk('beacons')) N.towers.forEach(t => { t.spec = { ...t.spec, range: t.spec.range * 1.15 }; });
@@ -875,11 +1076,14 @@ function startNight() {
     spec: { range: 11, rate: S.castleLvl >= 4 ? .5 : S.castleLvl >= 3 ? .7 : 1.1, dmg: S.castleLvl >= 4 ? 4 : S.castleLvl >= 2 ? 3 : 2 } });
   N.serpentAt = (MAP.serpent && S.serpent && !S.serpent.slain && S.day >= 4) ? 8 + Math.random() * 10 : 0;
   N.serp = null;
+  N.sabAt = (MAP.saboteur && S.day >= 3 && N.bldgs.length) ? 10 + Math.random() * 14 : 0;
+  N.sab = null;
   $('#serpWrap').style.display = 'none';
   if (S.settings.ranges) for (const t of N.towers) {
     if (t.castle) continue;
     const r = ART.ringMesh(t.spec.range, '#F0B429', .22);
     r.position.set(t.u, .12, t.v); scene.add(r); rangeRings.push(r);
+    t.ring = r;
   }
   S.castleHP = S.castleMax;
   $('#castleFill').style.width = '100%'; $('#kingFill').style.width = '100%';
@@ -925,15 +1129,26 @@ function hurtUnit(un, dmg) {
 }
 function spawnEnemy(spec) {
   const isBoss = spec.type === 'boss';
-  const T = isBoss ? MAP.boss : ETYPES[spec.type];
+  const type = (!isBoss && MAP.sub && MAP.sub[spec.type]) || spec.type;
+  const T = isBoss ? MAP.boss : ETYPES[type];
   const lane = LANES[spec.lane];
-  const mesh = isBoss ? ART.bossArt(MAP.boss.kind) : ART.enemyArt(spec.type);
+  const mesh = isBoss ? ART.bossArt(MAP.boss.kind) : ART.enemyArt(type, MAP.skin);
   scene.add(mesh);
-  const hpScale = 1 + Math.max(0, S.day - 3) * .18; // endless nights harden the horde
-  const e = { type: spec.type, laneId: spec.lane, lane, d: 0, hp: Math.round(T.hp * hpScale), max: Math.round(T.hp * hpScale),
+  const hpScale = 1 + Math.max(0, S.day - 3) * .22; // endless nights harden the horde
+  const e = { type, laneId: spec.lane, lane, d: 0, hp: Math.round(T.hp * hpScale), max: Math.round(T.hp * hpScale),
     speed: T.speed, dmg: T.dmg, rate: T.rate, ranged: T.ranged || 0,
     atkCd: .8, fly: T.fly, mesh, dead: false, ph: Math.random() * 9, hpEl: null, kCd: .5, uCd: .7, pop: 1, flinch: 0,
-    boss: isBoss, brood: isBoss ? (T.brood || 0) : 0, broodT: 4 };
+    boss: isBoss, brood: isBoss ? (T.brood || 0) : 0, broodT: 4, broodType: T.broodType || 'wasp' };
+  if (spec.raid && !isBoss) { // a raider veers off the road toward gold on its own flank
+    const st = LANES[spec.lane].start;
+    const targets = N.bldgs.filter(g => !g.dead && INCOME_T.has(g.type))
+      .sort((a, b) => Math.hypot(a.u - st[0], a.v - st[1]) - Math.hypot(b.u - st[0], b.v - st[1]));
+    if (targets.length) {
+      const g = targets[Math.floor(Math.random() * Math.min(3, targets.length))];
+      e.free = true; e.fx = st[0]; e.fz = st[1]; e.tgt = g;
+      if (!N._raidSeen) { N._raidSeen = true; flashBanner('RAIDERS BREAK FOR THE FARMS'); }
+    }
+  }
   N.enemies.push(e); N.spawned++;
   if (isBoss) {
     N.boss = e;
@@ -948,12 +1163,65 @@ function spawnEnemy(spec) {
   if (spec.type === 'shade' && !N._shadeSeen) { N._shadeSeen = true; flashBanner('SHADES DRIFT OVER WALL AND BLADE'); }
   if (spec.type === 'chief' && !N._chiefSeen) { N._chiefSeen = true; flashBanner('A WAR CHIEF DRIVES THE HORDE'); }
 }
-function epos(e) { return e.lane.at(e.d); }
+function epos(e) { return e.free ? { u: e.fx, v: e.fz } : e.lane.at(e.d); }
+/* raiders and saboteurs move freely; when their work is done they merge onto the nearest road */
+function mergeOntoLane(e) {
+  let bd = 1e9, bdd = 0;
+  for (let d = 0; d <= e.lane.total; d += 1) {
+    const p = e.lane.at(d), dd = Math.hypot(p.u - e.fx, p.v - e.fz);
+    if (dd < bd) { bd = dd; bdd = d; }
+  }
+  e.d = bdd; e.free = false;
+}
+/* every building can be razed — and razed means gone until rebuilt with gold */
+const BHP = { house: 8, mill: 8, field: 4, mine: 10, harbour: 8, tower: 12, barracks: 12, range: 10 };
+const INCOME_T = new Set(['house', 'mill', 'field', 'mine', 'harbour']);
+const BRUTES = new Set(['barrel', 'ogre', 'chief', 'skeleton']);
+function hurtBldg(g, dmg) {
+  if (g.dead) return;
+  g.hp -= dmg;
+  dmgNum(g.u, 2, g.v, dmg);
+  sfx.hit();
+  if (!g.hpEl) g.hpEl = ehpPool.take();
+  if (g.hpEl) g.hpEl.firstChild.style.width = Math.max(0, 100 * g.hp / g.max) + '%';
+  if (g.hp <= 0) {
+    g.dead = true;
+    poof(g.u, 1, g.v, true);
+    sfx.castleHit();
+    delete S.builds[g.id]; // razed — the plot must be bought again
+    renderBuild(g.sl); g.sl.holder.clear();
+    if (g.hpEl) { ehpPool.release(g.hpEl); g.hpEl = null; }
+    if (g.type === 'tower') {
+      const t = N.towers.find(x => x.id === g.id);
+      if (t) { t.dead = true; if (t.ring) t.ring.visible = false; }
+    }
+    flashBanner('THE ' + BTYPES[g.type].name.toUpperCase() + ' IS RAZED');
+  }
+}
+function spawnSaboteur() { // he comes for your buildings out of nowhere, and keeps coming
+  const targets = N.bldgs.filter(g => !g.dead);
+  if (!targets.length) return null;
+  const g = targets[Math.floor(Math.random() * targets.length)];
+  const lid = MAP.laneIds[Math.floor(Math.random() * MAP.laneIds.length)];
+  const st = LANES[lid].start;
+  const mesh = ART.bossArt('sab');
+  scene.add(mesh);
+  const hpScale = 1 + Math.max(0, S.day - 3) * .22;
+  const hp = Math.round(14 * hpScale);
+  const e = { type: 'sab', sab: true, extra: true, laneId: lid, lane: LANES[lid], d: 0, hp, max: hp,
+    speed: 3, dmg: 6, rate: 1, ranged: 0, atkCd: .8, fly: false, mesh, dead: false,
+    ph: Math.random() * 9, hpEl: null, kCd: .5, uCd: .7, pop: 1, flinch: 0, boss: false, brood: 0,
+    free: true, fx: st[0], fz: st[1], tgt: g };
+  N.enemies.push(e);
+  flashBanner('A SABOTEUR SLIPS IN FROM THE DARK');
+  sfx.night();
+  return e;
+}
 
 /* ---- the secret of the second map: the Leviathan itself surfaces off the coast,
    on its own clock, lobbing brine at the keep until it dives again. Its wounds
    carry over night to night — slay it across nights for a royal bounty. ---- */
-const SERP = { u: 40, v: 46 };
+let SERP = { u: 40, v: 46 };
 function spawnSerpent() {
   const mesh = ART.serpentArt();
   mesh.position.set(SERP.u, -8.5, SERP.v);
@@ -993,8 +1261,8 @@ function serpentTick(e, dt) {
   coils[1].position.y = Math.sin(N.t * 1.3 + 2.4) * .35;
   if (e.flinch > 0) { e.flinch = Math.max(0, e.flinch - dt * 5); const s = e.flinch * .08; e.mesh.scale.set(1 + s, 1 - s, 1 + s); }
 }
-const ehpPool = domPool(30, 'ehp');
-function hurt(e, dmg, kb = 0) {
+const ehpPool = domPool(48, 'ehp');
+function hurt(e, dmg) {
   if (e.dead) return;
   if (e.serpent) { // the titan keeps its own ledger
     if (e.leaving) return;
@@ -1016,7 +1284,6 @@ function hurt(e, dmg, kb = 0) {
     return;
   }
   e.hp -= dmg;
-  if (kb) e.d = Math.max(0, e.d - kb * (e.boss ? .3 : 1));
   const p = epos(e);
   dmgNum(p.u, e.fly ? 2.6 : 1.4, p.v, dmg);
   if (e.boss) $('#bossFill').style.width = Math.max(0, 100 * e.hp / e.max) + '%';
@@ -1025,18 +1292,22 @@ function hurt(e, dmg, kb = 0) {
     if (e.hpEl) e.hpEl.firstChild.style.width = Math.max(0, 100 * e.hp / e.max) + '%';
   }
   if (e.hp <= 0) {
-    e.dead = true; N.killed++;
+    e.dead = true;
     const big = e.boss || e.type === 'ogre' || e.type === 'barrel';
     poof(p.u, e.fly ? 1.7 : .5, p.v, big);
     sfx.kill(big);
     if (e.boss) { $('#bossWrap').style.display = 'none'; N.boss = null; dropCoins(p.u, p.v, 6); flashBanner(MAP.boss.name + ' IS SLAIN'); }
+    else if (e.sab) dropCoins(p.u, p.v, 3);
     else if (e.type === 'barrel') dropCoins(p.u, p.v, 1);   // the heavies carry loot
     else if (e.type === 'ogre') dropCoins(p.u, p.v, 2);
     else if (hasPerk('loot') && Math.random() < .25) dropCoins(p.u, p.v, 1);
     fxAdd({ kind: 'die', mesh: e.mesh, t: 0, dur: .34, fly: e.fly }); // removed from the scene when the squash ends
     if (e.hpEl) ehpPool.release(e.hpEl);
-    $('#remainNum').textContent = N.total - N.killed;
-    setClock('#clockNight', N.killed / N.total);
+    if (!e.extra) { // visitations don't count toward the wave
+      N.killed++;
+      $('#remainNum').textContent = N.total - N.killed;
+      setClock('#clockNight', N.killed / N.total);
+    }
   } else { e.flinch = 1; sfx.hit(); }
 }
 function hurtWall(w, dmg) {
@@ -1081,6 +1352,7 @@ function simTick(dt) {
     else { N.spawnT = N.spawnEvery; spawnEnemy(nx); }
   }
   if (N.serpentAt && !N.serp && N.t >= N.serpentAt) N.serp = spawnSerpent();
+  if (N.sabAt && !N.sab && N.t >= N.sabAt) N.sab = spawnSaboteur();
   const chiefPos = N.enemies.some(e => !e.dead && e.type === 'chief')
     ? N.enemies.filter(e => !e.dead && e.type === 'chief').map(e => epos(e)) : null;
   for (const e of N.enemies) {
@@ -1095,18 +1367,18 @@ function simTick(dt) {
       e.broodT -= dt;
       if (e.broodT <= 0) {
         e.broodT = e.brood; N.total++;
-        spawnEnemy({ type: 'wasp', lane: e.laneId });
+        spawnEnemy({ type: e.broodType, lane: e.laneId });
         $('#remainNum').textContent = N.total - N.killed;
       }
     }
     /* the march may be blocked by a wall (fliers soar over) or a soldier in the road */
     let stop = e.lane.total - e.ranged, wall = null;
-    if (!e.fly) for (const w of N.walls) {
+    if (!e.fly && !e.free) for (const w of N.walls) {
       if (!w.broken && w.lane === e.laneId && w.d - .8 > e.d - .01 && w.d - .8 < stop) { stop = w.d - .8; wall = w; }
     }
+    const p0 = epos(e);
     let foe = null;
     if (!e.fly) {
-      const p0 = epos(e);
       let bd = 1.3;
       for (const un of N.units) {
         if (un.dead) continue;
@@ -1114,9 +1386,39 @@ function simTick(dt) {
         if (d < bd) { bd = d; foe = un; }
       }
     }
+    /* brutes smash any building beside the road as they pass */
+    let bldg = null;
+    if (!foe && !e.fly && !e.free && BRUTES.has(e.type)) {
+      for (const g of N.bldgs) {
+        if (g.dead) continue;
+        if (Math.hypot(g.u - p0.u, g.v - p0.v) < 2.4) { bldg = g; break; }
+      }
+    }
     if (foe) {
       e.uCd -= dt;
       if (e.uCd <= 0) { e.uCd = e.rate; hurtUnit(foe, e.dmg); }
+    } else if (e.free) { // raiders and saboteurs cut across country toward their prize
+      const g = e.tgt;
+      if (!g || g.dead) {
+        if (e.sab) {
+          const alive = N.bldgs.filter(x => !x.dead);
+          if (alive.length) e.tgt = alive[Math.floor(Math.random() * alive.length)];
+          else mergeOntoLane(e);
+        } else mergeOntoLane(e);
+      } else {
+        const d = Math.hypot(g.u - e.fx, g.v - e.fz);
+        if (d > 1.7) {
+          const mult = e.slowT > 0 ? .6 : 1;
+          e.fx += (g.u - e.fx) / d * e.speed * mult * dt;
+          e.fz += (g.v - e.fz) / d * e.speed * mult * dt;
+        } else {
+          e.atkCd -= dt;
+          if (e.atkCd <= 0) { e.atkCd = e.rate; hurtBldg(g, e.dmg); }
+        }
+      }
+    } else if (bldg) { // siege the roadside building
+      e.atkCd -= dt;
+      if (e.atkCd <= 0) { e.atkCd = e.rate; hurtBldg(bldg, e.dmg); }
     } else if (e.d < stop) {
       e.uCd = .7;
       let mult = e.slowT > 0 ? .6 : 1;
@@ -1140,9 +1442,12 @@ function simTick(dt) {
       }
     }
     if (e.serpent) continue; // its body is animated by serpentTick, not the lane
-    const p = epos(e), q = e.lane.at(e.d + .5);
+    const p = epos(e);
+    const q = e.free && e.tgt && !e.tgt.dead ? { u: e.tgt.u, v: e.tgt.v } : e.free ? { u: 25, v: 24 } : e.lane.at(e.d + .5);
     e.mesh.position.set(p.u, 0, p.v);
-    if (foe && !foe.dead) e.mesh.lookAt(foe.u, 0, foe.v); else e.mesh.lookAt(q.u, 0, q.v);
+    if (foe && !foe.dead) e.mesh.lookAt(foe.u, 0, foe.v);
+    else if (bldg) e.mesh.lookAt(bldg.u, 0, bldg.v);
+    else e.mesh.lookAt(q.u, 0, q.v);
     if (e.pop > 0) { // pop out of the road on spawn
       e.pop = Math.max(0, e.pop - dt * 3);
       const k = 1 - e.pop;
@@ -1171,7 +1476,9 @@ function simTick(dt) {
   }
   N.enemies = N.enemies.filter(e => !e.dead);
   for (const w of N.walls) if (w.hpEl && !w.broken) anchor(w.hpEl, w.u, 2.8, w.v);
+  for (const g of N.bldgs) if (g.hpEl && !g.dead) anchor(g.hpEl, g.u, 2.6, g.v);
   for (const t of N.towers) {
+    if (t.dead) continue;
     t.cd -= dt;
     if (t.cd <= 0) {
       const e = nearestEnemy(t.u, t.v, t.spec.range);
@@ -1182,6 +1489,7 @@ function simTick(dt) {
     }
   }
   const charge = S.stance === 'charge', follow = S.stance === 'follow';
+  const horn = N.t < N.hornUntil; // the rally horn quickens king and soldiers alike
   for (const un of N.units) {
     if (un.dead) continue;
     un.cd -= dt;
@@ -1227,7 +1535,7 @@ function simTick(dt) {
       if (e) { const pt = epos(e); if (Math.hypot(pt.u - un.u, pt.v - un.v) > un.range * 1.1) e = null; }
       if (!e) e = nearestEnemy(un.u, un.v, un.range * (charge ? 1.5 : 1));
       if (e) {
-        un.cd = un.rate; const p = epos(e);
+        un.cd = un.rate * (horn ? .7 : 1); const p = epos(e);
         un.mesh.lookAt(p.u, 0, p.v);
         if (un.range > 4) arrow(new THREE.Vector3(un.u, 1.1, un.v), new THREE.Vector3(p.u, e.fly ? 1.7 : .6, p.v), 1.6, () => {
           hurt(e, un.dmg);
@@ -1240,7 +1548,6 @@ function simTick(dt) {
   }
   N.units = N.units.filter(u => !u.dead);
   N.kingCd -= dt;
-  const horn = N.t < N.hornUntil;
   if (N.kingCd <= 0 && !K.down) {
     const W = WEAPONS[S.weapon];
     const e = nearestEnemy(K.u, K.v, W.reach);
@@ -1272,7 +1579,7 @@ function simTick(dt) {
     }
   }
   N.abQ = Math.max(0, N.abQ - dt); N.abE = Math.max(0, N.abE - dt);
-  updAb('#abSpear', '#abSpearCd', N.abQ, WEAPONS[S.weapon].qcd);
+  updAb('#abSpear', '#abSpearCd', N.abQ, qMax());
   updAb('#abHorn', '#abHornCd', N.abE, 14);
   if (!N.queue.length && N.spawned === N.total && N.killed === N.total && !N.over) endNight(true);
 }
@@ -1280,17 +1587,19 @@ function updAb(bsel, csel, cd, max) {
   $(csel).style.setProperty('--cd', (cd / max * 100).toFixed(1));
   $(bsel).classList.toggle('ready', cd <= 0);
 }
+const qMax = () => WEAPONS[S.weapon].qcd * (META.owned.arcana ? .75 : 1);
 function useQ() {
   if (!N || N.over || N.abQ > 0 || K.down) return;
   const W = WEAPONS[S.weapon];
   if (S.weapon === 'frost') { // blizzard — the whole field freezes mid-stride
     if (!N.enemies.some(e => !e.dead && !e.serpent)) { flashBanner('NO TARGET IN RANGE'); return; }
-    N.abQ = W.qcd;
+    N.abQ = qMax();
     sfx.freeze();
     N.enemies.forEach(e => {
       if (e.dead || e.serpent) return;
       e.stunT = 2.5; e.slowT = Math.max(e.slowT || 0, 4.5);
       const p = epos(e); poof(p.u, .6, p.v);
+      if (META.owned.arcana) hurt(e, 3); // studied frost bites as it binds
     });
     flashBanner('BLIZZARD!');
     return;
@@ -1298,7 +1607,7 @@ function useQ() {
   if (S.weapon === 'hammer') { // ground slam — everything nearby is crushed and thrown back
     const hits = N.enemies.filter(e => { if (e.dead || e.fly) return false; const p = epos(e); return Math.hypot(p.u - K.u, p.v - K.v) < 4.2; });
     if (!hits.length) { flashBanner('NO TARGET IN RANGE'); return; }
-    N.abQ = W.qcd;
+    N.abQ = qMax();
     sfx.slam();
     if (S.settings.shake && !matchMedia('(prefers-reduced-motion: reduce)').matches) shakeT = .3;
     poof(K.u, .5, K.v, true);
@@ -1311,7 +1620,7 @@ function useQ() {
         return Math.hypot(pa.u - K.u, pa.v - K.v) - Math.hypot(pb.u - K.u, pb.v - K.v); })
       .slice(0, 5);
     if (!es.length) { flashBanner('NO TARGET IN RANGE'); return; }
-    N.abQ = W.qcd;
+    N.abQ = qMax();
     sfx.spear();
     es.forEach((e, i) => { const p = epos(e);
       arrow(new THREE.Vector3(K.u, 2.4, K.v), new THREE.Vector3(p.u, e.fly ? 1.7 : .7, p.v), 2.5 + i * .3,
@@ -1320,7 +1629,7 @@ function useQ() {
   }
   const e = nearestEnemy(K.u, K.v, 10); // spear throw
   if (!e) { flashBanner('NO TARGET IN RANGE'); return; }
-  N.abQ = W.qcd;
+  N.abQ = qMax();
   sfx.spear();
   const p = epos(e);
   arrow(new THREE.Vector3(K.u, 2.2, K.v), new THREE.Vector3(p.u, e.fly ? 1.7 : .7, p.v), 1.2,
@@ -1340,6 +1649,7 @@ function cleanupNight() {
   N.enemies.forEach(e => { if (!e.dead) { scene.remove(e.mesh); if (e.hpEl) ehpPool.release(e.hpEl); } });
   N.units.forEach(u => { scene.remove(u.mesh); if (u.hpEl) ehpPool.release(u.hpEl); });
   N.walls.forEach(w => { if (w.hpEl) ehpPool.release(w.hpEl); });
+  N.bldgs.forEach(g => { if (g.hpEl) ehpPool.release(g.hpEl); });
   if (N.serp && !N.serp.dead) S.serpent.hp = N.serp.hp; // it remembers its wounds
   $('#bossWrap').style.display = 'none';
   $('#serpWrap').style.display = 'none';
@@ -1447,11 +1757,14 @@ function setPhase(p) {
 $('#playBtn').addEventListener('click', () => { resetRun(); setPhase('day'); setView('game'); refreshDayHUD(); });
 function refreshMapCards() {
   let best = 0; try { best = +localStorage.tf_best || 0; } catch { /* private mode */ }
-  const locked = best < (MAPS.leviathan.unlockBest || 0);
-  const lc = $('.mcard[data-m="leviathan"]');
-  lc.classList.toggle('locked', locked);
-  $('#levLock').style.display = locked ? '' : 'none';
-  $$('.mcard').forEach(c => c.classList.toggle('on', c.dataset.m === S.map));
+  $$('.mcard').forEach(c => {
+    const def = MAPS[c.dataset.m];
+    const locked = best < (def.unlockBest || 0);
+    c.classList.toggle('locked', locked);
+    const lk = c.querySelector('.lock');
+    if (lk) lk.style.display = locked ? '' : 'none';
+    c.classList.toggle('on', c.dataset.m === S.map);
+  });
 }
 $$('.mcard').forEach(c => c.addEventListener('click', () => {
   const id = c.dataset.m;
@@ -1525,8 +1838,13 @@ document.addEventListener('keydown', e => {
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { keys[k] = true; if (k.startsWith('arrow')) e.preventDefault(); return; }
   if (e.repeat) return;
   if (e.key === ' ' && S.view === 'game' && S.phaseName === 'day' && !anyOverlay()) { e.preventDefault(); startNight(); }
-  else if (k === 'e' && S.view === 'game' && S.phaseName === 'day' && nearSlot && !anyOverlay())
-    (nearSlot.castle || S.builds[nearSlot.id]) ? slotAction(nearSlot) : tryBuild(nearSlot);
+  else if (k === 'e' && S.view === 'game' && S.phaseName === 'day' && nearSlot && !anyOverlay()) {
+    /* second press of E confirms the first affordable option in the open menu */
+    if (bmenu.style.display === 'block' && bmenu.dataset.slot === (nearSlot.id || 'castle')) {
+      const btn = bmenu.querySelector('.bopt:not(:disabled)');
+      if (btn) btn.click();
+    } else (nearSlot.castle || S.builds[nearSlot.id]) ? slotAction(nearSlot) : tryBuild(nearSlot);
+  }
   else if (k === 'q' && S.phaseName === 'night' && !anyOverlay()) useQ();
   else if (k === 'e' && S.phaseName === 'night' && !anyOverlay()) useHorn();
   else if (['1', '2', '3'].includes(e.key) && S.phaseName === 'night') $$('.tchip')[+e.key - 1].click();
@@ -1553,7 +1871,7 @@ function updateFloaters() {
   let showPrev = false;
   if (S.view === 'game' && S.phaseName === 'day') { showPrev = true; nightPlan(S.day).forEach(e => cnt[e.lane]++); }
   else if (S.view === 'game' && N && !N.over) { showPrev = true; N.queue.forEach(e => { if (e.lane) cnt[e.lane]++; }); }
-  for (const lid of ['A', 'B', 'C']) {
+  for (const lid of ['A', 'B', 'C', 'D']) {
     const el = $('#prev' + lid);
     if (LANES[lid] && showPrev && cnt[lid]) {
       el.style.display = 'flex'; $('#prev' + lid + 'n').textContent = '×' + cnt[lid];
@@ -1573,7 +1891,9 @@ let menuAngle = 0;
 function updateCamera(dt) {
   if (S.view === 'menu') {
     menuAngle += dt * .07;
-    camera.position.set(25 + Math.cos(menuAngle) * 62, 44, 25 + Math.sin(menuAngle) * 62);
+    const t = (MAP && MAP.terrain) || {};
+    const mr = 62 * Math.max(t.sc || 1, ((t.sc || 1) + (t.sx || 1)) / 2);
+    camera.position.set(25 + Math.cos(menuAngle) * mr, 44 * mr / 62, 25 + Math.sin(menuAngle) * mr);
     camera.lookAt(25, 0, 25);
     return;
   }

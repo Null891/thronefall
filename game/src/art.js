@@ -107,19 +107,19 @@ function flag(color, s = 1) {
 }
 
 /* ---------- terrain ---------- */
-function coastShape(grow, sx = 1, sz = 1) {
+function coastShape(grow, sx = 1, sz = 1, sc = 1) {
   const pts = [];
   for (let i = 0; i < 72; i++) {
     const th = i / 72 * Math.PI * 2, c = Math.cos(th), s = Math.sin(th);
     const base = 24 / Math.pow(Math.max(Math.abs(c), Math.abs(s)), 0.72);
     const wob = Math.sin(th * 3 + 1.7) * 1.1 + Math.sin(th * 5 + .4) * .7 + Math.sin(th * 8 + 2.9) * .45;
-    const r = base + wob + grow;
+    const r = (base + wob) * sc + grow;
     pts.push(new THREE.Vector2(25 + r * c * sx, -(25 + r * s * sz)));
   }
   return new THREE.Shape(pts);
 }
-function blob(grow, depth, mat, topY, sx, sz) {
-  const geo = new THREE.ExtrudeGeometry(coastShape(grow, sx, sz), { depth, bevelEnabled: false });
+function blob(grow, depth, mat, topY, sx, sz, sc) {
+  const geo = new THREE.ExtrudeGeometry(coastShape(grow, sx, sz, sc), { depth, bevelEnabled: false });
   geo.rotateX(-Math.PI / 2);
   geo.translate(0, topY - depth, 0);
   const o = new THREE.Mesh(geo, mat);
@@ -128,20 +128,22 @@ function blob(grow, depth, mat, topY, sx, sz) {
 }
 let seaMesh = null; // the open sea persists across maps
 export function buildTerrain(group, lanes, opts = {}) {
-  const { sx = 1, sz = 1, pond = true } = opts;
+  const { sx = 1, sz = 1, sc = 1, pond = true } = opts;
+  const SP = (u, v) => [25 + (u - 25) * sc, 25 + (v - 25) * sc]; // decorative coords stretch with the island
   if (!seaMesh) {
     seaMesh = mesh(new THREE.PlaneGeometry(500, 500), mats.water, 25, 0, 25, false);
     seaMesh.rotation.x = -Math.PI / 2; seaMesh.position.y = -.55;
   }
   if (!seaMesh.parent) group.parent?.add(seaMesh);
-  const shallow = blob(3.4, .1, new THREE.MeshStandardMaterial({ color: '#9AD4EA', transparent: true, opacity: .45, roughness: .5 }), -.42, sx, sz);
+  const shallow = blob(3.4, .1, new THREE.MeshStandardMaterial({ color: '#9AD4EA', transparent: true, opacity: .45, roughness: .5 }), -.42, sx, sz, sc);
   REG.push({ m: shallow.material, d: new THREE.Color('#9AD4EA'), n: new THREE.Color('#3C5D88') });
   group.add(shallow);
-  group.add(blob(1.1, .6, mats.sand, -.06, sx, sz));
-  group.add(blob(0, 2.6, mats.grass, 0, sx, sz));
+  group.add(blob(1.1, .6, mats.sand, -.06, sx, sz, sc));
+  group.add(blob(0, 2.6, mats.grass, 0, sx, sz, sc));
   /* meadow patches */
-  for (const [u, v, r] of [[14,20,3],[33,36,4],[24,10,2.5],[40,20,3],[10,37,2.6]]) {
-    const p = cyl(r, r, .04, 24, mats.grassLt, u, .02, v); p.castShadow = false; group.add(p);
+  for (const [u0, v0, r] of [[14,20,3],[33,36,4],[24,10,2.5],[40,20,3],[10,37,2.6],[38,8,3.2],[8,10,2.8],[42,44,3]]) {
+    const [u, v] = SP(u0, v0);
+    const p = cyl(r * sc, r * sc, .04, 24, mats.grassLt, u, .02, v); p.castShadow = false; group.add(p);
   }
   /* lanes as rounded plates */
   const plate = (u, v, r, m, y) => { const p = cyl(r, r, .05, 14, m, u, y, v); p.castShadow = false; group.add(p); };
@@ -157,19 +159,21 @@ export function buildTerrain(group, lanes, opts = {}) {
   }
   plate(25, 27.4, 3.1, mats.sand, .035); plate(25, 27.4, 2.55, mats.path, .06);
   if (pond) {
-    plate(43, 37, 4.3, mats.sand, .03);
-    const pd = cyl(3.9, 3.9, .05, 24, mats.waterLt, 43, .05, 37); pd.castShadow = false; group.add(pd);
+    const [pu, pv] = SP(43, 37);
+    plate(pu, pv, 4.3, mats.sand, .03);
+    const pd = cyl(3.9, 3.9, .05, 24, mats.waterLt, pu, .05, pv); pd.castShadow = false; group.add(pd);
   }
   /* flowers */
-  for (const [u, v] of [[12,18],[18,13.5],[30,10],[37,15],[40,28],[35,41],[24,40],[13,38],[8,30],[28,36.5],[20,19],[31,31.5]]) {
+  for (const [u0, v0] of [[12,18],[18,13.5],[30,10],[37,15],[40,28],[35,41],[24,40],[13,38],[8,30],[28,36.5],[20,19],[31,31.5],[6,20],[44,12],[10,44],[41,40]]) {
+    const [u, v] = SP(u0, v0);
     group.add(cyl(.09, .09, .3, 5, mWhite, u, 0, v));
     group.add(cyl(.08, .08, .24, 5, mGold, u + .5, 0, v - .3));
   }
   /* fireflies — drift over the meadows, night only */
   let seed = 9;
   const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  for (let i = 0; i < 14; i++) {
-    const u = 7 + rnd() * 36, v = 7 + rnd() * 36, ph = rnd() * 9, sp = .6 + rnd();
+  for (let i = 0; i < Math.round(14 * sc); i++) {
+    const u = 25 + (7 + rnd() * 36 - 25) * sc, v = 25 + (7 + rnd() * 36 - 25) * sc, ph = rnd() * 9, sp = .6 + rnd();
     const s = glow('#FFD97A', .8 + rnd() * .5, 0, .8, true);
     group.add(s);
     ANIMS.push((t) => {
@@ -378,12 +382,28 @@ export function rangeArt(_, guild) {
   }
   return g;
 }
-export function roadWallArt(upg) {
-  const g = new THREE.Group(); const h = upg ? 2.7 : 1.9;
-  g.add(box(.85, h, 3.6, upg ? mats.stone : mats.wood));
-  for (let i = 0; i < 3; i++) g.add(box(.62, .5, .62, upg ? mats.stoneDk : mats.trunk, 0, h, -1.2 + i * 1.2));
-  if (upg) { g.add(box(1.15, 1, 1.15, mats.stoneDk, 0, 0, -2.05)); g.add(box(1.15, 1, 1.15, mats.stoneDk, 0, 0, 2.05)); }
-  else for (const z of [-1.9, 1.9]) { const p = cyl(.14, .17, 2.2, 5, mats.trunk, 0, 0, z); g.add(p); }
+export function roadWallArt(kind, upg2) {
+  const g = new THREE.Group();
+  if (kind === 'stone' || kind === 'gate') {
+    const h = kind === 'gate' ? 2.9 : 2.4;
+    g.add(box(.85, h, 3.6, mats.stone));
+    for (let i = 0; i < 3; i++) g.add(box(.62, .5, .62, mats.stoneDk, 0, h, -1.2 + i * 1.2));
+    g.add(box(1.15, kind === 'gate' ? 3.4 : 1, 1.15, mats.stoneDk, 0, 0, -2.05));
+    g.add(box(1.15, kind === 'gate' ? 3.4 : 1, 1.15, mats.stoneDk, 0, 0, 2.05));
+    if (kind === 'gate') { // archers walk the parapet
+      g.add(box(1.1, .35, 4.6, mats.wood, 0, h, 0));
+      const a = archerArt('longbow'); a.position.set(0, h + .35, .8); a.scale.setScalar(.85); g.add(a);
+      const f = flag(CONST.gold, .8); f.position.set(0, h + 1.2, -1.8); g.add(f);
+    }
+  } else { // palisade
+    const h = 1.9;
+    g.add(box(.85, h, 3.6, mats.wood));
+    for (let i = 0; i < 3; i++) g.add(box(.62, .5, .62, mats.trunk, 0, h, -1.2 + i * 1.2));
+    for (const z of [-1.9, 1.9]) g.add(cyl(.14, .17, 2.2, 5, mats.trunk, 0, 0, z));
+  }
+  if (upg2) for (const z of [-1.35, 1.35]) { // reinforcing braces
+    const b = box(.18, 2.2, .18, mats.trunk, .62, .1, z); b.rotation.z = .5; g.add(b);
+  }
   return g;
 }
 export const BUILD_ART = { house: houseArt, mill: millArt, field: fieldArt, mine: mineArt,
@@ -503,9 +523,59 @@ export function archerArt(kind) {
   bow.rotation.z = -Math.PI / 2; g.add(bow);
   return g;
 }
-export function enemyArt(type) {
+/* ---------- the Ironfront: war machines of another age ---------- */
+const mOlive = MC('#6B7A4A', { glow: .1 }), mArmor = MC('#5A6B62', { glow: .08 });
+function ww2Art(type) {
   const g = new THREE.Group();
   const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+  const tank = (s) => {
+    bodyG.add(box(1.5 * s, .5 * s, 1 * s, mArmor, 0, .3 * s, 0));
+    bodyG.add(box(1.6 * s, .3 * s, .24 * s, mats.dark, 0, .15 * s, .55 * s));
+    bodyG.add(box(1.6 * s, .3 * s, .24 * s, mats.dark, 0, .15 * s, -.55 * s));
+    bodyG.add(box(.7 * s, .4 * s, .7 * s, mArmor, -.1 * s, .8 * s, 0));
+    const barrel = cyl(.07 * s, .07 * s, 1.2 * s, 6, mats.dark, .55 * s, .95 * s, 0);
+    barrel.rotation.z = Math.PI / 2; bodyG.add(barrel);
+  };
+  if (type === 'slime') { // rifleman
+    bodyG.add(mesh(new THREE.CapsuleGeometry(.24, .45, 3, 8), mOlive, 0, .5, 0));
+    bodyG.add(cyl(.22, .25, .14, 8, mArmor, 0, .95, 0));
+    const r = cyl(.03, .03, .8, 4, mats.dark, .28, .6, 0); r.rotation.z = -.5; bodyG.add(r);
+  } else if (type === 'runner') { // commando
+    bodyG.add(mesh(new THREE.CapsuleGeometry(.22, .4, 3, 8), mats.dark, 0, .45, 0));
+    bodyG.add(cyl(.19, .21, .12, 8, mats.dark, 0, .85, 0));
+    bodyG.add(mesh(new THREE.SphereGeometry(.05, 5, 4), mThreat, .1, .8, .18));
+  } else if (type === 'barrel') tank(1);
+  else if (type === 'ogre') { tank(1.7); bodyG.add(cone(.2, .5, 5, mThreat, -.9, 1.6, 0)); }
+  else if (type === 'wasp') { // dive bomber
+    const fus = mesh(new THREE.CapsuleGeometry(.22, .8, 3, 8), mArmor, 0, 0, 0); fus.rotation.z = Math.PI / 2; bodyG.add(fus);
+    bodyG.add(box(1.7, .06, .4, mOlive, 0, .05, 0));
+    bodyG.add(box(.5, .3, .06, mOlive, -.55, .15, 0));
+    const prop = cyl(.04, .04, .5, 4, mats.dark, .62, 0, 0); prop.rotation.x = Math.PI / 2; bodyG.add(prop);
+    bodyG.position.y = 2;
+  } else if (type === 'spitter') { // field gun
+    const w1 = cyl(.32, .32, .12, 10, mats.dark, 0, .32, .5); w1.rotation.x = Math.PI / 2; bodyG.add(w1);
+    const w2 = cyl(.32, .32, .12, 10, mats.dark, 0, .32, -.5); w2.rotation.x = Math.PI / 2; bodyG.add(w2);
+    const bar = cyl(.08, .1, 1.4, 6, mArmor, .3, .7, 0); bar.rotation.z = -1.1; bodyG.add(bar);
+    bodyG.add(box(.7, .6, .9, mArmor, -.2, .4, 0));
+  } else if (type === 'chief') { // officer
+    bodyG.add(mesh(new THREE.CapsuleGeometry(.26, .5, 3, 8), mArmor, 0, .55, 0));
+    bodyG.add(cyl(.2, .23, .16, 8, mats.dark, 0, 1.08, 0));
+    const f = flag(CONST.threat, 1); f.position.set(-.4, .8, -.3); bodyG.add(f);
+  } else return null;
+  return g;
+}
+export function enemyArt(type, skin) {
+  if (skin === 'ww2') { const w = ww2Art(type); if (w) return w; }
+  const g = new THREE.Group();
+  const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+  if (type === 'skeleton') { // the dead walk the deep hollows
+    bodyG.add(mesh(new THREE.CapsuleGeometry(.2, .5, 3, 8), mats.snow, 0, .55, 0));
+    bodyG.add(mesh(new THREE.SphereGeometry(.19, 7, 6), mats.snow, 0, 1.08, 0));
+    bodyG.add(box(.07, .09, .05, mats.dark, -.07, 1.1, .16));
+    bodyG.add(box(.07, .09, .05, mats.dark, .07, 1.1, .16));
+    const sw = box(.06, .7, .06, mSteel, .3, .6, 0); sw.rotation.z = -.6; bodyG.add(sw);
+    return g;
+  }
   if (type === 'slime') {
     const b = mesh(new THREE.IcosahedronGeometry(.55, 0), mToxic, 0, .42, 0); b.scale.y = .8; bodyG.add(b);
     bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), mats.dark, .2, .55, .38));
@@ -569,9 +639,79 @@ export function bossArt(kind) {
     const f = flag(CONST.threat, 1.1); f.position.set(-.8, 1.6, -.5); g.userData.body.add(f);
     return g;
   }
+  if (kind === 'skeleking') { // the Skeleton King, and the dead answer him
+    const g = enemyArt('skeleton');
+    g.scale.setScalar(2);
+    g.userData.body.add(cyl(.18, .23, .2, 6, mGold, 0, 1.28, 0));
+    g.userData.body.add(box(.5, .9, .08, MC('#3A2E52', { glow: .2 }), -.15, .45, -.2));
+    const f = flag('#B07EC9', .9); f.position.set(-.4, 1, -.3); g.userData.body.add(f);
+    return g;
+  }
+  if (kind === 'landship') { // a fortress on tracks
+    const g = ww2Art('ogre');
+    g.scale.setScalar(1.5);
+    const t2 = new THREE.Group(); t2.position.set(-.9, 1.5, 0); g.userData.body.add(t2);
+    t2.add(box(.6, .35, .6, mArmor));
+    const b2 = cyl(.06, .06, .9, 6, mats.dark, .45, .25, 0); b2.rotation.z = Math.PI / 2; t2.add(b2);
+    const f = flag(CONST.threat, 1.2); f.position.set(-1.6, 1.4, 0); g.userData.body.add(f);
+    return g;
+  }
+  if (kind === 'acewing') { // the ace's gilded bomber
+    const g = ww2Art('wasp');
+    g.scale.setScalar(2.2);
+    const nose = cone(.14, .4, 5, mGold, .95, -.15, 0); nose.rotation.z = -Math.PI / 2; g.userData.body.add(nose);
+    return g;
+  }
+  if (kind === 'sab') { // the saboteur, cloaked and carrying his charge
+    const g = new THREE.Group();
+    const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+    bodyG.add(cone(.42, 1.25, 6, mats.dark, 0, .1, 0));
+    bodyG.add(mesh(new THREE.SphereGeometry(.06, 5, 4), mThreat, .12, .95, .3));
+    bodyG.add(mesh(new THREE.SphereGeometry(.06, 5, 4), mThreat, -.12, .95, .3));
+    bodyG.add(mesh(new THREE.SphereGeometry(.22, 7, 6), mats.dark, .35, .5, 0));
+    const fuse = cyl(.02, .02, .25, 4, mGold, .42, .78, 0); fuse.rotation.z = -.4; bodyG.add(fuse);
+    g.scale.setScalar(1.3);
+    return g;
+  }
   const g = enemyArt('wasp'); // the Broodmother
   g.scale.setScalar(2.1);
   g.userData.body.add(cyl(.22, .3, .26, 6, mGold, .45, .38, 0));
+  return g;
+}
+/* ---------- battlefield & mining props ---------- */
+export function craterArt(s = 1) {
+  const g = new THREE.Group();
+  const rim = mesh(new THREE.TorusGeometry(1 * s, .25 * s, 5, 12), mats.path, 0, .05, 0); rim.rotation.x = -Math.PI / 2; g.add(rim);
+  const hole = cyl(.9 * s, .9 * s, .06, 12, mats.dark, 0, 0, 0); hole.castShadow = false; g.add(hole);
+  return g;
+}
+export function wireArt(len = 3) {
+  const g = new THREE.Group();
+  for (let i = 0; i <= len; i += 1.5) {
+    const p1 = box(.08, .9, .08, mats.trunk, 0, 0, i); p1.rotation.x = .3; g.add(p1);
+    const p2 = box(.08, .9, .08, mats.trunk, 0, 0, i); p2.rotation.x = -.3; g.add(p2);
+  }
+  const w = cyl(.025, .025, len + .6, 4, mats.dark, 0, .62, len / 2); w.rotation.x = Math.PI / 2; g.add(w);
+  return g;
+}
+export function deadTreeArt(s = 1) {
+  const g = new THREE.Group();
+  g.add(cyl(.12 * s, .2 * s, 1.8 * s, 5, mats.trunk));
+  const b1 = cyl(.06 * s, .09 * s, .9 * s, 4, mats.trunk, .25 * s, 1.5 * s, 0); b1.rotation.z = -.7; g.add(b1);
+  const b2 = cyl(.05 * s, .08 * s, .7 * s, 4, mats.trunk, -.2 * s, 1.2 * s, .1 * s); b2.rotation.z = .8; g.add(b2);
+  return g;
+}
+export function bunkerArt() {
+  const g = new THREE.Group();
+  g.add(box(2.6, 1.3, 2, mats.stoneDk));
+  g.add(box(2.8, .3, 2.2, mats.dark, 0, 1.3, 0));
+  g.add(box(1.4, .3, .12, mats.dark, 0, .75, 1.02));
+  return g;
+}
+export function nuggetArt(s = 1) {
+  const g = new THREE.Group();
+  g.add(mesh(new THREE.IcosahedronGeometry(.3 * s, 0), mGold, 0, .18 * s, 0));
+  g.add(mesh(new THREE.IcosahedronGeometry(.18 * s, 0), mGold, .4 * s, .1 * s, .2 * s));
   return g;
 }
 

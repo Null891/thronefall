@@ -15,9 +15,10 @@ Not affiliated with Grizzly Games or Mythwright.
 
 ## Play
 
-- **Pick your loadout on the menu** — a map (Nordfels, or **Leviathan** once you've survived
-  3 nights), a rider (King Aldric · Lady Maren and her falcon · stout Grimbold), a weapon
-  (Spear / Longbow / Warhammer, each with its own **Q** ability), and two **royal edicts**
+- **Pick your loadout on the menu** — a map (**Nordfels** · **Leviathan** at 3 nights ·
+  **Deephollow** at 6 · **Ironfront** at 10), a rider (King Aldric · Lady Maren and her falcon ·
+  stout Grimbold), a weapon (Spear / Longbow / Warhammer, each with its own **Q** ability),
+  and two **royal edicts**. Every purchase shows what it does before the gold leaves the purse.
 - **WASD / arrows** — ride (screen-relative)
 - **E** — build or upgrade at the nearest slot (or click any building / the castle)
 - **Space** — begin the night · **Q** — weapon ability · **E** — rally horn
@@ -30,9 +31,18 @@ uncollected sweeps itself in when night falls.
 **Commanding troops.** *Follow Me* (3) gathers only the soldiers **around the King** — ride past
 others to add them to the retinue — then *Hold* (1) stations the whole party right where it stands.
 *Charge* (2) sends melee hunting across the whole field while archers advance to firing positions.
-Soldiers in the road **body-block the horde**, and **palisade walls** (a buildable slot on every
-road) stop it cold until battered down; masons repair them at dawn. Fallen soldiers muster again
-at nightfall.
+
+**Everything can burn.** Every building has HP now. Brutes (Barrel Knights, Ogres, War Chiefs)
+smash whatever stands beside the road; **raiders** cut cross-country straight for your farms and
+mines on their own flank. A razed building is *gone* — rebuild it with gold. Wall slots on every
+road offer three fortifications: **Palisade** (2g), **Stone Wall** (4g), or a **Gatehouse** (6g)
+with archers on the parapet — all repairable at dawn, all reinforceable. Fliers soar over.
+
+**The maps.** Nordfels: four roads through huge green highlands. Leviathan: three roads over a
+titan's bones — and the deep stirs from night 4. Deephollow: gold-rich hills where skeletons walk,
+the **Skeleton King** raises the dead, and a **Saboteur** slips in out of nowhere to blow up your
+buildings. Ironfront: a churned battlefield of craters and wire where the horde comes as riflemen,
+panzers, dive bombers, and field guns, led by the **Landship** and the **Ace Wing**.
 
 **The Armory.** Every night survived banks **crowns** (double on boss nights). Spend them on the
 menu for permanent unlocks: the **Frost Staff** (chilling bolts, Q = Blizzard), the **Royal Seal**

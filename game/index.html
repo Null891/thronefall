@@ -159,11 +159,11 @@
   .aitem button{margin-left:auto; flex:none; appearance:none; cursor:pointer; font-family:'Nunito'; font-weight:800; font-size:12px;
     color:#2B2114; background:#F0B429; border:2px solid #33272A; border-radius:9px; padding:6px 12px; white-space:nowrap}
   .aitem button:disabled{opacity:.45; cursor:not-allowed}
-  .mrow{display:flex; gap:10px; justify-content:center; margin-bottom:14px}
-  .mcard{position:relative; width:216px; text-align:left; cursor:pointer; background:#1A1622; border:2px solid #3A3049;
-    border-radius:12px; padding:10px 13px; color:#F6F2E8; font-family:inherit; display:flex; flex-direction:column; gap:2px}
-  .mcard b{font-family:'Cinzel',serif; font-size:14px; letter-spacing:.1em; color:#F6C95C}
-  .mcard .d{font-size:10.5px; opacity:.72}
+  .mrow{display:flex; gap:8px; justify-content:center; margin-bottom:14px}
+  .mcard{position:relative; width:158px; text-align:left; cursor:pointer; background:#1A1622; border:2px solid #3A3049;
+    border-radius:12px; padding:9px 11px; color:#F6F2E8; font-family:inherit; display:flex; flex-direction:column; gap:2px}
+  .mcard b{font-family:'Cinzel',serif; font-size:12.5px; letter-spacing:.08em; color:#F6C95C}
+  .mcard .d{font-size:10px; opacity:.72; line-height:1.3}
   .mcard .lock{font-size:10px; font-weight:800; color:#E64A53; margin-top:2px}
   .mcard:hover:not(.locked){border-color:#F0B429}
   .mcard.on{border-color:#F0B429; box-shadow:0 0 14px rgba(240,178,41,.22)}
@@ -189,6 +189,7 @@
     <div class="wavePrev" id="prevA"><span class="sk">💀</span><span id="prevAn">×10</span></div>
     <div class="wavePrev" id="prevB"><span class="sk">💀</span><span id="prevBn">×9</span></div>
     <div class="wavePrev" id="prevC" style="display:none"><span class="sk">💀</span><span id="prevCn">×0</span></div>
+    <div class="wavePrev" id="prevD" style="display:none"><span class="sk">💀</span><span id="prevDn">×0</span></div>
     <div class="castlebar" id="castleWrap"><div class="cb"><div class="cf" id="castleFill" style="width:100%"></div></div><div class="cl">CASTLE CENTER</div></div>
     <div class="eprompt" id="eprompt"></div>
     <div id="bmenu" class="clickable"></div>
@@ -245,8 +246,10 @@
     <h1>THRONEFALL</h1>
     <div class="tag">Build by day · Defend by night</div>
     <div class="mrow">
-      <button class="mcard on" data-m="nordfels"><b>NORDFELS</b><span class="d">Two roads through the green highlands</span></button>
-      <button class="mcard" data-m="leviathan"><b>LEVIATHAN</b><span class="d">Three roads over a titan's bones</span><span class="lock" id="levLock">🔒 Survive 3 nights in Nordfels</span></button>
+      <button class="mcard on" data-m="nordfels"><b>NORDFELS</b><span class="d">Four roads · green highlands</span></button>
+      <button class="mcard" data-m="leviathan"><b>LEVIATHAN</b><span class="d">A titan's bones · the deep stirs</span><span class="lock">🔒 Survive 3 nights</span></button>
+      <button class="mcard" data-m="deephollow"><b>DEEPHOLLOW</b><span class="d">Gold hills · the dead walk</span><span class="lock">🔒 Survive 6 nights</span></button>
+      <button class="mcard" data-m="ironfront"><b>IRONFRONT</b><span class="d">Steel, wire and thunder</span><span class="lock">🔒 Survive 10 nights</span></button>
     </div>
     <div class="wrow">
       <button class="ccard on" data-c="aldric"><span class="ic">👑</span><b>King Aldric</b><span class="d">The steady sovereign<br>20 HP · balanced</span></button>
@@ -270,7 +273,7 @@
     </div>
     <button class="cta" id="playBtn" style="font-size:22px; padding:14px 36px">PLAY CAMPAIGN</button>
     <div><button class="armbtn" id="armBtn">⚜ ARMORY · <span id="crownNum">0</span> crowns</button></div>
-    <div class="ver">Web remake v0.6 · endless campaign · fan-made, not affiliated with Grizzly Games</div>
+    <div class="ver">Web remake v0.7 · endless campaign · fan-made, not affiliated with Grizzly Games</div>
   </div>
 </div>
 
@@ -305,6 +308,7 @@
     <div class="aitem" data-a="beacons"><span class="ic">🔥</span><span><span class="nm">Signal Beacons</span><br><span class="ds">New edict — towers see 15% farther</span></span><button></button></div>
     <div class="aitem" data-a="pockets"><span class="ic">👛</span><span><span class="nm">Deep Pockets</span><br><span class="ds">New edict — begin every run with +4 gold</span></span><button></button></div>
     <div class="aitem" data-a="bastion"><span class="ic">🏯</span><span><span class="nm">Royal Bastion</span><br><span class="ds">Unlocks a fourth Castle Center tier — twin ballistae</span></span><button></button></div>
+    <div class="aitem" data-a="arcana"><span class="ic">✨</span><span><span class="nm">Arcana</span><br><span class="ds">Weapon abilities recharge 25% faster · Blizzard bites for damage</span></span><button></button></div>
   </div>
   <button class="cta" id="armClose" style="width:100%">DONE</button>
 </div></div>
