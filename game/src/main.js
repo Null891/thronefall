@@ -188,6 +188,25 @@ const MAPS = {
   },
 };
 
+/* the coast is the real boundary: same superellipse+wobble the terrain is built from */
+function onLand(u, v) {
+  const t = MAP.terrain || {}, sx = t.sx || 1, sz = t.sz || 1;
+  const x = (u - 25) / sx, z = (v - 25) / sz;
+  const rr = Math.hypot(x, z);
+  if (rr < 12) return true;
+  const th = Math.atan2(z, x);
+  const base = 24 / Math.pow(Math.max(Math.abs(Math.cos(th)), Math.abs(Math.sin(th))), 0.72);
+  const wob = Math.sin(th * 3 + 1.7) * 1.1 + Math.sin(th * 5 + .4) * .7 + Math.sin(th * 8 + 2.9) * .45;
+  return rr <= base + wob + .8; // riders may reach the wet sand, not the waves
+}
+function slideMove(o, nx, nz) { // clamp to map bounds, then slide along the coastline
+  const bu = (MAP.bounds || {}).u || [1.5, 48.5], bv = (MAP.bounds || {}).v || [1.5, 48.5];
+  nx = Math.max(bu[0], Math.min(bu[1], nx)); nz = Math.max(bv[0], Math.min(bv[1], nz));
+  if (onLand(nx, nz)) { o.u = nx; o.v = nz; return; }
+  if (onLand(nx, o.v)) { o.u = nx; return; }
+  if (onLand(o.u, nz)) o.v = nz;
+}
+
 function loadMap(id) {
   const def = MAPS[id] || MAPS.nordfels;
   MAP = def; S.map = def.id;
@@ -545,7 +564,7 @@ function updateFx(dt) {
 }
 
 /* ============================== the King ============================== */
-const K = { u: 25, v: 29.5, hp: 20, max: 20, spd: 9, face: 0, atkCd: 0, mesh: null };
+const K = { u: 25, v: 29.5, hp: 20, max: 20, spd: 9, vx: 0, vz: 0, face: 0, atkCd: 0, mesh: null };
 const kingGlow = ART.glow('#FFC98A', 4.5, 0, .5);
 kingGlow.position.set(0, 1.6, 0);
 /* the king's arsenal — chosen on the menu, sworn for the run */
@@ -593,6 +612,10 @@ function setChar(c) {
   K.mesh.add(kingGlow);
   scene.add(K.mesh);
   K.max = CHARS[c].hp; K.hp = K.max; K.spd = CHARS[c].spd;
+  K.ring = ART.ringMesh(5.5, '#F0B429', .16); // the muster circle, shown while Follow is sounded
+  K.ring.position.y = .07;
+  K.ring.visible = false;
+  K.mesh.add(K.ring);
   $$('.ccard').forEach(x => x.classList.toggle('on', x.dataset.c === c));
   setWeapon(S.weapon); // re-hang the chosen weapon on the new rider
 }
@@ -602,7 +625,7 @@ function updateKing(dt) {
   if (K.down > 0) { // the king has fallen — he returns at the keep
     K.down -= dt;
     if (K.down <= 0) {
-      K.hp = K.max; K.u = 25; K.v = 29.5;
+      K.hp = K.max; K.u = 25; K.v = 29.5; K.vx = 0; K.vz = 0;
       K.mesh.visible = true; K.mesh.position.set(K.u, 0, K.v);
       poof(K.u, 1, K.v, true);
     }
@@ -610,15 +633,17 @@ function updateKing(dt) {
   }
   const fwd = (keys.w || keys.arrowup ? 1 : 0) - (keys.s || keys.arrowdown ? 1 : 0);
   const side = (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0);
-  let dx = (-fwd + side) * DIAG, dz = (-fwd - side) * DIAG;
-  const moving = dx || dz;
-  if (moving) {
-    const m = Math.hypot(dx, dz); dx /= m; dz /= m;
-    const bu = (MAP.bounds || {}).u || [1.5, 48.5], bv = (MAP.bounds || {}).v || [1.5, 48.5];
-    K.u = Math.max(bu[0], Math.min(bu[1], K.u + dx * K.spd * dt));
-    K.v = Math.max(bv[0], Math.min(bv[1], K.v + dz * K.spd * dt));
-    K.face = Math.atan2(dx, dz);
-  }
+  let ax = (-fwd + side) * DIAG, az = (-fwd - side) * DIAG;
+  const im = Math.hypot(ax, az);
+  if (im) { ax /= im; az /= im; }
+  /* momentum: the horse leans into a gallop and eases out of it */
+  K.vx = THREE.MathUtils.damp(K.vx, ax * K.spd, 11, dt);
+  K.vz = THREE.MathUtils.damp(K.vz, az * K.spd, 11, dt);
+  const moving = im > 0;
+  if (Math.abs(K.vx) > .15 || Math.abs(K.vz) > .15)
+    slideMove(K, K.u + K.vx * dt, K.v + K.vz * dt);
+  if (moving) K.face = Math.atan2(ax, az);
+  if (K.ring) K.ring.visible = S.phaseName === 'night' && S.stance === 'follow';
   if (S.phaseName === 'day') K.hp = Math.min(K.max, K.hp + 2.5 * dt);
   K.mesh.position.set(K.u, 0, K.v);
   const diff = ((K.face - K.mesh.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
@@ -641,7 +666,7 @@ function hurtKing(n) {
   poof(K.u, 1.2, K.v);
   sfx.kingHit();
   if (K.hp <= 0) {
-    K.hp = 0; K.down = 6;
+    K.hp = 0; K.down = 6; K.vx = 0; K.vz = 0;
     K.mesh.visible = false;
     poof(K.u, .8, K.v, true);
     sfx.fallen();
@@ -862,6 +887,7 @@ function startNight() {
   $('#remainNum').textContent = N.total;
   setClock('#clockNight', 0);
   if (S.day === 2) setTimeout(() => flashBanner('BARREL KNIGHTS ON THE ROADS'), 1600);
+  if (S.day === 1) setTimeout(() => { if (N && !N.over) flashBanner('ORDERS — 1 HOLD · 2 CHARGE · 3 FOLLOW ME'); }, 6000);
   S.stance = 'hold';
   $$('.tchip').forEach(x => x.classList.toggle('on', x.dataset.stance === 'hold'));
   sfx.night();
@@ -875,8 +901,10 @@ function spawnUnit(u, v, kind) {
   sp.hp += arguments[3] || 0; // veteran bonus
   const mesh = kind === 'knight' || kind === 'berserk' ? ART.knightArt(kind) : ART.archerArt(kind);
   mesh.position.set(u, 0, v); mesh.rotation.y = Math.random() * 6; scene.add(mesh);
+  const ring = ART.ringMesh(.55, '#F0B429', .75); // lights up while this soldier rides with the king
+  ring.position.y = .06; ring.visible = false; mesh.add(ring);
   N.units.push({ u, v, pu: u, pv: v, kind, cd: .3 + Math.random() * .5, ...sp, max: sp.hp,
-    mesh, dead: false, hpEl: null, tgt: null, bob: Math.random() * 9, fo: Math.random() * Math.PI * 2, fr: 1.5 + Math.random() * 1.3, pop: 1 });
+    mesh, ring, dead: false, hpEl: null, tgt: null, bob: Math.random() * 9, fo: Math.random() * Math.PI * 2, fr: 1.5 + Math.random() * 1.3, pop: 1 });
 }
 function hurtUnit(un, dmg) {
   if (un.dead) return;
@@ -1168,7 +1196,7 @@ function simTick(dt) {
     let tx = null, tz = null, sp = 0, stopAt = .3;
     if (follow) {
       /* riding close recruits a soldier into the king's retinue */
-      if (!un.following && !K.down && Math.hypot(un.u - K.u, un.v - K.v) < 4) { un.following = true; poof(un.u, .9, un.v); }
+      if (!un.following && !K.down && Math.hypot(un.u - K.u, un.v - K.v) < 5.5) { un.following = true; poof(un.u, .9, un.v); }
       if (un.following && !K.down) { tx = K.u + Math.cos(un.fo) * un.fr; tz = K.v + Math.sin(un.fo) * un.fr; sp = 8.5; }
     } else if (charge) {
       if (!un.tgt || un.tgt.dead) un.tgt = nearestEnemy(un.u, un.v, 999);
@@ -1186,13 +1214,12 @@ function simTick(dt) {
       const dx = tx - un.u, dz = tz - un.v, d = Math.hypot(dx, dz);
       if (d > stopAt) {
         const mv = Math.min(d, sp * dt);
-        const bu = (MAP.bounds || {}).u || [1.5, 48.5], bv = (MAP.bounds || {}).v || [1.5, 48.5];
-        un.u = Math.max(bu[0], Math.min(bu[1], un.u + dx / d * mv));
-        un.v = Math.max(bv[0], Math.min(bv[1], un.v + dz / d * mv));
+        slideMove(un, un.u + dx / d * mv, un.v + dz / d * mv);
         un.mesh.lookAt(tx, 0, tz);
         walking = true;
       }
     }
+    un.ring.visible = follow && !!un.following;
     un.mesh.position.x = un.u; un.mesh.position.z = un.v;
     un.mesh.position.y = Math.abs(Math.sin(N.t * (walking ? 9 : 5) + un.bob)) * (walking ? .12 : .05);
     if (un.cd <= 0) {
@@ -1439,7 +1466,11 @@ $('#beginNight').addEventListener('click', startNight);
 function anyOverlay() { return ['ovVictory', 'ovDefeat', 'ovCleared', 'ovPause', 'ovSettings', 'ovArmory'].some(id => $('#' + id).style.display === 'grid'); }
 $('#pauseBtn').addEventListener('click', () => { $('#ovPause').style.display = 'grid'; });
 $('#pauseResume').addEventListener('click', () => { $('#ovPause').style.display = 'none'; });
-$('#pauseRestart').addEventListener('click', () => { $('#ovPause').style.display = 'none'; abortNight(); startNight(); });
+$('#pauseRestart').addEventListener('click', () => {
+  $('#ovPause').style.display = 'none';
+  if (S.phaseName !== 'night') return; // nothing to restart by daylight
+  abortNight(); startNight();
+});
 $('#pauseAbandon').addEventListener('click', () => { $('#ovPause').style.display = 'none'; abortNight(); resetRun(); setView('menu'); });
 $('#pauseSettings').addEventListener('click', () => { $('#ovSettings').style.display = 'grid'; });
 $('#setClose').addEventListener('click', () => { $('#ovSettings').style.display = 'none'; });
@@ -1465,17 +1496,22 @@ $$('.tchip').forEach(c => c.addEventListener('click', () => {
   if (N) {
     /* leaving Follow stations each follower where he stands */
     if (S.stance === 'follow')
-      N.units.forEach(un => { if (un.following) { un.pu = un.u; un.pv = un.v; } un.following = false; });
-    /* entering Follow gathers only the soldiers around the king — ride near others to add them */
+      N.units.forEach(un => {
+        un.ring.visible = false;
+        if (un.following) { un.pu = un.u; un.pv = un.v; poof(un.u, .4, un.v); }
+        un.following = false;
+      });
+    /* entering Follow gathers only the soldiers inside the muster circle — ride near others to add them */
     if (to === 'follow') {
       joined = 0;
       N.units.forEach(un => {
-        un.following = !un.dead && Math.hypot(un.u - K.u, un.v - K.v) < 7;
+        un.following = !un.dead && Math.hypot(un.u - K.u, un.v - K.v) < 5.5;
         if (un.following) joined++;
       });
     }
   }
   S.stance = to;
+  if (K.ring) K.ring.visible = S.phaseName === 'night' && to === 'follow';
   $$('.tchip').forEach(x => x.classList.toggle('on', x === c));
   if (N && !N.over) { // the order sounds and the company reacts at once
     N.units.forEach(un => { un.tgt = null; un.cd = Math.min(un.cd, .25); });
@@ -1501,10 +1537,12 @@ document.addEventListener('keydown', e => {
     if (S.view === 'game' && S.phaseName === 'day') flashHint(on ? 'Sound on' : 'Sound muted');
     else if (S.phaseName === 'night') flashBanner(on ? 'SOUND ON' : 'SOUND MUTED');
   }
-  else if (e.key === 'Escape' && S.phaseName === 'night' && N && !N.over)
+  else if (e.key === 'Escape' && S.view === 'game' && (S.phaseName === 'day' || (N && !N.over)))
     $('#ovPause').style.display = $('#ovPause').style.display === 'grid' ? 'none' : 'grid';
 });
 document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+/* alt-tabbing away must not leave a key stuck down — the king would ride forever */
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 /* buttons must not keep focus, or Space re-triggers them mid-game */
 document.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { b.blur(); if (!b.disabled) sfx.ui(); } });
 
@@ -1540,8 +1578,9 @@ function updateCamera(dt) {
     return;
   }
   const zoom = (1 + phase.t * .18) * ((MAP && MAP.camZoom) || 1);
-  camTarget.x = THREE.MathUtils.damp(camTarget.x, K.u, 4, dt);
-  camTarget.z = THREE.MathUtils.damp(camTarget.z, K.v, 4, dt);
+  /* the camera leads the gallop slightly so you see where you're riding */
+  camTarget.x = THREE.MathUtils.damp(camTarget.x, K.u + K.vx * .55, 5, dt);
+  camTarget.z = THREE.MathUtils.damp(camTarget.z, K.v + K.vz * .55, 5, dt);
   camera.position.set(camTarget.x + CAMOFF.x * zoom, CAMOFF.y * zoom, camTarget.z + CAMOFF.z * zoom);
   if (shakeT > 0) {
     shakeT -= dt;
