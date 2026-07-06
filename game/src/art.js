@@ -414,8 +414,18 @@ export function enemyArt(type) {
     const w1 = mesh(new THREE.PlaneGeometry(.55, .3), wingM, -.05, .32, .3, false);
     const w2 = mesh(new THREE.PlaneGeometry(.55, .3), wingM, -.05, .32, -.3, false);
     bodyG.add(w1); bodyG.add(w2);
-    ANIMS.push((t) => { const a = Math.sin(t * 40) * .6; w1.rotation.x = -.9 + a * .3; w2.rotation.x = .9 - a * .3; });
+    g.userData.wings = [w1, w2]; // animated by the sim so nothing leaks when the wasp dies
     bodyG.position.y = 1.7;
+  } else if (type === 'runner') {
+    const b = mesh(new THREE.IcosahedronGeometry(.42, 0), mThreat, 0, .34, 0); b.scale.y = .8; bodyG.add(b);
+    bodyG.add(mesh(new THREE.SphereGeometry(.06, 5, 4), mats.dark, .15, .44, .3));
+    bodyG.add(mesh(new THREE.SphereGeometry(.06, 5, 4), mats.dark, -.15, .44, .3));
+  } else if (type === 'spitter') {
+    const mViolet = MC('#B07EC9', { glow: .3 });
+    const b = mesh(new THREE.IcosahedronGeometry(.6, 0), mViolet, 0, .5, 0); b.scale.y = .9; bodyG.add(b);
+    const snout = cone(.2, .5, 6, mats.dark, 0, .55, .55); snout.rotation.x = Math.PI / 2.3; bodyG.add(snout);
+    bodyG.add(mesh(new THREE.SphereGeometry(.08, 5, 4), mats.dark, .22, .78, .4));
+    bodyG.add(mesh(new THREE.SphereGeometry(.08, 5, 4), mats.dark, -.22, .78, .4));
   } else { // ogre
     const b = mesh(new THREE.IcosahedronGeometry(1.05, 0), MC('#7FA35A', { glow: .2 }), 0, .95, 0); b.scale.y = 1.1; bodyG.add(b);
     bodyG.add(mesh(new THREE.SphereGeometry(.55, 8, 7), MC('#93B56E', { glow: .15 }), 0, .7, .6));
@@ -461,8 +471,25 @@ export function slotMarker(cost) {
     ring.scale.setScalar(1 + Math.sin(t * 3 + ph) * .05); });
   for (let i = 0; i < cost; i++)
     g.add(cyl(.16, .16, .06, 8, mGold, (i - (cost - 1) / 2) * .45, .1, 1.7));
-  const hit = cyl(1.7, 1.7, 2.4, 8, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
-  hit.castShadow = false; g.add(hit); g.userData.hit = hit;
+  return g;
+}
+export function hitCylinder(r, h) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 8),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+  m.castShadow = false; m.position.y = h / 2;
+  return m;
+}
+/* visible reward for castle tiers */
+export function castleTrim(lvl) {
+  const g = new THREE.Group();
+  if (lvl === 2) {
+    g.add(box(2.3, .28, 2.3, mGold, 0, 9.05, 0));
+    g.add(box(4.3, .3, 4.3, mGold, 0, 5.5, 0));
+  } else {
+    for (const [x, z] of [[-2.35, -2.35], [2.35, -2.35], [-2.35, 2.35], [2.35, 2.35]])
+      g.add(cone(.35, .8, 7, mGold, x, 6.9, z));
+    const f = flag(CONST.threat, 1.1); f.position.set(1.2, 12.2, 0); g.add(f);
+  }
   return g;
 }
 export { mats };

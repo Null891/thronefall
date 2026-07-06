@@ -9,7 +9,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 /* ============================== renderer & scene ============================== */
 const canvas = $('#gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -90,8 +90,8 @@ const castle = place(ART.castleArt(), 25, 24);
 for (const p of castle.userData.torches) addTorch(p.clone().add(castle.position));
 
 /* ============================== game state (exact ECS numbers) ============================== */
-const S = { view: 'menu', phaseName: 'day', day: 1, gold: 8, castleHP: 15, castleMax: 15, builds: {},
-  settings: { dmg: true, ranges: true, shake: true }, stance: 'hold' };
+const S = { view: 'menu', phaseName: 'day', day: 1, gold: 8, castleHP: 15, castleMax: 15, castleLvl: 1,
+  builds: {}, settings: { dmg: true, ranges: true, shake: true }, stance: 'hold' };
 const BTYPES = {
   house:    { name: 'House',           cost: 2, icon: '🏠', desc: '+1 gold at dawn' },
   mill:     { name: 'Windmill',        cost: 3, icon: '🌀', desc: '+1 gold · unlocks Fields' },
@@ -109,14 +109,35 @@ const SLOTS = [
   { id: 's9', u: 30.5, v: 33.5, type: 'house' },   { id: 's7', u: 17,   v: 35,   type: 'mill' },
   { id: 's8', u: 38.5, v: 34.5, type: 'harbour' }, { id: 's10', u: 7.5, v: 21,   type: 'mine' },
   { id: 'f1', u: 14,   v: 33.5, type: 'field', hidden: true }, { id: 'f2', u: 16.5, v: 38, type: 'field', hidden: true },
+  /* the kingdom grows: outskirt plots surveyed as the days pass */
+  { id: 'x1', u: 33.5, v: 36.5, type: 'house',    hidden: true, unlockDay: 2 },
+  { id: 'x2', u: 10.5, v: 22.7, type: 'tower',    hidden: true, unlockDay: 3 },
+  { id: 'x3', u: 39.5, v: 27.5, type: 'tower',    hidden: true, unlockDay: 3 },
+  { id: 'x4', u: 26,   v: 17.5, type: 'barracks', hidden: true, unlockDay: 4 },
+  { id: 'x5', u: 19.5, v: 39.5, type: 'house',    hidden: true, unlockDay: 4 },
+  { id: 'x6', u: 44.5, v: 28,   type: 'mine',     hidden: true, unlockDay: 5 },
 ];
 const hitMeshes = [];
 for (const sl of SLOTS) {
   sl.marker = place(ART.slotMarker(BTYPES[sl.type].cost), sl.u, sl.v);
-  sl.marker.userData.hit.userData.slot = sl;
-  hitMeshes.push(sl.marker.userData.hit);
+  const hit = ART.hitCylinder(1.7, 3);
+  hit.position.set(sl.u, 1.5, sl.v); hit.userData.slot = sl;
+  scene.add(hit); hitMeshes.push(hit);
   sl.holder = new THREE.Group(); sl.holder.position.set(sl.u, 0, sl.v); scene.add(sl.holder);
   sl.pop = 0;
+}
+const CASTLE_SLOT = { castle: true, u: 25, v: 26.5 };
+{
+  const hit = ART.hitCylinder(4, 12);
+  hit.position.set(25, 0, 24); hit.userData.slot = CASTLE_SLOT;
+  scene.add(hit); hitMeshes.push(hit);
+}
+function revealPlots(quiet) {
+  let fresh = 0;
+  for (const sl of SLOTS)
+    if (sl.unlockDay && sl.hidden && S.day >= sl.unlockDay) { sl.hidden = false; fresh++; }
+  if (fresh && !quiet) flashHint(`Surveyors opened ${fresh} new plot${fresh > 1 ? 's' : ''} on the outskirts`);
+  refreshMarkers();
 }
 function refreshMarkers() {
   for (const sl of SLOTS) sl.marker.visible = !sl.hidden && !S.builds[sl.id] && S.view === 'game' && S.phaseName === 'day';
@@ -159,11 +180,11 @@ function setClock(sel, frac) { $$(sel + ' .dot').forEach((d, i) => d.classList.t
 function refreshDayHUD() {
   $('#goldNum').textContent = S.gold;
   $('#incomeNum').textContent = '+' + dawnRows().total + ' at dawn';
-  $('#dayNum').innerHTML = `Day ${S.day} <span style="opacity:.55">/ 3</span>`;
+  $('#dayNum').textContent = `Day ${S.day}`;
   refreshMarkers();
 }
 let hintT = null;
-const HINT0 = 'Ride with WASD · build with E or click a slot · Space begins the night';
+const HINT0 = 'Ride with WASD · E builds & upgrades · Space begins the night';
 function flashHint(t) { const el = $('#dayHint'); el.textContent = t; clearTimeout(hintT); hintT = setTimeout(() => { el.textContent = HINT0; }, 2600); }
 function flashBanner(txt) {
   const t = $('#waveTitle'), old = 'NIGHT ' + S.day;
@@ -196,24 +217,39 @@ function sampleLane(pts) {
 }
 const LANE_A = sampleLane(LANE_A_PTS), LANE_B = sampleLane(LANE_B_PTS);
 const ETYPES = {
-  slime:  { hp: 2,  speed: 1.5, dmg: 1, rate: 1.4 },
-  barrel: { hp: 5,  speed: 1.0, dmg: 2, rate: 1.6 },
-  wasp:   { hp: 2,  speed: 2.6, dmg: 1, rate: 1.1, fly: true },
-  ogre:   { hp: 18, speed: .7,  dmg: 3, rate: 1.8 },
+  slime:   { hp: 2,  speed: 1.5, dmg: 1, rate: 1.4 },
+  barrel:  { hp: 5,  speed: 1.0, dmg: 2, rate: 1.6 },
+  wasp:    { hp: 2,  speed: 2.6, dmg: 1, rate: 1.1, fly: true },
+  runner:  { hp: 1,  speed: 3.4, dmg: 1, rate: 1.2 },
+  spitter: { hp: 3,  speed: 1.1, dmg: 1, rate: 2.0, ranged: 6 },
+  ogre:    { hp: 18, speed: .7,  dmg: 3, rate: 1.8 },
 };
+/* endless campaign: nights 1–3 are authored, then the horde scales forever */
 function nightPlan(n) {
   const q = []; const p = (type, lane) => q.push({ type, lane });
-  if (n === 1) { for (let i = 0; i < 10; i++) p('slime', 'A'); }
-  else if (n === 2) {
+  if (n === 1) { for (let i = 0; i < 10; i++) p('slime', 'A'); return q; }
+  if (n === 2) {
     for (let i = 0; i < 8; i++) p('slime', i % 2 ? 'B' : 'A');
     for (let i = 0; i < 4; i++) p('barrel', i % 2 ? 'A' : 'B');
     for (let i = 0; i < 3; i++) p('wasp', 'B');
-  } else {
+    return q;
+  }
+  if (n === 3) {
     for (let i = 0; i < 10; i++) p('slime', i % 2 ? 'B' : 'A');
     for (let i = 0; i < 6; i++) p('barrel', i % 3 ? 'A' : 'B');
     for (let i = 0; i < 5; i++) p('wasp', i % 2 ? 'A' : 'B');
     p('ogre', 'A');
+    return q;
   }
+  const slimes = Math.min(24, 6 + 2 * n), barrels = Math.min(14, n),
+    wasps = Math.min(10, n - 1), runners = Math.min(12, (n - 3) * 2),
+    spitters = Math.min(6, n - 4), ogres = n % 3 === 0 ? Math.min(4, Math.floor(n / 3)) : 0;
+  for (let i = 0; i < slimes; i++) p('slime', i % 2 ? 'B' : 'A');
+  for (let i = 0; i < barrels; i++) p('barrel', i % 2 ? 'A' : 'B');
+  for (let i = 0; i < runners; i++) p('runner', i % 2 ? 'B' : 'A');
+  for (let i = 0; i < wasps; i++) p('wasp', i % 2 ? 'A' : 'B');
+  for (let i = 0; i < spitters; i++) p('spitter', i % 2 ? 'B' : 'A');
+  for (let i = 0; i < ogres; i++) p('ogre', i % 2 ? 'B' : 'A');
   return q;
 }
 function towerSpec(b) {
@@ -304,12 +340,20 @@ const kingGlow = ART.glow('#FFC98A', 4.5, 0, .5);
 kingGlow.position.set(0, 1.6, 0);
 K.mesh.add(kingGlow);
 const keys = {};
+const DIAG = Math.SQRT1_2; // camera yaw is fixed 45°: W = screen-up = world (-1,-1)/√2
 function updateKing(dt) {
-  let dx = 0, dz = 0;
-  if (keys.w || keys.arrowup) dz -= 1;
-  if (keys.s || keys.arrowdown) dz += 1;
-  if (keys.a || keys.arrowleft) dx -= 1;
-  if (keys.d || keys.arrowright) dx += 1;
+  if (K.down > 0) { // the king has fallen — he returns at the keep
+    K.down -= dt;
+    if (K.down <= 0) {
+      K.hp = K.max; K.u = 25; K.v = 29.5;
+      K.mesh.visible = true; K.mesh.position.set(K.u, 0, K.v);
+      poof(K.u, 1, K.v, true);
+    }
+    return;
+  }
+  const fwd = (keys.w || keys.arrowup ? 1 : 0) - (keys.s || keys.arrowdown ? 1 : 0);
+  const side = (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0);
+  let dx = (-fwd + side) * DIAG, dz = (-fwd - side) * DIAG;
   const moving = dx || dz;
   if (moving) {
     const m = Math.hypot(dx, dz); dx /= m; dz /= m;
@@ -317,13 +361,26 @@ function updateKing(dt) {
     K.v = Math.max(1.5, Math.min(48.5, K.v + dz * 9 * dt));
     K.face = Math.atan2(dx, dz);
   }
+  if (S.phaseName === 'day') K.hp = Math.min(K.max, K.hp + 2.5 * dt);
   K.mesh.position.set(K.u, 0, K.v);
-  K.mesh.rotation.y = THREE.MathUtils.damp(K.mesh.rotation.y, K.face, 12, dt);
+  const diff = ((K.face - K.mesh.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+  K.mesh.rotation.y += diff * (1 - Math.exp(-12 * dt));
   const body = K.mesh.userData.body;
   K.gallop = THREE.MathUtils.damp(K.gallop || 0, moving ? 1 : 0, 8, dt);
   body.position.y = Math.abs(Math.sin(perf * 11)) * .16 * K.gallop;
   body.rotation.x = Math.sin(perf * 11) * .05 * K.gallop;
   updatePrompt();
+}
+function hurtKing(n) {
+  if (K.down > 0) return;
+  K.hp -= n;
+  poof(K.u, 1.2, K.v);
+  if (K.hp <= 0) {
+    K.hp = 0; K.down = 6;
+    K.mesh.visible = false;
+    poof(K.u, .8, K.v, true);
+    flashBanner('THE KING HAS FALLEN — HE RETURNS AT THE KEEP');
+  }
 }
 
 /* ============================== build flow ============================== */
@@ -341,8 +398,39 @@ function opt(attr, ic, nm, ds, cost, can) {
     <span><span class="nm">${nm}</span><br><span class="ds">${ds}</span></span>
     ${cost ? `<span class="cost">🪙 ${cost}</span>` : ''}</button>`;
 }
+function upgradable(sl) {
+  const b = S.builds[sl.id];
+  if (!b) return null;
+  if (b.type === 'house' && !b.upg) return { label: 'Second Storey', cost: 2 };
+  if (b.type === 'tower' && !b.upg) return { label: 'Choose a spire', cost: 3 };
+  if (b.type === 'harbour' && !b.upg) return { label: 'Big Docks', cost: 3 };
+  return null;
+}
+const CASTLE_TIERS = [null, { cost: 8, hp: 10, desc: '+10 castle HP · heavier arrows' },
+  { cost: 14, hp: 10, desc: '+10 castle HP · rapid volleys' }];
+function castleMenu() {
+  const tier = CASTLE_TIERS[S.castleLvl];
+  if (!tier) {
+    openMenu(CASTLE_SLOT, 'Castle Center — Lv 3',
+      `<div style="font-size:12px;opacity:.75;padding:2px 4px 4px">The keep stands at full strength. ${S.castleMax} HP, rapid volleys.</div>`);
+    return;
+  }
+  openMenu(CASTLE_SLOT, `Castle Center — Lv ${S.castleLvl}`,
+    opt('data-c="1"', '🏰', `Fortify to Lv ${S.castleLvl + 1}`, tier.desc, tier.cost, S.gold >= tier.cost));
+  bmenu.querySelector('[data-c]')?.addEventListener('click', () => {
+    if (S.gold < tier.cost) return;
+    S.gold -= tier.cost; S.castleLvl++;
+    S.castleMax += tier.hp; S.castleHP = S.castleMax;
+    const trim = ART.castleTrim(S.castleLvl);
+    castle.add(trim); castleTrims.push(trim);
+    poof(25, 5, 24, true);
+    refreshDayHUD(); closeBmenu();
+    flashHint(`The Castle Center stands taller — Lv ${S.castleLvl}`);
+  });
+}
 function slotAction(sl) {
   if (S.phaseName !== 'day' || S.view !== 'game') return;
+  if (sl.castle) { castleMenu(); return; }
   const b = S.builds[sl.id];
   if (!b) { tryBuild(sl); return; }
   if (b.type === 'house' && !b.upg)
@@ -353,7 +441,11 @@ function slotAction(sl) {
       opt('data-u="archer"', '🏹', "Archer's Spire", 'Shoots twice as fast', 3, S.gold >= 3));
   else if (b.type === 'harbour' && !b.upg)
     openMenu(sl, 'Upgrade Harbour', opt('data-u="docks"', '⛵', 'Big Docks', 'Each boat pays 2 gold', 3, S.gold >= 3));
-  else return;
+  else {
+    openMenu(sl, BTYPES[b.type].name,
+      `<div style="font-size:12px;opacity:.75;padding:2px 4px 4px">${BTYPES[b.type].desc}. Standing strong.</div>`);
+    return;
+  }
   bmenu.querySelectorAll('[data-u]').forEach(btn => btn.addEventListener('click', () => {
     const u = btn.dataset.u, cost = u === 'house' ? 2 : 3;
     if (S.gold < cost) return;
@@ -405,19 +497,32 @@ canvas.addEventListener('pointerdown', e => {
 let nearSlot = null;
 function updatePrompt() {
   nearSlot = null;
+  let label = '', py = 2.6;
   if (S.phaseName === 'day' && S.view === 'game') {
     let bd = 3.2;
     for (const sl of SLOTS) {
-      if (sl.hidden || S.builds[sl.id]) continue;
+      if (sl.hidden) continue;
       const d = Math.hypot(sl.u - K.u, sl.v - K.v);
-      if (d < bd) { bd = d; nearSlot = sl; }
+      if (d >= bd) continue;
+      if (!S.builds[sl.id]) {
+        const t = BTYPES[sl.type];
+        bd = d; nearSlot = sl;
+        label = S.gold >= t.cost ? `<span class="k">E</span>Build ${t.name} · ${t.cost}g` : `Need ${t.cost} gold for the ${t.name}`;
+      } else {
+        const up = upgradable(sl);
+        if (up) { bd = d; nearSlot = sl; label = `<span class="k">E</span>${up.label} · ${up.cost}g`; }
+      }
+    }
+    /* the keep itself is a shop */
+    if (!nearSlot && Math.hypot(25 - K.u, 25.8 - K.v) < 4.6 && CASTLE_TIERS[S.castleLvl]) {
+      nearSlot = CASTLE_SLOT; py = 4;
+      label = `<span class="k">E</span>Fortify Castle · ${CASTLE_TIERS[S.castleLvl].cost}g`;
     }
   }
   if (nearSlot && bmenu.style.display !== 'block') {
-    const t = BTYPES[nearSlot.type], can = S.gold >= t.cost;
-    eprompt.innerHTML = can ? `<span class="k">E</span>Build ${t.name} · ${t.cost}g` : `Need ${t.cost} gold for the ${t.name}`;
+    eprompt.innerHTML = label;
     eprompt.style.display = 'block';
-    anchor(eprompt, nearSlot.u, 2.6, nearSlot.v);
+    anchor(eprompt, nearSlot.u, py, nearSlot.v);
   } else eprompt.style.display = 'none';
 }
 
@@ -425,17 +530,19 @@ function updatePrompt() {
 let N = null;
 const rangeRings = [];
 function startNight() {
+  if (S.phaseName === 'night') return;
   closeBmenu(); eprompt.style.display = 'none';
   const queue = nightPlan(S.day);
   N = { queue, total: queue.length, spawned: 0, killed: 0, enemies: [], units: [], towers: [],
-    spawnEvery: S.day === 1 ? 1.0 : S.day === 2 ? .85 : .7, spawnT: .6, kingCd: 0, abQ: 0, abE: 0, hornUntil: 0, t: 0, over: false };
+    spawnEvery: Math.max(.35, 1.05 - S.day * .07), spawnT: .6, kingCd: 0, abQ: 0, abE: 0, hornUntil: 0, t: 0, over: false };
   for (const sl of SLOTS) {
     const b = S.builds[sl.id]; if (!b) continue;
     if (b.type === 'tower') N.towers.push({ u: sl.u, v: sl.v, z: sl.holder.children[0]?.userData.z || 4, cd: .4 + Math.random() * .4, spec: towerSpec(b) });
     if (b.type === 'barracks') for (const o of [[.3,-3.2],[-1.3,-2.4],[1.7,-2.5],[.3,-1.6]]) spawnUnit(sl.u + o[0], sl.v + o[1], b.kind || 'knight');
     if (b.type === 'range') for (const o of [[.2,2.6],[-1.4,2],[1.6,2.1]]) spawnUnit(sl.u + o[0], sl.v + o[1], b.kind || 'longbow');
   }
-  N.towers.push({ u: 25, v: 24, z: 9.5, cd: .8, spec: { range: 11, rate: 1.1, dmg: 2 }, castle: true });
+  N.towers.push({ u: 25, v: 24, z: 9.5, cd: .8, castle: true,
+    spec: { range: 11, rate: S.castleLvl >= 3 ? .7 : 1.1, dmg: S.castleLvl >= 2 ? 3 : 2 } });
   if (S.settings.ranges) for (const t of N.towers) {
     if (t.castle) continue;
     const r = ART.ringMesh(t.spec.range, '#F0B429', .22);
@@ -460,10 +567,13 @@ function spawnEnemy(spec) {
   const T = ETYPES[spec.type], lane = spec.lane === 'A' ? LANE_A : LANE_B;
   const mesh = ART.enemyArt(spec.type);
   scene.add(mesh);
-  const e = { type: spec.type, lane, d: 0, hp: T.hp, max: T.hp, speed: T.speed, dmg: T.dmg, rate: T.rate,
-    atkCd: .8, fly: T.fly, mesh, dead: false, ph: Math.random() * 9, hpEl: null };
+  const hpScale = 1 + Math.max(0, S.day - 3) * .18; // endless nights harden the horde
+  const e = { type: spec.type, lane, d: 0, hp: Math.round(T.hp * hpScale), max: Math.round(T.hp * hpScale),
+    speed: T.speed, dmg: T.dmg, rate: T.rate, ranged: T.ranged || 0,
+    atkCd: .8, fly: T.fly, mesh, dead: false, ph: Math.random() * 9, hpEl: null, kCd: .5 };
   N.enemies.push(e); N.spawned++;
   if (spec.type === 'ogre') flashBanner('AN OGRE APPROACHES');
+  if (spec.type === 'spitter' && !N._spitSeen) { N._spitSeen = true; flashBanner('SPITTERS LOB FILTH FROM AFAR'); }
 }
 function epos(e) { return e.lane.at(e.d); }
 const ehpPool = domPool(30, 'ehp');
@@ -506,14 +616,35 @@ function simTick(dt) {
   if (N.spawnT <= 0 && N.queue.length) { N.spawnT = N.spawnEvery; spawnEnemy(N.queue.shift()); }
   for (const e of N.enemies) {
     if (e.dead) continue;
-    if (e.d < e.lane.total) e.d = Math.min(e.lane.total, e.d + e.speed * dt);
-    else { e.atkCd -= dt; if (e.atkCd <= 0) { e.atkCd = e.rate; hurtCastle(e.dmg); } }
+    const stop = e.lane.total - e.ranged;
+    if (e.d < stop) e.d = Math.min(stop, e.d + e.speed * dt);
+    else {
+      e.atkCd -= dt;
+      if (e.atkCd <= 0) {
+        e.atkCd = e.rate;
+        if (e.ranged) { // spitter lobs filth at the keep from a distance
+          const sp = epos(e);
+          arrow(new THREE.Vector3(sp.u, 1, sp.v), new THREE.Vector3(25, 2, 24.8), 3, () => hurtCastle(e.dmg));
+        } else hurtCastle(e.dmg);
+      }
+    }
     const p = epos(e), q = e.lane.at(e.d + .5);
     e.mesh.position.set(p.u, 0, p.v);
     e.mesh.lookAt(q.u, 0, q.v);
     const body = e.mesh.userData.body;
-    if (e.type === 'slime') { body.scale.y = 1 + Math.sin(N.t * 9 + e.ph) * .16; body.position.y = Math.abs(Math.sin(N.t * 9 + e.ph)) * .22; }
-    else if (!e.fly) body.rotation.z = Math.sin(N.t * 7 + e.ph) * .07;
+    if (e.type === 'slime' || e.type === 'runner') {
+      const sq = e.type === 'runner' ? 14 : 9;
+      body.scale.y = 1 + Math.sin(N.t * sq + e.ph) * .16;
+      body.position.y = Math.abs(Math.sin(N.t * sq + e.ph)) * .22;
+    } else if (e.fly) {
+      const a = Math.sin(N.t * 40 + e.ph) * .6, w = e.mesh.userData.wings;
+      if (w) { w[0].rotation.x = -.9 + a * .3; w[1].rotation.x = .9 - a * .3; }
+    } else body.rotation.z = Math.sin(N.t * 7 + e.ph) * .07;
+    /* brawlers turn on the king when he rides into them */
+    if (!e.fly && !K.down && Math.hypot(p.u - K.u, p.v - K.v) < 1.35) {
+      e.kCd -= dt;
+      if (e.kCd <= 0) { e.kCd = e.rate; hurtKing(e.dmg); }
+    }
     if (e.hpEl) anchor(e.hpEl, p.u, e.fly ? 2.9 : 1.8, p.v);
   }
   N.enemies = N.enemies.filter(e => !e.dead);
@@ -545,7 +676,7 @@ function simTick(dt) {
   }
   N.kingCd -= dt;
   const horn = N.t < N.hornUntil;
-  if (N.kingCd <= 0) {
+  if (N.kingCd <= 0 && !K.down) {
     const e = nearestEnemy(K.u, K.v, 2.4);
     if (e) { N.kingCd = horn ? .34 : .55; const p = epos(e); hurt(e, 2, .45); poof(p.u, .9, p.v); }
     else N.kingCd = .1;
@@ -560,7 +691,7 @@ function updAb(bsel, csel, cd, max) {
   $(bsel).classList.toggle('ready', cd <= 0);
 }
 function useSpear() {
-  if (!N || N.over || N.abQ > 0) return;
+  if (!N || N.over || N.abQ > 0 || K.down) return;
   const e = nearestEnemy(K.u, K.v, 10);
   if (!e) { flashBanner('NO TARGET IN RANGE'); return; }
   N.abQ = 6;
@@ -595,32 +726,28 @@ function endNight(win) {
     cleanupNight();
     if (win) {
       const dr = dawnRows(), flaw = integ === 100 ? 2 : 0;
-      if (S.day >= 3) {
-        $('#clrTally').innerHTML =
-          `<div class="row"><span>Nights survived</span><b>3 / 3</b></div>
-           <div class="row"><span>Final castle integrity</span><b>${integ}%</b></div>
-           <div class="row"><span>Crowns earned</span><b>${integ === 100 ? '♛ ♛ ♛' : '♛ ♛'}</b></div>`;
-        $('#ovCleared').style.display = 'grid';
-        setPhase('day');
-      } else {
-        $('#vicSub').textContent = `The kingdom stands. Night ${S.day} survived.`;
-        let rows = `<div class="row"><span>Enemies slain</span><b>${slain}</b></div>
-          <div class="row"><span>Castle integrity</span><b>${integ}%</b></div>`;
-        for (const r of dr.rows) rows += `<div class="row"><span>${r.l}</span><b>+${r.n}</b></div>`;
-        if (flaw) rows += `<div class="row"><span>Flawless defense bonus</span><b>+2</b></div>`;
-        rows += `<div class="row"><span><b style="color:#F6F2E8">Gold at dawn</b></span><b>${S.gold} → ${S.gold + dr.total + flaw}</b></div>`;
-        $('#vicTally').innerHTML = rows;
-        $('#vicNext').textContent = 'CONTINUE TO DAY ' + (S.day + 1);
-        $('#ovVictory').style.display = 'grid';
-        N._earned = dr.total + flaw;
-      }
-    } else $('#ovDefeat').style.display = 'grid';
+      $('#vicSub').textContent = S.day % 5 === 0
+        ? `Night ${S.day} survived. The kingdom endures — the horde grows bolder.`
+        : `The kingdom stands. Night ${S.day} survived.`;
+      let rows = `<div class="row"><span>Enemies slain</span><b>${slain}</b></div>
+        <div class="row"><span>Castle integrity</span><b>${integ}%</b></div>`;
+      for (const r of dr.rows) rows += `<div class="row"><span>${r.l}</span><b>+${r.n}</b></div>`;
+      if (flaw) rows += `<div class="row"><span>Flawless defense bonus</span><b>+2</b></div>`;
+      rows += `<div class="row"><span><b style="color:#F6F2E8">Gold at dawn</b></span><b>${S.gold} → ${S.gold + dr.total + flaw}</b></div>`;
+      $('#vicTally').innerHTML = rows;
+      $('#vicNext').textContent = 'CONTINUE TO DAY ' + (S.day + 1);
+      $('#ovVictory').style.display = 'grid';
+      N._earned = dr.total + flaw;
+    } else {
+      $('#defNights').textContent = String(S.day - 1);
+      $('#ovDefeat').style.display = 'grid';
+    }
   }, win ? 650 : 250);
 }
 $('#vicNext').addEventListener('click', () => {
   $('#ovVictory').style.display = 'none';
   S.gold += N._earned || 0; applyDawn(); S.day++; S.castleHP = S.castleMax;
-  N = null; setPhase('day'); refreshDayHUD();
+  N = null; setPhase('day'); revealPlots(); refreshDayHUD();
   let ci = 0;
   coinFly(25, 3, 24, ci++ * .08);
   for (const sl of SLOTS) {
@@ -635,10 +762,14 @@ $('#vicNext').addEventListener('click', () => {
 $('#defRetry').addEventListener('click', () => { $('#ovDefeat').style.display = 'none'; N = null; startNight(); });
 $('#defMenu').addEventListener('click', () => { $('#ovDefeat').style.display = 'none'; N = null; resetRun(); setView('menu'); });
 $('#clrMenu').addEventListener('click', () => { $('#ovCleared').style.display = 'none'; resetRun(); setView('menu'); });
+const castleTrims = [];
 function resetRun() {
-  S.day = 1; S.gold = 8; S.builds = {}; S.castleHP = S.castleMax;
-  SLOTS.forEach(sl => { if (sl.type === 'field') sl.hidden = true; renderBuild(sl); });
-  K.u = 25; K.v = 29.5;
+  S.day = 1; S.gold = 8; S.builds = {};
+  S.castleLvl = 1; S.castleMax = 15; S.castleHP = 15;
+  castleTrims.forEach(t => castle.remove(t)); castleTrims.length = 0;
+  SLOTS.forEach(sl => { sl.hidden = sl.type === 'field' || !!sl.unlockDay; renderBuild(sl); });
+  revealPlots(true);
+  K.u = 25; K.v = 29.5; K.hp = K.max; K.down = 0; K.mesh.visible = true;
   setPhase('day'); refreshDayHUD();
 }
 
@@ -678,7 +809,8 @@ document.addEventListener('keydown', e => {
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { keys[k] = true; if (k.startsWith('arrow')) e.preventDefault(); return; }
   if (e.repeat) return;
   if (e.key === ' ' && S.view === 'game' && S.phaseName === 'day' && !anyOverlay()) { e.preventDefault(); startNight(); }
-  else if (k === 'e' && S.view === 'game' && S.phaseName === 'day' && nearSlot && !anyOverlay()) tryBuild(nearSlot);
+  else if (k === 'e' && S.view === 'game' && S.phaseName === 'day' && nearSlot && !anyOverlay())
+    (nearSlot.castle || S.builds[nearSlot.id]) ? slotAction(nearSlot) : tryBuild(nearSlot);
   else if (k === 'q' && S.phaseName === 'night' && !anyOverlay()) useSpear();
   else if (k === 'e' && S.phaseName === 'night' && !anyOverlay()) useHorn();
   else if (e.key === '1' && S.phaseName === 'night') $$('.tchip')[0].click();
@@ -687,12 +819,16 @@ document.addEventListener('keydown', e => {
     $('#ovPause').style.display = $('#ovPause').style.display === 'grid' ? 'none' : 'grid';
 });
 document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+/* buttons must not keep focus, or Space re-triggers them mid-game */
+document.addEventListener('click', e => { const b = e.target.closest('button'); if (b) b.blur(); });
 
 /* ============================== wave preview & castle bar ============================== */
 function updateFloaters() {
-  const showPrev = S.view === 'game' && S.phaseName === 'day';
+  /* day: tonight's full wave preview · night: enemies still to spawn from each road */
   const cnt = { A: 0, B: 0 };
-  if (showPrev) nightPlan(S.day).forEach(e => cnt[e.lane]++);
+  let showPrev = false;
+  if (S.view === 'game' && S.phaseName === 'day') { showPrev = true; nightPlan(S.day).forEach(e => cnt[e.lane]++); }
+  else if (S.view === 'game' && N && !N.over) { showPrev = true; N.queue.forEach(e => cnt[e.lane]++); }
   for (const [id, lane, u, v] of [['#prevA', 'A', 2, 25], ['#prevB', 'B', 48, 25]]) {
     const el = $(id);
     if (showPrev && cnt[lane]) { el.style.display = 'flex'; $(id + 'n').textContent = '×' + cnt[lane]; anchor(el, u, 3.6, v); }
@@ -758,6 +894,7 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 window.__pump = s => { for (let i = 0; i < Math.round(s * 60); i++) step(STEP); };
+window.__dbg = { S, K, keys, get N() { return N; } };
 
 /* ============================== boot & test scenarios ============================== */
 refreshDayHUD();
@@ -778,6 +915,14 @@ setPhase('day'); setView('menu');
   else if (sc === 'night2') {
     S.day = 2; prebuild(); setView('game'); startNight();
     window.__pump(parseFloat(q.get('pump') || '9.5')); N.over = true;
+    phase.t = 1; applyPhase();
+  } else if (sc === 'night6') {
+    S.day = 6; prebuild(); revealPlots(true);
+    S.gold = 40;
+    build(SLOTS.find(s => s.id === 'x2'), {}); build(SLOTS.find(s => s.id === 'x3'), {});
+    S.gold = 30; castleMenu(); bmenu.querySelector('[data-c]')?.click(); // castle to Lv 2
+    setView('game'); startNight();
+    window.__pump(parseFloat(q.get('pump') || '16')); N.over = true;
     phase.t = 1; applyPhase();
   } else if (sc === 'vic') {
     S.gold = 10; build(SLOTS.find(s => s.id === 's2'), {}); build(SLOTS.find(s => s.id === 's5'), {});

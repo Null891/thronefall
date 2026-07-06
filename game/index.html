@@ -163,7 +163,7 @@
       <div class="clock"><div class="dots" id="clockDay"></div><div class="lbl">Nightfall</div></div>
       <button class="cta clickable" id="beginNight">BEGIN NIGHT<span class="kbd">SPACE</span></button>
     </div>
-    <div class="hint" id="dayHint">Ride with WASD · build with E or click a slot · Space begins the night</div>
+    <div class="hint" id="dayHint">Ride with WASD · E builds &amp; upgrades · Space begins the night</div>
   </div>
 
   <div id="hudNight" style="display:none">
@@ -194,7 +194,7 @@
     <h1>THRONEFALL</h1>
     <div class="tag">Build by day · Defend by night</div>
     <button class="cta" id="playBtn" style="font-size:22px; padding:14px 36px">PLAY CAMPAIGN</button>
-    <div class="ver">Web remake v0.1 · Nordfels vertical slice · fan-made, not affiliated with Grizzly Games</div>
+    <div class="ver">Web remake v0.2 · Nordfels, endless campaign · fan-made, not affiliated with Grizzly Games</div>
   </div>
 </div>
 
@@ -205,7 +205,8 @@
 </div></div>
 
 <div class="overlay" id="ovDefeat"><div class="panel">
-  <h2 style="color:#E64A53">THE CASTLE HAS FALLEN</h2><div class="sub">The kingdom is lost to the horde.</div>
+  <h2 style="color:#E64A53">THE CASTLE HAS FALLEN</h2>
+  <div class="sub">The kingdom is lost to the horde.<br>Nights survived: <b id="defNights" style="color:#F6C95C">0</b></div>
   <div class="btns"><button class="cta" id="defRetry" style="width:100%">RETRY NIGHT</button>
   <button class="pbtn" id="defMenu">Abandon to menu</button></div>
 </div></div>

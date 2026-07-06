@@ -15,13 +15,16 @@ Not affiliated with Grizzly Games or Mythwright.
 
 ## Play
 
-- **WASD / arrows** — ride the King
-- **E** — build at the nearest slot (or click a slot ring)
+- **WASD / arrows** — ride the King (screen-relative)
+- **E** — build or upgrade at the nearest slot (or click any building / the castle)
 - **Space** — begin the night
 - **Q** — spear throw · **E** — rally horn (at night)
 - **1 / 2** — troop stance (Hold / Charge) · **Esc** — pause
 
-Three nights. Build economy and defenses by day; if the Castle Center falls, the run ends.
+**Endless campaign.** Nights 1–3 are authored; from night 4 the horde scales forever (runners from
+night 4, spitters from night 6, ogre packs every 3rd night, +18% enemy HP per night past 3). New build
+plots are surveyed as days pass, the Castle Center can be fortified twice (its arrows improve), and the
+King himself can fall in melee — he respawns at the keep after 6 s. Survive as long as you can.
 
 ## Run locally
 
@@ -35,8 +38,9 @@ Deploys as-is to any static host (Vercel: push to main).
 
 ## Test scenarios (deterministic)
 
-`/game/?scenario=day2` · `?scenario=night2` (mid-combat, frozen) · `?scenario=vic` (full night → dawn).
-`window.__pump(seconds)` advances the fixed-timestep sim headlessly.
+`/game/?scenario=day2` · `?scenario=night2` · `?scenario=night6` (endless-mode wave, castle Lv 2) ·
+`?scenario=vic` (full night → dawn). `window.__pump(seconds)` advances the fixed-timestep sim headlessly;
+`window.__dbg` exposes state for behavioral tests.
 
 ## Tech notes
 
