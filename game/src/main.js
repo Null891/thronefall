@@ -1734,6 +1734,12 @@ function hurtUnit(un, dmg) {
   }
 }
 const BOSS_HP_MULT = 1.7; // a boss night should be an event, not a speed bump
+/* nothing marches in single file: [weave amplitude, weave speed, surge] per type */
+const SWAG = { slime: [.5, 2, 0], barrel: [.25, 1.2, 0], runner: [1.1, 5, .35], wolfrider: [1.3, 6, .4],
+  wasp: [1, 3, .3], bat: [1.4, 7, .4], shade: [.9, 2.5, .2], skeleton: [.6, 2.5, 0], moonling: [.8, 4, .2],
+  iceling: [.6, 3, 0], cinderling: [.7, 3, .15], crab: [1.2, 1.6, 0], jelly: [1, 1.5, .2], sprite: [1.3, 5, .3],
+  panther: [1.2, 5.5, .45], scarab: [.8, 2.2, 0], spitter: [.3, 1.5, 0], ogre: [.2, 1, 0], chief: [.3, 1.2, 0],
+  tyrant: [.25, 1, 0], urchin: [.4, 1.3, 0], gorilla: [.5, 2, .2] };
 function spawnEnemy(spec) {
   const isBoss = spec.type === 'boss';
   const type = (!isBoss && MAP.sub && MAP.sub[spec.type]) || spec.type;
@@ -1746,6 +1752,8 @@ function spawnEnemy(spec) {
     speed: T.speed, dmg: T.dmg, rate: T.rate, ranged: T.ranged || 0,
     atkCd: .8, fly: T.fly, mesh, dead: false, ph: Math.random() * 9, hpEl: null, kCd: .5, uCd: .7, pop: 1, flinch: 0,
     boss: isBoss, brood: isBoss ? (T.brood || 0) : 0, broodT: 4, broodType: T.broodType || 'wasp' };
+  const sw = !isBoss && SWAG[type];
+  if (sw) { e.sw = sw[0]; e.swf = sw[1]; e.surge = sw[2]; e.swBase = (Math.random() - .5) * 1.6; }
   if (N.trapsLeft > 0 && !isBoss && !spec.raid) { N.trapsLeft--; e.trapAt = e.lane.total * (.35 + Math.random() * .25); }
   if (spec.raid && !isBoss) { // a raider veers off the road toward gold on its own flank
     const st = LANES[spec.lane].start;
@@ -2069,6 +2077,7 @@ function simTick(dt) {
     } else if (e.d < stop) {
       e.uCd = .7;
       let mult = (e.slowT > 0 ? .6 : 1) * (N.bellSlow || 1);
+      if (e.surge) mult *= 1 + Math.sin(N.t * 2.3 + e.ph * 3) * e.surge;
       if (chiefPos && e.type !== 'chief') { // the war chief's drums quicken the march
         const pp = epos(e);
         if (chiefPos.some(c => Math.hypot(c.u - pp.u, c.v - pp.v) < 5)) mult *= 1.3;
@@ -2092,7 +2101,13 @@ function simTick(dt) {
     if (e.serpent) continue; // its body is animated by serpentTick, not the lane
     const p = epos(e);
     const q = e.free && e.tgt && !e.tgt.dead ? { u: e.tgt.u, v: e.tgt.v } : e.free ? { u: 25, v: 24 } : e.lane.at(e.d + .5);
-    e.mesh.position.set(p.u, e.fly ? 0 : heightAt(p.u, p.v), p.v);
+    let vu = p.u, vv = p.v;
+    if (!e.free && e.sw) {
+      const tx2 = q.u - p.u, tz2 = q.v - p.v, tm = Math.hypot(tx2, tz2) || 1;
+      const off = e.swBase + Math.sin(N.t * e.swf + e.ph) * e.sw;
+      vu += (-tz2 / tm) * off; vv += (tx2 / tm) * off;
+    }
+    e.mesh.position.set(vu, e.fly ? 0 : heightAt(vu, vv), vv);
     if (foe && !foe.dead) e.mesh.lookAt(foe.u, 0, foe.v);
     else if (bldg) e.mesh.lookAt(bldg.u, 0, bldg.v);
     else e.mesh.lookAt(q.u, 0, q.v);
