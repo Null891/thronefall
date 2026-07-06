@@ -201,7 +201,7 @@ export function plateauAt(u, v) {
 }
 let seaMesh = null; // the open sea persists across maps
 export function buildTerrain(group, lanes, opts = {}) {
-  const { sx = 1, sz = 1, sc = 1, pond = true, pal = null, shape = null, plateau = 1.8 } = opts;
+  const { sx = 1, sz = 1, sc = 1, pond = true, pal = null, shape = null, plateau = 1.8, roadW = 1, roadGap = 0 } = opts;
   PLATEAU_H = plateau;
   const T = TERRA[pal] || mats;
   const SP = (u, v) => [25 + (u - 25) * sc, 25 + (v - 25) * sc]; // decorative coords stretch with the island
@@ -234,8 +234,9 @@ export function buildTerrain(group, lanes, opts = {}) {
       const [au, av] = pts[i], [bu, bv] = pts[i + 1];
       const n = Math.ceil(Math.hypot(bu - au, bv - av) / .9);
       for (let j = 0; j <= n; j++) {
+        if (roadGap && Math.random() < roadGap) continue; // shell-torn, wind-buried, worn away
         const u = au + (bu - au) * j / n, v = av + (bv - av) * j / n;
-        plate(u, v, 1.55, T.sand, .035); plate(u, v, 1.15, T.path, .06);
+        plate(u, v, 1.55 * roadW, T.sand, .035); plate(u, v, 1.15 * roadW, T.path, .06);
       }
     }
   }
@@ -456,6 +457,12 @@ export function castleArt(style) {
 
 /* ---------- buildings ---------- */
 export function houseArt(upg, manor) {
+  const themed = themedHouse();
+  if (themed) {
+    if (manor) themed.scale.setScalar(1.18);
+    if (upg) { const f = flag(manor ? CONST.threat : CONST.gold, .8); f.position.set(-.9, 2.2, -.5); themed.add(f); }
+    return themed;
+  }
   const g = new THREE.Group(); const hh = manor ? 2.9 : upg ? 2.3 : 1.7;
   g.add(box(2.7, hh, 2, mats.cream));
   g.add(prismRoof(2.1, 1.6, 1.5, manor ? T_roofB() : T_roof(), 0, hh, 0));
@@ -517,7 +524,16 @@ export function harbourArt(upg, upg2) {
   return g;
 }
 export function towerArt(upg, mw) {
-  const g = new THREE.Group(); const tall = upg === 'sniper' ? 1.3 : 0;
+  const tall = upg === 'sniper' ? 1.3 : 0;
+  const tv = themedTower(tall);
+  if (tv) {
+    const g = tv;
+    if (upg === 'archer') g.add(cyl(.95, .95, .3, 8, mGold, 0, 1.9, 0));
+    if (upg === 'frost') { g.add(cyl(.95, .95, .3, 8, MC('#9FD8F0', { glow: .5 }), 0, 1.9, 0)); const iceGw = glow('#9FD8F0', 2.6, .25, .7); iceGw.position.y = g.userData.z + .6; g.add(iceGw); }
+    if (mw) g.add(cone(.22, .6, 6, mGold, 0, g.userData.z + 1.4, 0));
+    return g;
+  }
+  const g = new THREE.Group();
   g.add(cyl(.8, .92, 3.6 + tall, 8, mats.stone));
   if (upg === 'archer') g.add(cyl(.95, .95, .35, 8, mGold, 0, 2.1, 0));
   if (upg === 'frost') {
@@ -532,6 +548,59 @@ export function towerArt(upg, mw) {
   if (mw) g.add(cone(.22, .6, 6, mGold, 0, 5.7 + tall, 0)); // masterwork finial
   g.userData.z = 4 + tall; // arrow launch height
   return g;
+}
+function themedTower(tall) {
+  if (!THEME) return null;
+  const g = new THREE.Group();
+  if (THEME === 'ww2') { // flak tower
+    g.add(cyl(1.1, 1.3, 3 + tall, 8, mats.stoneDk));
+    g.add(cyl(1.45, 1.45, .5, 8, mats.stone, 0, 3 + tall, 0));
+    const bar = cyl(.08, .08, 1.9, 5, mats.dark, .7, 3.9 + tall, 0); bar.rotation.z = -1; g.add(bar);
+    g.userData.z = 3.8 + tall; return g;
+  }
+  if (THEME === 'crystal') { // a shard that watches
+    g.add(cone(.95, 4.4 + tall, 6, MC('#9FD8F0', { glow: .5 })));
+    g.add(cone(.4, 1.8, 5, MC('#BFD8FF', { glow: .75 }), .75, .4, .3));
+    const gw = glow('#9FD8F0', 3, .3, .85, true); gw.position.y = 4.4 + tall; g.add(gw);
+    g.userData.z = 4.2 + tall; return g;
+  }
+  if (THEME === 'ice') { // rimed pillar
+    g.add(cyl(.8, 1, 3.6 + tall, 7, mats.stone));
+    g.add(cone(1.2, 1.3, 7, mats.snow, 0, 3.6 + tall, 0));
+    for (let i = 0; i < 5; i++) { const th = i / 5 * Math.PI * 2; const ic = cone(.09, .6, 4, MC('#BFE4F5', { glow: .3 }), Math.cos(th) * 1.05, 3.5 + tall, Math.sin(th) * 1.05); ic.rotation.x = Math.PI; g.add(ic); }
+    g.userData.z = 4 + tall; return g;
+  }
+  if (THEME === 'magma') { // obsidian fang
+    g.add(cone(1.1, 4.6 + tall, 5, mats.dark));
+    g.add(cyl(1, 1, .3, 6, lavaMat, 0, 1.6, 0));
+    const gw = glow('#FF6A3D', 2.6, .25, .8, true); gw.position.y = 3.6 + tall; g.add(gw);
+    g.userData.z = 4 + tall; return g;
+  }
+  if (THEME === 'coral') { // a polyp spire
+    g.add(cyl(.7, 1, 3.8 + tall, 7, MC('#F0A45C', { glow: .25 })));
+    g.add(mesh(new THREE.SphereGeometry(.55, 7, 6), MC('#E87A9C', { glow: .45 }), 0, 4 + tall, 0));
+    const gw = glow('#E87A9C', 2.6, .25, .8, true); gw.position.y = 4.2 + tall; g.add(gw);
+    g.userData.z = 4 + tall; return g;
+  }
+  if (THEME === 'dune') { // minaret
+    g.add(cyl(.55, .75, 4.2 + tall, 8, MC('#D9B87A', { glow: .05 })));
+    g.add(cyl(.9, .9, .35, 8, MC('#C9A45E', { glow: .06 }), 0, 4.2 + tall, 0));
+    g.add(mesh(new THREE.SphereGeometry(.62, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), MC(CONST.gold, { glow: .25 }), 0, 4.55 + tall, 0));
+    g.userData.z = 4.6 + tall; return g;
+  }
+  if (THEME === 'vine') { // a living watch-tree
+    g.add(cyl(.5, .7, 3.4 + tall, 6, mats.trunk));
+    g.add(box(1.8, .16, 1.8, T_wood(), 0, 3.4 + tall, 0));
+    g.add(mesh(new THREE.IcosahedronGeometry(1, 0), mats.pineDk, 0, 4.6 + tall, 0));
+    g.userData.z = 3.9 + tall; return g;
+  }
+  if (THEME === 'dark' || THEME === 'bone') { // gothic needle
+    g.add(cyl(.7, .85, 3.8 + tall, 6, mats.stoneDk));
+    g.add(cone(.95, 2.2, 6, T_roofB(), 0, 3.8 + tall, 0));
+    g.add(box(.3, .7, .1, windowMat(), 0, 2.4 + tall, .78));
+    g.userData.z = 4.2 + tall; return g;
+  }
+  return null;
 }
 export function barracksArt(_, vet) {
   const g = new THREE.Group();
@@ -590,6 +659,73 @@ export function roadWallArt(kind, upg2) {
     const b = box(.18, 2.2, .18, mats.trunk, .62, .1, z); b.rotation.z = .5; g.add(b);
   }
   return g;
+}
+function themedHouse() {
+  if (!THEME) return null;
+  const g = new THREE.Group();
+  const win = (x, y, z) => { g.add(box(.5, .5, .1, windowMat(), x, y, z)); const gw = glow('#FFD97A', 1.7, 0, .45); gw.position.set(x, y + .3, z + .2); g.add(gw); };
+  if (THEME === 'crystal') { // pressure domes under the stars
+    const dome = mesh(new THREE.SphereGeometry(1.35, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), MC('#BFD8FF', { glow: .25, transparent: true, opacity: .8 }));
+    g.add(dome);
+    g.add(cyl(1.45, 1.45, .25, 12, mats.stoneDk));
+    g.add(box(.7, .9, .6, mats.stone, 1.35, 0, 0));
+    g.add(cyl(.03, .03, 1.6, 4, mats.dark, -.6, 1.1, -.4));
+    win(0, .5, 1.28);
+    return g;
+  }
+  if (THEME === 'ww2') { // nissen hut behind sandbags
+    const hut = cyl(1, 1, 2.8, 10, mOlive, 0, 0, 0);
+    hut.rotation.z = Math.PI / 2; hut.position.y = .55; hut.scale.y = .9; g.add(hut);
+    g.add(box(.6, .9, .1, mats.dark, 1.42, 0, 0)).rotation.y = Math.PI / 2;
+    for (const z of [-1, 0, 1]) g.add(box(.7, .4, .4, MC('#8A8578', { glow: .04 }), -1.6, 0, z));
+    win(0, .8, 1.02);
+    return g;
+  }
+  if (THEME === 'ice') { // steep lodge that sheds the snow
+    const a1 = box(2.6, 2.6, .3, mats.snow, 0, .2, .75); a1.rotation.x = -.5; g.add(a1);
+    const a2 = box(2.6, 2.6, .3, mats.snow, 0, .2, -.75); a2.rotation.x = .5; g.add(a2);
+    g.add(box(.24, 2.1, 1.3, T_wood(), -1.2, 0, 0)); g.add(box(.24, 2.1, 1.3, T_wood(), 1.2, 0, 0));
+    win(1.34, 1, 0);
+    return g;
+  }
+  if (THEME === 'vine') { // a hut on stilts, above the crawling things
+    for (const [x, z] of [[-.9, .6], [.9, .6], [-.9, -.6], [.9, -.6]]) g.add(cyl(.09, .11, 1.1, 5, mats.trunk, x, 0, z));
+    g.add(box(2.4, .18, 1.8, T_wood(), 0, 1.1, 0));
+    g.add(box(1.9, 1.1, 1.4, mats.cream, 0, 1.28, 0));
+    g.add(cone(1.5, 1.2, 5, mats.pine, 0, 2.38, 0));
+    win(0, 1.7, .78);
+    return g;
+  }
+  if (THEME === 'dune') { // adobe, cool in the heat
+    g.add(box(2.4, 1.6, 1.9, MC('#D9B87A', { glow: .05 })));
+    g.add(box(2.6, .22, 2.1, MC('#C9A45E', { glow: .05 }), 0, 1.6, 0));
+    g.add(mesh(new THREE.SphereGeometry(.55, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), MC(CONST.gold, { glow: .15 }), .7, 1.8, -.4));
+    g.add(box(.6, 1.1, .12, mats.dark, -.5, 0, .98));
+    win(.7, .8, .98);
+    return g;
+  }
+  if (THEME === 'magma') { // squat obsidian, sealed against the ash
+    g.add(box(2.3, 1.5, 1.9, mats.dark));
+    g.add(box(2.5, .25, 2.1, mats.stoneDk, 0, 1.5, 0));
+    g.add(box(1.8, .12, .3, lavaMat, 0, .7, .98));
+    win(-.7, .7, .98);
+    return g;
+  }
+  if (THEME === 'coral') { // a grown shell, still humming
+    const sh = mesh(new THREE.SphereGeometry(1.15, 9, 7), MC('#E8C8D8', { glow: .2 }), 0, .95, 0); sh.scale.y = .85; g.add(sh);
+    g.add(cone(.55, 1.3, 6, MC('#E87A9C', { glow: .35 }), .5, 1.5, .3));
+    g.add(box(.55, .8, .1, mats.dark, 0, 0, 1.06));
+    win(-.6, .8, .95);
+    return g;
+  }
+  if (THEME === 'dark' || THEME === 'bone') { // narrow gables against the gloom
+    g.add(box(1.9, 2.3, 1.7, mats.cream));
+    g.add(prismRoof(1.6, 1.4, 1.9, T_roofB(), 0, 2.3, 0));
+    g.add(box(.55, .95, .12, mats.dark, .2, 0, .87));
+    win(-.55, 1.5, .87);
+    return g;
+  }
+  return null;
 }
 export const BUILD_ART = { house: houseArt, mill: millArt, field: fieldArt, mine: mineArt,
   harbour: harbourArt, tower: towerArt, barracks: barracksArt, range: rangeArt, wall: roadWallArt };

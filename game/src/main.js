@@ -306,7 +306,7 @@ const MAPS = {
       B: windLane([60, 25.5], [28.3, 25], 3.2, 4, 2.4),
       C: windLane([25, -11], [25, 21.6], 3, 3, 1.4),
     },
-    terrain: { sx: 1, sz: 1, sc: 1.6, pond: false, shape: 'cross', plateau: 2.8 },
+    terrain: { sx: 1, sz: 1, sc: 1.6, pond: false, shape: 'cross', plateau: 2.8, roadW: .88 },
     sky: { dayBg: '#8E86A8', daySun: '#D8C8E8', daySunInt: 1.9, dayHemi: '#8E86B8', dayExp: .98, nightBg: '#0E0A1A', fog: [55, 190] },
     castleStyle: 'bone', theme: 'dark', slotXform: 'mirrorX',
     sub: { slime: 'skeleton' }, // the dead walk these hills
@@ -368,7 +368,7 @@ const MAPS = {
   ironfront: {
     id: 'ironfront', name: 'Ironfront', unlockAfter: { map: 'deephollow', nights: 10 },
     saboteur: true, skin: 'ww2', castleStyle: 'bunker', theme: 'ww2', camZoom: 1.05,
-    terrain: { sx: 1, sz: 1, sc: 1.9, pond: false, shape: 'shatter', plateau: 1.2 },
+    terrain: { sx: 1, sz: 1, sc: 1.9, pond: false, shape: 'shatter', plateau: 1.2, roadGap: .22 },
     sky: { dayBg: '#9A968A', daySun: '#D8D2C0', daySunInt: 1.8, dayHemi: '#A8A498', dayGnd: '#6A6858', dayExp: .95, nightBg: '#0C0E12', fog: [60, 200] },
     laneIds: ['A', 'B', 'C', 'D'],
     boss: BOSS_DEFS.landship, bosses: [BOSS_DEFS.landship, BOSS_DEFS.acewing],
@@ -419,7 +419,7 @@ const MAPS = {
       B: windLane([59, 25.5], [28.3, 25], 2.4, 2, 3),
       C: windLane([25, -9], [25, 21.6], 2.2, 2, .3),
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'moon', shape: 'round', plateau: 2.2 },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'moon', shape: 'round', plateau: 2.2, roadGap: .14, roadW: .9 },
     sky: { dayBg: '#0A0D1A', daySun: '#F0F4FF', daySunInt: 3, dayHemi: '#2A3450', dayGnd: '#3A4050', dayExp: 1.05, nightBg: '#05070F', nightHemi: '#0E1428', fog: [90, 300] },
     castleStyle: 'crystal', theme: 'crystal', slotXform: 'rot90',
     sub: { slime: 'moonling' },
@@ -620,7 +620,7 @@ const MAPS = {
       B: windLane([59, 25.5], [28.3, 25], 3.4, 3, 3.3),
       C: windLane([25, 59], [25, 28.8], 3, 3, .7),
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'jungle', shape: 'jungle', plateau: 2 },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'jungle', shape: 'jungle', plateau: 2, roadW: .78 },
     sky: { dayBg: '#9CC8A8', daySun: '#F4E8AC', daySunInt: 2.2, dayHemi: '#A8D0B0', dayGnd: '#4E7A48', nightBg: '#0A1610', fog: [50, 170] },
     castleStyle: 'vine', theme: 'vine', merchant: true, slotXform: 'rot90',
     sub: { runner: 'panther' },
@@ -751,7 +751,7 @@ const MAPS = {
       B: windLane([59, 25.5], [28.3, 25], 3, 2, 3.5),
       C: windLane([25, 59], [25, 28.8], 2.8, 2, .2),
     },
-    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'dune', shape: 'drift', plateau: 2.2 },
+    terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'dune', shape: 'drift', plateau: 2.2, roadW: 1.3 },
     sky: { dayBg: '#E8C88E', daySun: '#FFE7C0', daySunInt: 3, dayHemi: '#F0D8A8', dayGnd: '#C0A068', dayExp: 1.2, nightBg: '#141020', fog: [70, 230] },
     castleStyle: 'dune', theme: 'dune', merchant: true, slotXform: 'rot90',
     sub: { slime: 'scarab' },
@@ -1695,7 +1695,7 @@ function updatePrompt() {
 let N = null;
 const rangeRings = [];
 function startNight() {
-  if (S.phaseName === 'night') return;
+  if (N && !N.over) return; // a battle already rages — but a finished or aborted night may restart
   closeBmenu(); eprompt.style.display = 'none';
   collectAllCoins(); // leftover taxes sweep themselves into the purse at dusk
   refreshGold();
@@ -2853,8 +2853,9 @@ window.__pump = s => { for (let i = 0; i < Math.round(s * 60); i++) step(STEP); 
 window.__dbg = { S, K, keys, AUDIO, get N() { return N; }, get MAP() { return MAP; }, get coins() { return groundCoins.length; } };
 /* seal the realm into a code, carry it anywhere */
 function saveCode() {
-  const d = { v: 1, map: S.map, day: S.day, gold: S.gold, builds: S.builds, lvl: S.castleLvl,
-    max: S.castleMax, serp: S.serpent, saga: !!S._saga, char: S.char, weap: S.weapon };
+  const d = { v: 2, map: S.map, day: S.day, gold: S.gold, builds: S.builds, lvl: S.castleLvl,
+    max: S.castleMax, serp: S.serpent, saga: !!S._saga, char: S.char, weap: S.weapon,
+    bests: BESTS, meta: META, ach: ACH, ctotal: CROWN_TOTAL, perks: [...perkSet] };
   return 'TF1.' + btoa(unescape(encodeURIComponent(JSON.stringify(d))));
 }
 function loadCode(code) {
@@ -2863,6 +2864,13 @@ function loadCode(code) {
     if (!code.startsWith('TF1.')) return false;
     const d = JSON.parse(decodeURIComponent(escape(atob(code.slice(4)))));
     if (!MAPS[d.map]) return false;
+    if (d.bests) { for (const k in d.bests) BESTS[k] = Math.max(BESTS[k] || 0, d.bests[k]); saveBests(); }
+    if (d.meta) { META.crowns = Math.max(META.crowns, d.meta.crowns || 0); Object.assign(META.owned, d.meta.owned || {}); saveMeta(); }
+    if (d.ach) { Object.assign(ACH, d.ach); try { localStorage.tf_ach = JSON.stringify(ACH); } catch { /* ok */ } }
+    if (d.ctotal) { CROWN_TOTAL = Math.max(CROWN_TOTAL, d.ctotal); try { localStorage.tf_ctotal = CROWN_TOTAL; } catch { /* ok */ } }
+    if (d.perks) { perkSet = new Set(d.perks.filter(x => PERKS[x])); try { localStorage.tf_perks = JSON.stringify([...perkSet]); } catch { /* ok */ } }
+    applyOwned(); refreshArmory(); refreshAch(); refreshMapCards();
+    $$('.pchip').forEach(c => c.classList.toggle('on', perkSet.has(c.dataset.p)));
     loadMap(d.map);
     S.day = d.day || 1; S.gold = d.gold || 8;
     S.castleLvl = d.lvl || 1; S.castleMax = d.max || 15; S.castleHP = S.castleMax;
