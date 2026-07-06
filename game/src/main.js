@@ -110,16 +110,28 @@ const BOSS_DEFS = {
   wyrm:      { name: 'THE DUNE WYRM', kind: 'wyrm', hp: 80, speed: 1.2, dmg: 5, rate: 1.8 },
   roc:       { name: 'THE STORM ROC', kind: 'roc', hp: 70, speed: 1.2, dmg: 4, rate: 1.5, fly: true, brood: 7, broodType: 'sprite' },
 };
+/* roads wind now: sinusoidal wander with a hard-zero envelope at both ends,
+   so every road still leaves its gate and still reaches its coast */
+function windLane(a, b, amp, waves, ph) {
+  const pts = [];
+  const dx = b[0] - a[0], dz = b[1] - a[1], m = Math.hypot(dx, dz) || 1;
+  for (let i = 0; i <= 8; i++) {
+    const t = i / 8;
+    const off = Math.sin(t * Math.PI * waves + ph) * amp * Math.sin(t * Math.PI);
+    pts.push([a[0] + dx * t + (-dz / m) * off, a[1] + dz * t + (dx / m) * off]);
+  }
+  return pts;
+}
 const MAPS = {
   nordfels: {
     id: 'nordfels', name: 'Nordfels',
     laneIds: ['A', 'B', 'C', 'D'],
     bounds: { u: [-19, 69], v: [-19, 69] },
     lanePts: {
-      A: [[-16, 25.5], [-6, 25.2], [4, 25], [12, 25.2], [19.5, 25], [21.7, 25]],
-      B: [[66, 25.5], [56, 25.2], [46, 25], [38, 24.8], [29.6, 25], [28.3, 25]],
-      C: [[25, -15], [24.6, -6], [25.2, 3], [24.8, 10], [25, 17], [25, 21.6]],
-      D: [[25, 63], [25.4, 54], [24.7, 46], [25.2, 38], [25, 33], [25, 28.8]],
+      A: windLane([-16, 25.5], [21.7, 25], 2.6, 2, .4),
+      B: windLane([66, 25.5], [28.3, 25], 2.6, 2, 2.1),
+      C: windLane([25, -15], [25, 21.6], 2.4, 2, 1.2),
+      D: windLane([25, 63], [25, 28.8], 2.4, 2, 3.6),
     },
     terrain: { sx: 1, sz: 1, sc: 1.9, pond: true, plateau: 1.8 },
     boss: BOSS_DEFS.warlord, bosses: [BOSS_DEFS.warlord, BOSS_DEFS.brood],
@@ -200,6 +212,8 @@ const MAPS = {
       }
       place(ART.boat(), 59.5, 48.5, .6);
       ART.birdsOver(mapGroup, 1.9);
+      for (let i = 0; i < 7; i++) { const th = i / 7 * Math.PI * 2; place(ART.rock(.9), -6 + Math.cos(th) * 4, -4 + Math.sin(th) * 4, th); } // the standing stones
+      place(ART.rock(1.4), -6, -4, .5);
     },
   },
   leviathan: {
@@ -208,9 +222,9 @@ const MAPS = {
     bounds: { u: [-17, 67], v: [-1, 51] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
-      A: [[-14, 25.7], [-6, 25.6], [1, 25.4], [7, 25.2], [14, 25], [19.5, 25], [21.7, 25]],
-      B: [[64, 25.7], [56, 25.6], [49, 25.4], [42, 25.2], [36, 25], [29.6, 25], [28.3, 25]],
-      C: [[25, -4], [24.8, 3], [25, 9], [24.8, 14], [25, 18], [25, 21.6]],
+      A: windLane([-14, 25.7], [21.7, 25], 2.2, 3, .8),
+      B: windLane([64, 25.7], [28.3, 25], 2.2, 3, 2.6),
+      C: windLane([25, -4], [25, 21.6], 1.8, 2, 1.7),
     },
     terrain: { sx: 1.45, sz: .9, sc: 1.25, pond: false, shape: 'spine', plateau: 1.4 },
     sky: { dayBg: '#96C8D8', daySun: '#F4E6C0', nightBg: '#0A1420' },
@@ -248,6 +262,7 @@ const MAPS = {
         place(ART.ribArt(s), x, 25, Math.PI / 2);
       place(ART.ribArt(1.1), 25, 9.5); place(ART.ribArt(1.2), 25, 13.5);
       place(ART.skullArt(1.5), 0, 33, 2.6);
+      place(ART.giantSwordArt(), 46, 38, 1.1); // whoever slew the titan left this behind
       for (const [u0, v0, s] of [[8,19,1.2],[12,30,.9],[30,7,1],[37,32,1.3],[44,21,.9],[20,6,1.1],[31,42,1],[13,41,1.2],[42,15,.8],[48,28,1],[2,20,.9]]) {
         const [u, v] = P(u0, v0);
         place(ART.boneSpike(s), u, v, Math.random() * 6);
@@ -287,9 +302,9 @@ const MAPS = {
     bounds: { u: [-14, 64], v: [-14, 64] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
-      A: [[-10, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
-      B: [[60, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
-      C: [[25, -11], [24.7, -3], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
+      A: windLane([-10, 25.5], [21.7, 25], 3.2, 4, .5),
+      B: windLane([60, 25.5], [28.3, 25], 3.2, 4, 2.4),
+      C: windLane([25, -11], [25, 21.6], 3, 3, 1.4),
     },
     terrain: { sx: 1, sz: 1, sc: 1.6, pond: false, shape: 'cross', plateau: 2.8 },
     sky: { dayBg: '#8E86A8', daySun: '#D8C8E8', daySunInt: 1.9, dayHemi: '#8E86B8', dayExp: .98, nightBg: '#0E0A1A', fog: [55, 190] },
@@ -336,6 +351,7 @@ const MAPS = {
       for (const [u0, v0] of [[10,16],[40,16],[10,34],[40,34],[25,44]]) {
         const [u, v] = P(u0, v0);
         place(ART.mineArt(true), u, v, Math.random() * 6, 1.1); // abandoned shafts
+        place(ART.mineCartArt(), u + 3, v + 1.5, Math.random() * 6);
         place(ART.nuggetArt(1), u + 2.2, v + 1, Math.random() * 6);
       }
       for (const [u, v, s] of [[8,26,1],[42,24,.9],[20,42,.8],[30,40,1],[16,12,.9],[34,12,.8],[24,8,1],[44,32,.9],[6,36,.8]])
@@ -356,6 +372,12 @@ const MAPS = {
     sky: { dayBg: '#9A968A', daySun: '#D8D2C0', daySunInt: 1.8, dayHemi: '#A8A498', dayGnd: '#6A6858', dayExp: .95, nightBg: '#0C0E12', fog: [60, 200] },
     laneIds: ['A', 'B', 'C', 'D'],
     boss: BOSS_DEFS.landship, bosses: [BOSS_DEFS.landship, BOSS_DEFS.acewing],
+    lanePts: {
+      A: windLane([-16, 25.5], [21.7, 25], 2.8, 5, .9),
+      B: windLane([66, 25.5], [28.3, 25], 2.8, 5, 2.8),
+      C: windLane([25, -15], [25, 21.6], 2.6, 4, 1.9),
+      D: windLane([25, 63], [25, 28.8], 2.6, 4, 4.1),
+    },
     decor() {
       const P = (u, v) => [25 + (u - 25) * 1.85, 25 + (v - 25) * 1.85];
       /* a churned battlefield: craters, wire and the stumps of a burned wood */
@@ -379,6 +401,7 @@ const MAPS = {
         const [u, v] = P(u0, v0);
         place(ART.bunkerArt(), u, v, Math.random() * 6);
       }
+      place(ART.wreckTankArt(), 25 + (38 - 25) * 1.85, 25 + (34 - 25) * 1.85, 2.2); // it never made it home
       place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
       place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
       place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
@@ -392,9 +415,9 @@ const MAPS = {
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
-      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
-      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
-      C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
+      A: windLane([-9, 25.5], [21.7, 25], 2.4, 2, 1.1),
+      B: windLane([59, 25.5], [28.3, 25], 2.4, 2, 3),
+      C: windLane([25, -9], [25, 21.6], 2.2, 2, .3),
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'moon', shape: 'round', plateau: 2.2 },
     sky: { dayBg: '#0A0D1A', daySun: '#F0F4FF', daySunInt: 3, dayHemi: '#2A3450', dayGnd: '#3A4050', dayExp: 1.05, nightBg: '#05070F', nightHemi: '#0E1428', fog: [90, 300] },
@@ -446,6 +469,7 @@ const MAPS = {
       }
       const earth = place(ART.earthArt(), -6, -4);
       earth.position.y = 32;
+      place(ART.landerArt(), 42, 40, .7); // the first visitors
       for (let i = 0; i < 40; i++) { // stars, even at noon — there is no air here
         const st = ART.glow('#FFFFFF', .5 + Math.random() * .5, .55, .85, Math.random() < .3);
         st.position.set(25 + (Math.random() - .5) * 110, 20 + Math.random() * 26, 25 + (Math.random() - .5) * 110);
@@ -463,9 +487,9 @@ const MAPS = {
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
-      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
-      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
-      C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
+      A: windLane([-9, 25.5], [21.7, 25], 3, 3, .6),
+      B: windLane([59, 25.5], [28.3, 25], 3, 3, 2.2),
+      C: windLane([25, 59], [25, 28.8], 2.8, 3, 1.5),
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'abyss', shape: 'ripple', plateau: 1.5 },
     sky: { dayBg: '#1E4A5E', daySun: '#7BC5E3', daySunInt: 1.7, dayHemi: '#2E6E7E', dayGnd: '#1E4A46', dayExp: .95, nightBg: '#0A2028', nightSun: '#3E7D8A', fog: [35, 130] },
@@ -517,6 +541,7 @@ const MAPS = {
         const [u, v] = P(u0, v0);
         ART.bubblesAt(mapGroup, u, v);
       }
+      place(ART.shipwreckArt(), 25 + (40 - 25) * 1.45, 25 + (14 - 25) * 1.45, 2.4); // she sank a long way
       place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
       place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
       place(ART.wallRun(3.4), 18.6, 32.5, Math.PI / 2); place(ART.wallRun(3.4), 28, 32.5, Math.PI / 2);
@@ -529,9 +554,9 @@ const MAPS = {
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
-      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
-      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
-      C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
+      A: windLane([-9, 25.5], [21.7, 25], 2.6, 2, 2.5),
+      B: windLane([59, 25.5], [28.3, 25], 2.6, 2, .9),
+      C: windLane([25, -9], [25, 21.6], 2.4, 2, 1.8),
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ice', shape: 'cross', plateau: 2.4 },
     sky: { dayBg: '#DDE8F2', daySun: '#E8F0FF', daySunInt: 2.8, dayHemi: '#D8E4F0', dayExp: 1.15, nightBg: '#101A2E', fog: [60, 210] },
@@ -582,6 +607,7 @@ const MAPS = {
       place(ART.wallRun(3.4), 18.9, 17.5, Math.PI / 2); place(ART.wallRun(3.4), 27.6, 17.5, Math.PI / 2);
       for (const [u, v] of [[15.1,23],[15.1,27],[35.1,23],[35.1,27],[23,17.5],[27,17.5]]) gateAt(u, v);
       ART.weatherSnow(mapGroup, 1.5);
+      place(ART.monolithArt(), 44, 42, .8); // it was here before the snow
     },
   },
   verdania: {
@@ -590,9 +616,9 @@ const MAPS = {
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
-      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
-      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
-      C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
+      A: windLane([-9, 25.5], [21.7, 25], 3.4, 3, 1.3),
+      B: windLane([59, 25.5], [28.3, 25], 3.4, 3, 3.3),
+      C: windLane([25, 59], [25, 28.8], 3, 3, .7),
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'jungle', shape: 'jungle', plateau: 2 },
     sky: { dayBg: '#9CC8A8', daySun: '#F4E8AC', daySunInt: 2.2, dayHemi: '#A8D0B0', dayGnd: '#4E7A48', nightBg: '#0A1610', fog: [50, 170] },
@@ -640,6 +666,7 @@ const MAPS = {
       }
       for (const [u, v, s] of [[8,26,1],[42,24,.9],[16,12,.9]])
         place(ART.rock(s), 25 + (u - 25) * 1.35, 25 + (v - 25) * 1.35, Math.random() * 6);
+      place(ART.godheadArt(), 25 + (10 - 25) * 1.45, 25 + (10 - 25) * 1.45, .9); // the jungle grew over its name
       place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
       place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
       place(ART.wallRun(3.4), 18.6, 32.5, Math.PI / 2); place(ART.wallRun(3.4), 28, 32.5, Math.PI / 2);
@@ -653,9 +680,9 @@ const MAPS = {
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
-      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
-      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
-      C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
+      A: windLane([-9, 25.5], [21.7, 25], 2.6, 3, 2),
+      B: windLane([59, 25.5], [28.3, 25], 2.6, 3, .4),
+      C: windLane([25, -9], [25, 21.6], 2.4, 3, 2.9),
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ash', shape: 'volcanic', plateau: 2.6 },
     sky: { dayBg: '#4A3230', daySun: '#FFB35C', daySunInt: 2.2, dayHemi: '#5E4038', dayGnd: '#3A2A24', dayExp: 1.0, nightBg: '#1A0E0C', nightSun: '#B06040', fog: [50, 170] },
@@ -720,9 +747,9 @@ const MAPS = {
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
-      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
-      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
-      C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
+      A: windLane([-9, 25.5], [21.7, 25], 3, 2, 1.6),
+      B: windLane([59, 25.5], [28.3, 25], 3, 2, 3.5),
+      C: windLane([25, 59], [25, 28.8], 2.8, 2, .2),
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'dune', shape: 'drift', plateau: 2.2 },
     sky: { dayBg: '#E8C88E', daySun: '#FFE7C0', daySunInt: 3, dayHemi: '#F0D8A8', dayGnd: '#C0A068', dayExp: 1.2, nightBg: '#141020', fog: [70, 230] },
@@ -770,6 +797,7 @@ const MAPS = {
       for (const [u, v, s] of [[8,26,1],[42,24,1],[16,12,1],[34,12,.9]])
         place(ART.rock(s), 25 + (u - 25) * 1.35, 25 + (v - 25) * 1.35, Math.random() * 6);
       for (const [u0, v0] of [[18,10],[32,38],[44,27]]) place(ART.nuggetArt(.8), ...P(u0, v0), 0);
+      place(ART.sphinxArt(), 25 + (12 - 25) * 1.45, 25 + (12 - 25) * 1.45, .8); // all patience
       place(ART.wallRun(3.6), 15.1, 18.6); place(ART.wallRun(3.6), 15.1, 27.8);
       place(ART.wallRun(3.6), 35.1, 18.6); place(ART.wallRun(3.6), 35.1, 27.8);
       place(ART.wallRun(3.4), 18.6, 32.5, Math.PI / 2); place(ART.wallRun(3.4), 28, 32.5, Math.PI / 2);
@@ -782,9 +810,9 @@ const MAPS = {
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
-      A: [[-9, 25.5], [-2, 25.2], [6, 25], [13, 25.1], [19.5, 25], [21.7, 25]],
-      B: [[59, 25.5], [52, 25.2], [44, 25], [37, 24.9], [29.6, 25], [28.3, 25]],
-      C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
+      A: windLane([-9, 25.5], [21.7, 25], 2.8, 4, .5),
+      B: windLane([59, 25.5], [28.3, 25], 2.8, 4, 2.7),
+      C: windLane([25, -9], [25, 21.6], 2.6, 4, 1.6),
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'sky', shape: 'shard', plateau: 2.4 },
     sky: { dayBg: '#BFE4FF', daySun: '#FFFFFF', daySunInt: 3, dayHemi: '#CFEAFF', dayExp: 1.25, nightBg: '#0E1830', fog: [80, 260] },
@@ -823,6 +851,8 @@ const MAPS = {
         const [u, v] = P(u0, v0);
         place(ART.floatRockArt(s), u, v);
       }
+      const arc1 = place(ART.ribArt(1.6), 25 + (40 - 25) * 1.45, 25 + (40 - 25) * 1.45, .8); // a bridge that led somewhere once
+      const arc2 = place(ART.ribArt(1.2), 25 + (43 - 25) * 1.45, 25 + (37 - 25) * 1.45, .8);
       for (const [u0, v0, r, h] of [[12,8,4,1.3],[38,42,5,1.5],[8,40,4,1.1]]) {
         const [u, v] = P(u0, v0);
         place(ART.hillArt(r, h, 'sky'), u, v);
@@ -915,6 +945,7 @@ function loadMap(id) {
   }
   for (const sl of SLOTS) {
     if (sl.wall) { // walls sit on the road itself, square across it
+      sl.wall.d = (sl.unlockDay ? .3 : .74) * LANES[sl.wall.lane].total;
       const p = LANES[sl.wall.lane].at(sl.wall.d), q = LANES[sl.wall.lane].at(sl.wall.d + .6);
       sl.u = p.u; sl.v = p.v;
       sl.ang = Math.atan2(-(q.v - p.v), q.u - p.u);

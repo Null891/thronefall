@@ -1358,6 +1358,79 @@ export function castleDress(style) {
   }
   return g;
 }
+/* ---------- landmarks: one unforgettable thing per realm ---------- */
+export function giantSwordArt() { // whoever dropped it did not come back for it
+  const g = new THREE.Group();
+  const blade = box(1.1, 9, .3, mSteel, 0, 0, 0); blade.rotation.z = .22; blade.rotation.x = .1; g.add(blade);
+  const guard = box(3, .5, .6, mGold, -.95, 4.1, .4); guard.rotation.z = .22; g.add(guard);
+  const grip = cyl(.28, .28, 1.8, 6, mats.trunk, -1.25, 4.6, .55); grip.rotation.z = .22; g.add(grip);
+  g.add(mesh(new THREE.IcosahedronGeometry(.34, 0), MC('#B07EC9', { glow: .8 }), -1.62, 5.7, .72));
+  return g;
+}
+export function mineCartArt() {
+  const g = new THREE.Group();
+  g.add(box(3.4, .12, .18, mats.trunk, 0, .06, .5)); g.add(box(3.4, .12, .18, mats.trunk, 0, .06, -.5));
+  for (let i = -1; i <= 1; i++) g.add(box(.22, .1, 1.2, mats.trunk, i * 1.3, 0, 0));
+  g.add(box(1.3, .8, 1, mats.stoneDk, .4, .3, 0));
+  g.add(mesh(new THREE.IcosahedronGeometry(.32, 0), mGold, .4, 1, .1));
+  g.add(mesh(new THREE.IcosahedronGeometry(.22, 0), mGold, .7, .95, -.25));
+  return g;
+}
+export function wreckTankArt() { // it burned here, and it burns still
+  const g = ww2Art('barrel');
+  g.rotation.z = .25; g.rotation.x = -.12;
+  const smoke = glow('#4A4048', 5, .5, .5); smoke.position.y = 3; g.add(smoke);
+  const fire = glow('#FF6A3D', 3, .35, .9, true); fire.position.y = 1.2; g.add(fire);
+  g.scale.setScalar(1.4);
+  return g;
+}
+export function landerArt() { // someone came here on purpose, once
+  const g = new THREE.Group();
+  const pod = mesh(new THREE.CapsuleGeometry(1, 1, 4, 8), mSteel, 0, 2, 0); g.add(pod);
+  for (let i = 0; i < 4; i++) {
+    const th = i / 4 * Math.PI * 2 + .8;
+    const leg = cyl(.09, .09, 2.2, 4, mats.dark, Math.cos(th) * 1.3, .2, Math.sin(th) * 1.3);
+    leg.rotation.z = Math.cos(th) * .5; leg.rotation.x = -Math.sin(th) * .5; g.add(leg);
+  }
+  g.add(box(1.8, .06, 1.1, MC('#4A90D9', { glow: .5 }), 1.6, 2.6, 0)); // solar wing
+  const bl = glow('#7BE0C8', 2.4, .3, .9, true); bl.position.y = 3.4; g.add(bl);
+  g.rotation.z = .14;
+  return g;
+}
+export function shipwreckArt() {
+  const g = new THREE.Group();
+  const hull = box(6, 1.6, 2.2, mats.trunk); hull.scale.z = .8; hull.rotation.z = .3; hull.rotation.x = .18; g.add(hull);
+  const mast = cyl(.14, .14, 5, 5, mats.trunk, .5, .6, 0); mast.rotation.z = .9; g.add(mast);
+  g.add(box(.4, 2.2, .1, mWhite, 2.4, 1.8, 0)).rotation.z = .9;
+  return g;
+}
+export function monolithArt() { // the ice remembers
+  const g = new THREE.Group();
+  const m = box(1.6, 6.5, .9, MC('#BFE4F5', { glow: .35 }), 0, 0, 0); m.rotation.z = .06; g.add(m);
+  g.add(mesh(new THREE.IcosahedronGeometry(.4, 0), MC('#7BC5E3', { glow: 1 }), 0, 4.2, .5));
+  const gw = glow('#BFE4F5', 5, .3, .9, true); gw.position.y = 3.5; g.add(gw);
+  return g;
+}
+export function godheadArt() { // the jungle grew over its name
+  const g = new THREE.Group();
+  const head = box(2.6, 3, 2.4, mats.stoneDk, 0, .4, 0); head.rotation.z = .12; g.add(head);
+  g.add(box(.6, .9, .2, mats.dark, -.6, 2, 1.25));
+  g.add(box(.6, .9, .2, mats.dark, .7, 2, 1.25));
+  g.add(box(1.4, .3, .2, mats.dark, 0, .9, 1.25));
+  g.add(mesh(new THREE.IcosahedronGeometry(.9, 0), mats.pine, -1.2, 3.2, -.4));
+  g.add(mesh(new THREE.IcosahedronGeometry(.7, 0), mats.pineDk, 1, 3.4, .3));
+  return g;
+}
+export function sphinxArt() { // half cat, half mountain, all patience
+  const g = new THREE.Group();
+  const m = MC('#D9B87A', { glow: .05 });
+  g.add(box(4.6, 1.6, 2, m, -.4, 0, 0));
+  g.add(box(1.6, 1.9, 1.7, m, 1.6, .8, 0));
+  g.add(box(1.2, 1.2, 1.4, m, 1.7, 2.4, 0));
+  g.add(box(.5, .8, .3, mats.dark, 2.1, 2.6, .5)); g.add(box(.5, .8, .3, mats.dark, 2.1, 2.6, -.5));
+  g.add(box(1, .5, .6, m, 2.4, 0, .8)); g.add(box(1, .5, .6, m, 2.4, 0, -.8));
+  return g;
+}
 export function portalArt() { // a wound in the world
   const g = new THREE.Group();
   const ring = mesh(new THREE.TorusGeometry(1.7, .22, 7, 18), MC('#6B4FA0', { glow: .9 }), 0, 2.4, 0);
