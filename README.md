@@ -19,7 +19,11 @@ Not affiliated with Grizzly Games or Mythwright.
 - **E** — build or upgrade at the nearest slot (or click any building / the castle)
 - **Space** — begin the night
 - **Q** — spear throw · **E** — rally horn (at night)
-- **1 / 2** — troop stance (Hold / Charge) · **Esc** — pause
+- **1 / 2 / 3** — troop stance (Hold / Charge / **Follow Me**) · **Esc** — pause · **M** — mute
+
+**Commanding troops.** Switch to *Follow Me* (3) and your soldiers gather around the King; ride
+anywhere on the island, then switch back to *Hold* (1) to station them right there. *Charge* (2)
+sends melee troops hunting the nearest enemy.
 
 **Endless campaign.** Nights 1–3 are authored; from night 4 the horde scales forever (runners from
 night 4, spitters from night 6, ogre packs every 3rd night, +18% enemy HP per night past 3). New build
@@ -48,4 +52,6 @@ Deploys as-is to any static host (Vercel: push to main).
 - Flat-shaded procedural geometry only; palette day/night lerp + real light rig (warm sun → cool moon,
   torch point lights, additive glow sprites). No textures except a generated radial-gradient sprite.
 - Fixed 60 Hz simulation with accumulator; object-pooled projectiles, damage numbers, coins, poofs.
+- Procedural WebAudio (`game/src/audio.js`): synth sfx + a generative score that crossfades from
+  folk plucks by day to drone-and-heartbeat by night. No samples; wakes on the first input.
 - Exact economy/combat numbers documented in `ROADMAP.md` §7.

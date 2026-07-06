@@ -3,6 +3,7 @@
 'use strict';
 import * as THREE from 'three';
 import * as ART from './art.js';
+import { AUDIO, sfx } from './audio.js';
 
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 
@@ -61,6 +62,7 @@ function applyPhase() {
   renderer.toneMappingExposure = L(DAY.exp, NIGHT.exp);
   for (const l of torchLights) l.intensity = L(DAY.torch, NIGHT.torch) * (0.9 + Math.sin(perf * 7 + l.position.x) * .12);
   ART.setPhase(t, perf);
+  AUDIO.setPhase(t);
 }
 
 /* ============================== static world ============================== */
@@ -91,7 +93,11 @@ for (const p of castle.userData.torches) addTorch(p.clone().add(castle.position)
 
 /* ============================== game state (exact ECS numbers) ============================== */
 const S = { view: 'menu', phaseName: 'day', day: 1, gold: 8, castleHP: 15, castleMax: 15, castleLvl: 1,
-  builds: {}, settings: { dmg: true, ranges: true, shake: true }, stance: 'hold' };
+  builds: {}, settings: { dmg: true, ranges: true, shake: true, music: true, sound: true }, stance: 'hold' };
+try { Object.assign(S.settings, JSON.parse(localStorage.tf_set || '{}')); } catch { /* fresh device */ }
+function saveSet() { try { localStorage.tf_set = JSON.stringify(S.settings); } catch { /* private mode */ } }
+AUDIO.setEnabled(S.settings.music, S.settings.sound);
+AUDIO.arm();
 const BTYPES = {
   house:    { name: 'House',           cost: 2, icon: '🏠', desc: '+1 gold at dawn' },
   mill:     { name: 'Windmill',        cost: 3, icon: '🌀', desc: '+1 gold · unlocks Fields' },
@@ -286,6 +292,7 @@ function poof(x, y, z, big) {
 }
 function arrow(from, to, arc, onHit, big) {
   const m = arrowPool.take(); if (!m) return;
+  sfx.arrow();
   const dist = from.distanceTo(to);
   m.scale.setScalar(big ? 1.8 : 1);
   fxAdd({ kind: 'arrow', m, from: from.clone(), to: to.clone(), arc, t: 0, dur: Math.max(.12, dist / 26), hit: onHit });
@@ -303,6 +310,10 @@ function updateFx(dt) {
     if (f.t < 0) continue;
     if (f.kind === 'dmg') { const p = proj(f.x, f.y + k * 1.6, f.z); f.el.style.left = p.x + 'px'; f.el.style.top = p.y + 'px'; f.el.style.opacity = 1 - k; }
     if (f.kind === 'poof') { const s = .4 + (f.big ? 3.4 : 1.8) * k; f.m.scale.setScalar(s); f.m.material.opacity = .9 * (1 - k); }
+    if (f.kind === 'die') { // squash into the ground, splaying wide
+      f.mesh.scale.set(1 + k * .8, Math.max(.04, 1 - k * 1.05), 1 + k * .8);
+      if (f.fly) f.mesh.position.y = -1.5 * k * k;
+    }
     if (f.kind === 'arrow') {
       _a.lerpVectors(f.from, f.to, k); _a.y += f.arc * 4 * k * (1 - k);
       const k2 = Math.min(1, k + .04);
@@ -318,7 +329,7 @@ function updateFx(dt) {
         const sp = 26 * dt;
         _a.set(K.u, 1, K.v).sub(_b.set(f.x, f.y, f.z));
         const d = _a.length();
-        if (d < .8) { f.t = f.dur; poof(f.x, f.y, f.z); }
+        if (d < .8) { f.t = f.dur; poof(f.x, f.y, f.z); sfx.coin(); }
         else { _a.normalize().multiplyScalar(Math.min(sp, d)); f.x += _a.x; f.y += _a.y; f.z += _a.z; }
       }
       f.m.position.set(f.x, f.y, f.z); f.m.rotation.y += 8 * dt;
@@ -328,6 +339,7 @@ function updateFx(dt) {
     if (f.t >= f.dur) {
       if (f.el) dmgPool.release(f.el);
       if (f.m) f.m.visible = false;
+      if (f.mesh) scene.remove(f.mesh);
       return false;
     } return true;
   });
@@ -375,10 +387,12 @@ function hurtKing(n) {
   if (K.down > 0) return;
   K.hp -= n;
   poof(K.u, 1.2, K.v);
+  sfx.kingHit();
   if (K.hp <= 0) {
     K.hp = 0; K.down = 6;
     K.mesh.visible = false;
     poof(K.u, .8, K.v, true);
+    sfx.fallen();
     flashBanner('THE KING HAS FALLEN — HE RETURNS AT THE KEEP');
   }
 }
@@ -424,6 +438,7 @@ function castleMenu() {
     const trim = ART.castleTrim(S.castleLvl);
     castle.add(trim); castleTrims.push(trim);
     poof(25, 5, 24, true);
+    sfx.upgrade();
     refreshDayHUD(); closeBmenu();
     flashHint(`The Castle Center stands taller — Lv ${S.castleLvl}`);
   });
@@ -451,11 +466,12 @@ function slotAction(sl) {
     if (S.gold < cost) return;
     S.gold -= cost; S.builds[sl.id].upg = (u === 'house' || u === 'docks') ? true : u;
     renderBuild(sl); refreshDayHUD(); closeBmenu();
+    sfx.upgrade();
   }));
 }
 function tryBuild(sl) {
   const t = BTYPES[sl.type];
-  if (S.gold < t.cost) { flashHint('Not enough gold — the ' + t.name + ' costs ' + t.cost); return; }
+  if (S.gold < t.cost) { flashHint('Not enough gold — the ' + t.name + ' costs ' + t.cost); sfx.error(); return; }
   if (sl.type === 'barracks') {
     openMenu(sl, 'Barracks — choose a company',
       opt('data-k="knight"', '🛡', 'Knights', 'Balanced, armored against arrows', 4, true) +
@@ -479,6 +495,7 @@ function build(sl, extra) {
   S.builds[sl.id] = { type: sl.type, age: 0, boats: 0, ...extra };
   renderBuild(sl); closeBmenu(); refreshDayHUD();
   poof(sl.u, .5, sl.v);
+  sfx.build();
   if (sl.type === 'mill') {
     SLOTS.filter(x => x.type === 'field').forEach(x => x.hidden = false);
     refreshMarkers(); flashHint('The Windmill opened two Field plots nearby');
@@ -554,6 +571,9 @@ function startNight() {
   $('#remainNum').textContent = N.total;
   setClock('#clockNight', 0);
   if (S.day === 2) setTimeout(() => flashBanner('BARREL KNIGHTS ON THE ROADS'), 1600);
+  S.stance = 'hold';
+  $$('.tchip').forEach(x => x.classList.toggle('on', x.dataset.stance === 'hold'));
+  sfx.night();
   setPhase('night');
 }
 function spawnUnit(u, v, kind) {
@@ -561,7 +581,8 @@ function spawnUnit(u, v, kind) {
     longbow: { range: 13, rate: 1.15, dmg: 1 }, fire: { range: 9, rate: 1.2, dmg: 1, splash: 1.7 } };
   const mesh = kind === 'knight' || kind === 'berserk' ? ART.knightArt(kind) : ART.archerArt(kind);
   mesh.position.set(u, 0, v); mesh.rotation.y = Math.random() * 6; scene.add(mesh);
-  N.units.push({ u, v, kind, cd: .3 + Math.random() * .5, ...specs[kind], mesh, bob: Math.random() * 9 });
+  N.units.push({ u, v, pu: u, pv: v, kind, cd: .3 + Math.random() * .5, ...specs[kind], mesh,
+    bob: Math.random() * 9, fo: Math.random() * Math.PI * 2, fr: 1.5 + Math.random() * 1.3, pop: 1 });
 }
 function spawnEnemy(spec) {
   const T = ETYPES[spec.type], lane = spec.lane === 'A' ? LANE_A : LANE_B;
@@ -570,7 +591,7 @@ function spawnEnemy(spec) {
   const hpScale = 1 + Math.max(0, S.day - 3) * .18; // endless nights harden the horde
   const e = { type: spec.type, lane, d: 0, hp: Math.round(T.hp * hpScale), max: Math.round(T.hp * hpScale),
     speed: T.speed, dmg: T.dmg, rate: T.rate, ranged: T.ranged || 0,
-    atkCd: .8, fly: T.fly, mesh, dead: false, ph: Math.random() * 9, hpEl: null, kCd: .5 };
+    atkCd: .8, fly: T.fly, mesh, dead: false, ph: Math.random() * 9, hpEl: null, kCd: .5, pop: 1, flinch: 0 };
   N.enemies.push(e); N.spawned++;
   if (spec.type === 'ogre') flashBanner('AN OGRE APPROACHES');
   if (spec.type === 'spitter' && !N._spitSeen) { N._spitSeen = true; flashBanner('SPITTERS LOB FILTH FROM AFAR'); }
@@ -587,16 +608,19 @@ function hurt(e, dmg, kb = 0) {
   if (e.hpEl) e.hpEl.firstChild.style.width = Math.max(0, 100 * e.hp / e.max) + '%';
   if (e.hp <= 0) {
     e.dead = true; N.killed++;
-    poof(p.u, e.fly ? 1.7 : .5, p.v, e.type === 'ogre' || e.type === 'barrel');
-    scene.remove(e.mesh);
+    const big = e.type === 'ogre' || e.type === 'barrel';
+    poof(p.u, e.fly ? 1.7 : .5, p.v, big);
+    sfx.kill(big);
+    fxAdd({ kind: 'die', mesh: e.mesh, t: 0, dur: .34, fly: e.fly }); // removed from the scene when the squash ends
     if (e.hpEl) ehpPool.release(e.hpEl);
     $('#remainNum').textContent = N.total - N.killed;
     setClock('#clockNight', N.killed / N.total);
-  }
+  } else { e.flinch = 1; sfx.hit(); }
 }
 let shakeT = 0;
 function hurtCastle(n) {
   S.castleHP = Math.max(0, S.castleHP - n);
+  sfx.castleHit();
   $('#castleFill').style.width = (100 * S.castleHP / S.castleMax) + '%';
   if (S.settings.shake && !matchMedia('(prefers-reduced-motion: reduce)').matches) shakeT = .25;
   poof(25, 2, 26.5);
@@ -631,6 +655,15 @@ function simTick(dt) {
     const p = epos(e), q = e.lane.at(e.d + .5);
     e.mesh.position.set(p.u, 0, p.v);
     e.mesh.lookAt(q.u, 0, q.v);
+    if (e.pop > 0) { // pop out of the road on spawn
+      e.pop = Math.max(0, e.pop - dt * 3);
+      const k = 1 - e.pop;
+      e.mesh.scale.setScalar(k * (1 + Math.sin(k * Math.PI) * .22) + .001);
+    } else if (e.flinch > 0) { // squash on taking a hit
+      e.flinch = Math.max(0, e.flinch - dt * 5);
+      const s = e.flinch * .2;
+      e.mesh.scale.set(1 + s, 1 - s, 1 + s);
+    }
     const body = e.mesh.userData.body;
     if (e.type === 'slime' || e.type === 'runner') {
       const sq = e.type === 'runner' ? 14 : 9;
@@ -657,10 +690,35 @@ function simTick(dt) {
       else t.cd = .12;
     }
   }
-  const charge = S.stance === 'charge';
+  const charge = S.stance === 'charge', follow = S.stance === 'follow';
   for (const un of N.units) {
     un.cd -= dt;
-    un.mesh.position.y = Math.abs(Math.sin(N.t * 5 + un.bob)) * .05;
+    if (un.pop > 0) { // muster pop
+      un.pop = Math.max(0, un.pop - dt * 2.5);
+      const k = 1 - un.pop;
+      un.mesh.scale.setScalar(k * (1 + Math.sin(k * Math.PI) * .3) + .001);
+    }
+    /* stances move the company: follow the king, charge the horde, or hold the post.
+       Leaving Follow plants a new post wherever each soldier stands — that is how you re-station troops. */
+    let tx = null, tz = null, sp = 0, stopAt = .3;
+    if (follow && !K.down) { tx = K.u + Math.cos(un.fo) * un.fr; tz = K.v + Math.sin(un.fo) * un.fr; sp = 7.5; }
+    else if (charge && un.range < 4) {
+      const e = nearestEnemy(un.u, un.v, 12);
+      if (e) { const p = epos(e); tx = p.u; tz = p.v; sp = 3.6; stopAt = un.range * .8; }
+    } else if (!follow && !charge && Math.hypot(un.pu - un.u, un.pv - un.v) > .4) { tx = un.pu; tz = un.pv; sp = 3.4; }
+    let walking = false;
+    if (tx !== null) {
+      const dx = tx - un.u, dz = tz - un.v, d = Math.hypot(dx, dz);
+      if (d > stopAt) {
+        const mv = Math.min(d, sp * dt);
+        un.u = Math.max(1.5, Math.min(48.5, un.u + dx / d * mv));
+        un.v = Math.max(1.5, Math.min(48.5, un.v + dz / d * mv));
+        un.mesh.lookAt(tx, 0, tz);
+        walking = true;
+      }
+    }
+    un.mesh.position.x = un.u; un.mesh.position.z = un.v;
+    un.mesh.position.y = Math.abs(Math.sin(N.t * (walking ? 9 : 5) + un.bob)) * (walking ? .12 : .05);
     if (un.cd <= 0) {
       const e = nearestEnemy(un.u, un.v, un.range * (charge ? 1.5 : 1));
       if (e) {
@@ -695,6 +753,7 @@ function useSpear() {
   const e = nearestEnemy(K.u, K.v, 10);
   if (!e) { flashBanner('NO TARGET IN RANGE'); return; }
   N.abQ = 6;
+  sfx.spear();
   const p = epos(e);
   arrow(new THREE.Vector3(K.u, 2.2, K.v), new THREE.Vector3(p.u, e.fly ? 1.7 : .7, p.v), 1.2,
     () => { hurt(e, 8, .8); poof(p.u, 1, p.v, true); }, true);
@@ -702,6 +761,7 @@ function useSpear() {
 function useHorn() {
   if (!N || N.over || N.abE > 0) return;
   N.abE = 14; N.hornUntil = N.t + 6;
+  sfx.horn();
   flashBanner('RALLY! THE KING FIGHTS HARDER');
 }
 $('#abSpear').addEventListener('click', useSpear);
@@ -711,7 +771,7 @@ function cleanupNight() {
   N.enemies.forEach(e => { if (!e.dead) { scene.remove(e.mesh); if (e.hpEl) ehpPool.release(e.hpEl); } });
   N.units.forEach(u => scene.remove(u.mesh));
   rangeRings.forEach(r => scene.remove(r)); rangeRings.length = 0;
-  fx.forEach(f => { if (f.el) dmgPool.release(f.el); if (f.m) f.m.visible = false; }); fx = [];
+  fx.forEach(f => { if (f.el) dmgPool.release(f.el); if (f.m) f.m.visible = false; if (f.mesh) scene.remove(f.mesh); }); fx = [];
 }
 function abortNight() {
   if (!N) return;
@@ -724,6 +784,7 @@ function endNight(win) {
   setTimeout(() => {
     const slain = N.killed, integ = Math.round(100 * S.castleHP / S.castleMax);
     cleanupNight();
+    win ? sfx.victory() : sfx.defeat();
     if (win) {
       const dr = dawnRows(), flaw = integ === 100 ? 2 : 0;
       $('#vicSub').textContent = S.day % 5 === 0
@@ -746,6 +807,7 @@ function endNight(win) {
 }
 $('#vicNext').addEventListener('click', () => {
   $('#ovVictory').style.display = 'none';
+  sfx.dawn();
   S.gold += N._earned || 0; applyDawn(); S.day++; S.castleHP = S.castleMax;
   N = null; setPhase('day'); revealPlots(); refreshDayHUD();
   let ci = 0;
@@ -796,11 +858,22 @@ $('#pauseAbandon').addEventListener('click', () => { $('#ovPause').style.display
 $('#pauseSettings').addEventListener('click', () => { $('#ovSettings').style.display = 'grid'; });
 $('#setClose').addEventListener('click', () => { $('#ovSettings').style.display = 'none'; });
 function bindSet(id, key) { $(id).addEventListener('change', e => {
-  S.settings[key] = e.target.checked;
+  S.settings[key] = e.target.checked; saveSet();
   if (key === 'ranges') rangeRings.forEach(r => r.visible = e.target.checked);
+  if (key === 'music' || key === 'sound') AUDIO.setEnabled(S.settings.music, S.settings.sound);
 }); }
 bindSet('#setDmg', 'dmg'); bindSet('#setRanges', 'ranges'); bindSet('#setShake', 'shake');
+bindSet('#setMusic', 'music'); bindSet('#setSound', 'sound');
+function syncSetUI() {
+  $('#setDmg').checked = S.settings.dmg; $('#setRanges').checked = S.settings.ranges;
+  $('#setShake').checked = S.settings.shake; $('#setMusic').checked = S.settings.music;
+  $('#setSound').checked = S.settings.sound;
+}
+syncSetUI();
 $$('.tchip').forEach(c => c.addEventListener('click', () => {
+  /* leaving Follow stations each soldier where he stands */
+  if (N && S.stance === 'follow' && c.dataset.stance !== 'follow')
+    N.units.forEach(un => { un.pu = un.u; un.pv = un.v; });
   S.stance = c.dataset.stance;
   $$('.tchip').forEach(x => x.classList.toggle('on', x === c));
 }));
@@ -813,14 +886,20 @@ document.addEventListener('keydown', e => {
     (nearSlot.castle || S.builds[nearSlot.id]) ? slotAction(nearSlot) : tryBuild(nearSlot);
   else if (k === 'q' && S.phaseName === 'night' && !anyOverlay()) useSpear();
   else if (k === 'e' && S.phaseName === 'night' && !anyOverlay()) useHorn();
-  else if (e.key === '1' && S.phaseName === 'night') $$('.tchip')[0].click();
-  else if (e.key === '2' && S.phaseName === 'night') $$('.tchip')[1].click();
+  else if (['1', '2', '3'].includes(e.key) && S.phaseName === 'night') $$('.tchip')[+e.key - 1].click();
+  else if (k === 'm') {
+    const on = !(S.settings.music && S.settings.sound);
+    S.settings.music = S.settings.sound = on;
+    saveSet(); syncSetUI(); AUDIO.setEnabled(on, on);
+    if (S.view === 'game' && S.phaseName === 'day') flashHint(on ? 'Sound on' : 'Sound muted');
+    else if (S.phaseName === 'night') flashBanner(on ? 'SOUND ON' : 'SOUND MUTED');
+  }
   else if (e.key === 'Escape' && S.phaseName === 'night' && N && !N.over)
     $('#ovPause').style.display = $('#ovPause').style.display === 'grid' ? 'none' : 'grid';
 });
 document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 /* buttons must not keep focus, or Space re-triggers them mid-game */
-document.addEventListener('click', e => { const b = e.target.closest('button'); if (b) b.blur(); });
+document.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { b.blur(); if (!b.disabled) sfx.ui(); } });
 
 /* ============================== wave preview & castle bar ============================== */
 function updateFloaters() {
@@ -894,7 +973,7 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 window.__pump = s => { for (let i = 0; i < Math.round(s * 60); i++) step(STEP); };
-window.__dbg = { S, K, keys, get N() { return N; } };
+window.__dbg = { S, K, keys, AUDIO, get N() { return N; } };
 
 /* ============================== boot & test scenarios ============================== */
 refreshDayHUD();
