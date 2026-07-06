@@ -16,6 +16,12 @@
   #vignette{position:fixed; inset:0; pointer-events:none; z-index:5;
     background:radial-gradient(ellipse 120% 100% at 50% 45%, transparent 62%, rgba(8,10,18,.38) 100%)}
 
+  /* tilt-shift focus band — the diorama look */
+  #tilt{position:fixed; inset:0; pointer-events:none; z-index:4}
+  #tilt .tb{position:absolute; left:0; right:0; backdrop-filter:blur(2.6px); -webkit-backdrop-filter:blur(2.6px)}
+  #tilt .top{top:0; height:24%; -webkit-mask-image:linear-gradient(#000 20%, transparent); mask-image:linear-gradient(#000 20%, transparent)}
+  #tilt .bot{bottom:0; height:26%; -webkit-mask-image:linear-gradient(transparent, #000 80%); mask-image:linear-gradient(transparent, #000 80%)}
+
   /* ============ UI layer ============ */
   #ui{position:fixed; inset:0; pointer-events:none; z-index:10; font-variant-numeric:tabular-nums}
   #ui .clickable{pointer-events:auto}
@@ -134,7 +140,15 @@
   #menuScreen .crown{font-size:44px; filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
   #menuScreen h1{font-family:'Cinzel',serif; font-weight:900; font-size:clamp(42px,7vw,84px); letter-spacing:.16em;
     color:#F6C95C; text-shadow:0 3px 0 #8A6207, 0 10px 30px rgba(20,16,10,.55); margin:2px 0 6px}
-  #menuScreen .tag{font-size:13px; font-weight:800; letter-spacing:.3em; text-transform:uppercase; color:rgba(246,242,232,.9); margin-bottom:30px}
+  #menuScreen .tag{font-size:13px; font-weight:800; letter-spacing:.3em; text-transform:uppercase; color:rgba(246,242,232,.9); margin-bottom:24px}
+  .wrow{display:flex; gap:10px; justify-content:center; margin-bottom:24px}
+  .wcard{display:flex; flex-direction:column; align-items:center; gap:3px; width:138px; cursor:pointer;
+    background:#1A1622; border:2px solid #3A3049; border-radius:12px; padding:10px 8px; color:#F6F2E8; font-family:inherit}
+  .wcard .ic{font-size:26px; line-height:1.2}
+  .wcard b{font-size:13px; letter-spacing:.05em}
+  .wcard .d{font-size:10px; opacity:.7; line-height:1.35}
+  .wcard:hover{border-color:#F0B429}
+  .wcard.on{border-color:#F0B429; box-shadow:0 0 14px rgba(240,178,41,.25)}
   #menuScreen .ver{margin-top:26px; font-size:10.5px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; opacity:.55}
 
   @media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important} }
@@ -142,6 +156,7 @@
 </head>
 <body>
 <canvas id="gl"></canvas>
+<div id="tilt"><div class="tb top"></div><div class="tb bot"></div></div>
 <div id="vignette"></div>
 
 <div id="ui">
@@ -158,7 +173,7 @@
       <div class="hud-chip"><span class="hud-icon">🪙</span><span class="num" id="goldNum">8</span><span class="sub" id="incomeNum">+1 at dawn</span></div>
       <div class="hud-chip"><span class="hud-icon">☀️</span><span><span class="num" id="dayNum" style="font-size:16px">Day 1 / 3</span><br><span class="lbl">Nordfels</span></span></div>
     </div>
-    <div class="hud-chip kingchip"><span class="hud-icon">👑</span><span><b style="font-size:14px">King Aldric</b><br><span class="lbl">Spear · Lv 3</span></span></div>
+    <div class="hud-chip kingchip"><span class="hud-icon">👑</span><span><b style="font-size:14px">King Aldric</b><br><span class="lbl" id="kingWeap">Spear · Lv 3</span></span></div>
     <div class="bottomright">
       <div class="clock"><div class="dots" id="clockDay"></div><div class="lbl">Nightfall</div></div>
       <button class="cta clickable" id="beginNight">BEGIN NIGHT<span class="kbd">SPACE</span></button>
@@ -167,14 +182,15 @@
   </div>
 
   <div id="hudNight" style="display:none">
+    <div class="hud-chip" style="position:absolute; top:14px; left:16px"><span class="hud-icon">🪙</span><span class="num" id="goldNight">0</span></div>
     <div class="banner"><div class="t" id="waveTitle">NIGHT 1</div><div class="r">💀 Remaining <b id="remainNum">0</b></div></div>
     <div class="kingpanel">
       <div class="portrait">👑</div>
       <div class="kstats">
-        <div class="name">King Aldric · Spear</div>
+        <div class="name" id="kingTitle">King Aldric · Spear</div>
         <div class="bar"><div class="fill" id="kingFill" style="width:100%"></div></div>
         <div class="abilities">
-          <button class="ab clickable" id="abSpear">🗡<span class="cd" id="abSpearCd"></span><span class="key">Q</span></button>
+          <button class="ab clickable" id="abSpear"><span id="abQIc">🗡</span><span class="cd" id="abSpearCd"></span><span class="key">Q</span></button>
           <button class="ab clickable" id="abHorn">📯<span class="cd" id="abHornCd"></span><span class="key">E</span></button>
         </div>
       </div>
@@ -194,8 +210,13 @@
     <div class="crown">👑</div>
     <h1>THRONEFALL</h1>
     <div class="tag">Build by day · Defend by night</div>
+    <div class="wrow">
+      <button class="wcard on" data-w="spear"><span class="ic">🗡</span><b>Spear</b><span class="d">Swift jabs from the saddle<br>Q — spear throw</span></button>
+      <button class="wcard" data-w="bow"><span class="ic">🏹</span><b>Longbow</b><span class="d">Fights from horseback range<br>Q — arrow storm</span></button>
+      <button class="wcard" data-w="hammer"><span class="ic">🔨</span><b>Warhammer</b><span class="d">Slow, crushing sweeps<br>Q — ground slam</span></button>
+    </div>
     <button class="cta" id="playBtn" style="font-size:22px; padding:14px 36px">PLAY CAMPAIGN</button>
-    <div class="ver">Web remake v0.3 · Nordfels, endless campaign · fan-made, not affiliated with Grizzly Games</div>
+    <div class="ver">Web remake v0.4 · Nordfels, endless campaign · fan-made, not affiliated with Grizzly Games</div>
   </div>
 </div>
 
@@ -234,6 +255,7 @@
     <label class="setrow">Damage numbers <input type="checkbox" id="setDmg" checked></label>
     <label class="setrow">Tower range rings at night <input type="checkbox" id="setRanges" checked></label>
     <label class="setrow">Screen shake <input type="checkbox" id="setShake" checked></label>
+    <label class="setrow">Tilt-shift focus <input type="checkbox" id="setTilt" checked></label>
     <label class="setrow">Music <input type="checkbox" id="setMusic" checked></label>
     <label class="setrow">Sound effects <span style="opacity:.55; font-size:11px; margin-left:auto; margin-right:10px">M mutes all</span><input type="checkbox" id="setSound" checked></label>
   </div>

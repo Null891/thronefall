@@ -105,6 +105,8 @@ export const sfx = {
   fallen()  { [220, 175, 147, 110].forEach((f, i) => tone(sfxBus, { f, t: i * .16, type: 'sawtooth', a: .01, d: .32, v: .16, fc: 900 })); },
   spear()   { noise(sfxBus, { d: .28, v: .26, fc: 3200, bend: 480, q: 1 });
     tone(sfxBus, { f: 320, bend: 540, type: 'triangle', a: .01, d: .2, v: .16 }); },
+  slam()    { tone(sfxBus, { f: 75, bend: 40, type: 'sine', a: .005, d: .45, v: .5 });
+    noise(sfxBus, { d: .3, v: .3, fc: 300, bend: 80, type: 'lowpass' }); },
   horn()    { [262, 330, 392].forEach(f => {
     tone(sfxBus, { f, type: 'sawtooth', a: .06, d: .85, v: .12, fc: 1400 });
     tone(sfxBus, { f: f * 1.006, type: 'sawtooth', a: .09, d: .85, v: .08, fc: 1200 }); }); },

@@ -368,9 +368,18 @@ export function kingArt() {
   k.add(mesh(new THREE.CapsuleGeometry(.22, .4, 3, 8), mThreat, 0, .4, 0));
   k.add(mesh(new THREE.SphereGeometry(.2, 8, 7), mSkin, 0, .92, 0));
   k.add(cyl(.14, .17, .16, 6, mGold, 0, 1.05, 0));
+  /* one prop per weapon; the game shows the chosen one */
   const spear = new THREE.Group(); spear.position.set(.3, .62, 0); spear.rotation.z = -.9; k.add(spear);
   spear.add(cyl(.03, .03, 1.5, 5, mMane));
   spear.add(cone(.08, .26, 5, mSteel, 0, .75, 0));
+  const bow = new THREE.Group(); bow.position.set(.34, .55, 0); bow.rotation.z = -.4; k.add(bow);
+  const arc = mesh(new THREE.TorusGeometry(.4, .035, 5, 12, Math.PI), mMane); arc.rotation.z = Math.PI / 2; bow.add(arc);
+  bow.add(cyl(.012, .012, .78, 4, mWhite, -.02, 0, 0));
+  const hammer = new THREE.Group(); hammer.position.set(.32, .6, 0); hammer.rotation.z = -.8; k.add(hammer);
+  hammer.add(cyl(.045, .045, 1.1, 6, mMane));
+  hammer.add(box(.34, .3, .3, mSteel, 0, .45, 0));
+  bow.visible = hammer.visible = false;
+  g.userData.weapons = { spear, bow, hammer };
   return g;
 }
 export function knightArt(kind) {

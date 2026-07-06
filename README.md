@@ -15,20 +15,28 @@ Not affiliated with Grizzly Games or Mythwright.
 
 ## Play
 
+- **Pick a weapon on the menu** — Spear (swift jabs), Longbow (fights at range), or Warhammer
+  (slow crushing sweeps with splash) — each with its own **Q** ability
 - **WASD / arrows** — ride the King (screen-relative)
 - **E** — build or upgrade at the nearest slot (or click any building / the castle)
 - **Space** — begin the night
-- **Q** — spear throw · **E** — rally horn (at night)
+- **Q** — weapon ability · **E** — rally horn (at night)
 - **1 / 2 / 3** — troop stance (Hold / Charge / **Follow Me**) · **Esc** — pause · **M** — mute
+
+**Taxes lie in the streets.** At dawn every building spills its coins on the ground — ride close
+and they leap into your purse. Barrel Knights and Ogres drop loot mid-battle too. Anything left
+uncollected sweeps itself in when night falls.
 
 **Commanding troops.** Switch to *Follow Me* (3) and your soldiers gather around the King; ride
 anywhere on the island, then switch back to *Hold* (1) to station them right there. *Charge* (2)
-sends melee troops hunting the nearest enemy.
+sends melee troops hunting the nearest enemy. Soldiers standing in the road **body-block the
+horde** — enemies stop and brawl — but soldiers can fall; more muster at the next nightfall.
 
 **Endless campaign.** Nights 1–3 are authored; from night 4 the horde scales forever (runners from
-night 4, spitters from night 6, ogre packs every 3rd night, +18% enemy HP per night past 3). New build
-plots are surveyed as days pass, the Castle Center can be fortified twice (its arrows improve), and the
-King himself can fall in melee — he respawns at the keep after 6 s. Survive as long as you can.
+night 4, spitters from night 6, ogre packs every 3rd night, +18% enemy HP per night past 3). From
+night 3 the horde comes in **two waves** with a brief lull between them. New build plots are surveyed
+as days pass, the Castle Center can be fortified twice (its arrows improve), and the King himself can
+fall in melee — he respawns at the keep after 6 s. Survive as long as you can.
 
 ## Run locally
 

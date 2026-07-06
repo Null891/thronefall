@@ -93,7 +93,7 @@ for (const p of castle.userData.torches) addTorch(p.clone().add(castle.position)
 
 /* ============================== game state (exact ECS numbers) ============================== */
 const S = { view: 'menu', phaseName: 'day', day: 1, gold: 8, castleHP: 15, castleMax: 15, castleLvl: 1,
-  builds: {}, settings: { dmg: true, ranges: true, shake: true, music: true, sound: true }, stance: 'hold' };
+  builds: {}, settings: { dmg: true, ranges: true, shake: true, music: true, sound: true, tilt: true }, stance: 'hold' };
 try { Object.assign(S.settings, JSON.parse(localStorage.tf_set || '{}')); } catch { /* fresh device */ }
 function saveSet() { try { localStorage.tf_set = JSON.stringify(S.settings); } catch { /* private mode */ } }
 AUDIO.setEnabled(S.settings.music, S.settings.sound);
@@ -184,7 +184,7 @@ function makeDots(sel) { const d = $(sel); d.innerHTML = ''; for (let i = 0; i <
 makeDots('#clockDay'); makeDots('#clockNight');
 function setClock(sel, frac) { $$(sel + ' .dot').forEach((d, i) => d.classList.toggle('f', i < Math.round(frac * 10))); }
 function refreshDayHUD() {
-  $('#goldNum').textContent = S.gold;
+  refreshGold();
   $('#incomeNum').textContent = '+' + dawnRows().total + ' at dawn';
   $('#dayNum').textContent = `Day ${S.day}`;
   refreshMarkers();
@@ -270,7 +270,7 @@ function pool(n, maker) {
   for (let i = 0; i < n; i++) { const o = maker(); o.visible = false; scene.add(o); items.push(o); }
   return { take() { const o = items.find(x => !x.visible); if (o) o.visible = true; return o; }, all: items };
 }
-const arrowPool = pool(50, ART.arrowMesh), coinPool = pool(28, ART.coinMesh), poofPool = pool(14, ART.poofMesh);
+const arrowPool = pool(50, ART.arrowMesh), coinPool = pool(48, ART.coinMesh), poofPool = pool(14, ART.poofMesh);
 function domPool(n, cls) {
   const layer = $('#floatLayer'), items = [];
   for (let i = 0; i < n; i++) { const el = document.createElement(cls === 'ehp' ? 'div' : 'span'); el.className = cls; if (cls === 'ehp') el.innerHTML = '<i></i>'; layer.appendChild(el); items.push(el); }
@@ -297,11 +297,56 @@ function arrow(from, to, arc, onHit, big) {
   m.scale.setScalar(big ? 1.8 : 1);
   fxAdd({ kind: 'arrow', m, from: from.clone(), to: to.clone(), arc, t: 0, dur: Math.max(.12, dist / 26), hit: onHit });
 }
-function coinFly(x, y, z, delay) {
-  const m = coinPool.take(); if (!m) return;
-  m.position.set(x, y, z);
-  fxAdd({ kind: 'coin', m, t: -delay, dur: 2.2, x, y, z,
-    vx: (Math.random() - .5) * 5, vy: 5 + Math.random() * 3, vz: (Math.random() - .5) * 5 });
+/* ground coins — dawn taxes and enemy drops lie in the streets; the king rides over to collect */
+const groundCoins = [];
+function refreshGold() {
+  $('#goldNum').textContent = S.gold;
+  $('#goldNight').textContent = S.gold;
+}
+function dropCoins(u, v, value) {
+  let rem = value;
+  const count = Math.max(1, Math.min(value, 7));
+  for (let i = 0; i < count && rem > 0; i++) {
+    const val = Math.min(rem, Math.floor(value / count) + (i < value % count ? 1 : 0) || 1);
+    const m = coinPool.take();
+    if (!m) { S.gold += rem; refreshGold(); return; } // pool dry: bank the rest quietly
+    m.position.set(u, 1, v);
+    groundCoins.push({ m, x: u + (Math.random() - .5) * 2.2, y: 1, z: v + (Math.random() - .5) * 2.2,
+      vx: 0, vy: 2.5 + Math.random() * 2, value: val, ph: Math.random() * 9, magnet: false, settled: false });
+    const c = groundCoins[groundCoins.length - 1];
+    c.vx = (c.x - u) * 2; c.vz = (c.z - v) * 2; c.x = u; c.z = v;
+    rem -= val;
+  }
+  if (rem > 0) { S.gold += rem; refreshGold(); }
+}
+function collectAllCoins(quiet) {
+  let tot = 0;
+  for (const c of groundCoins) { tot += c.value; c.m.visible = false; }
+  groundCoins.length = 0;
+  if (tot) { S.gold += tot; if (!quiet) sfx.coin(); refreshGold(); }
+  return tot;
+}
+function updateGroundCoins(dt) {
+  for (let i = groundCoins.length - 1; i >= 0; i--) {
+    const c = groundCoins[i];
+    c.m.rotation.y += 4 * dt;
+    if (!c.magnet && S.view === 'game' && !(K.down > 0) && Math.hypot(c.x - K.u, c.z - K.v) < 2.5) c.magnet = true;
+    if (c.magnet) {
+      _a.set(K.u - c.x, 1 - c.y, K.v - c.z);
+      const d = _a.length();
+      if (d < .65) { // picked up
+        S.gold += c.value; c.m.visible = false; groundCoins.splice(i, 1);
+        sfx.coin(); refreshGold();
+        continue;
+      }
+      _a.normalize().multiplyScalar(Math.min(16 * dt, d));
+      c.x += _a.x; c.y += _a.y; c.z += _a.z;
+    } else if (!c.settled) { // scatter under gravity
+      c.vy -= 20 * dt; c.x += c.vx * dt; c.z += c.vz * dt; c.y += c.vy * dt;
+      if (c.y <= .18) { c.y = .18; if (Math.abs(c.vy) > 1.2) c.vy *= -.35; else { c.settled = true; c.vy = 0; } }
+    } else c.y = .18 + Math.abs(Math.sin(perf * 2.5 + c.ph)) * .06;
+    c.m.position.set(c.x, c.y, c.z);
+  }
 }
 const _a = new THREE.Vector3(), _b = new THREE.Vector3();
 function updateFx(dt) {
@@ -321,19 +366,6 @@ function updateFx(dt) {
       f.m.position.copy(_a); f.m.lookAt(_b);
       if (k >= 1 && !f.done) { f.done = true; f.hit && f.hit(); }
     }
-    if (f.kind === 'coin') {
-      if (f.t < .55) { // scatter under gravity
-        f.vy -= 22 * dt; f.x += f.vx * dt; f.y = Math.max(.15, f.y + f.vy * dt); f.z += f.vz * dt;
-        if (f.y <= .16 && f.vy < 0) f.vy *= -.4;
-      } else {         // vacuum to the king
-        const sp = 26 * dt;
-        _a.set(K.u, 1, K.v).sub(_b.set(f.x, f.y, f.z));
-        const d = _a.length();
-        if (d < .8) { f.t = f.dur; poof(f.x, f.y, f.z); sfx.coin(); }
-        else { _a.normalize().multiplyScalar(Math.min(sp, d)); f.x += _a.x; f.y += _a.y; f.z += _a.z; }
-      }
-      f.m.position.set(f.x, f.y, f.z); f.m.rotation.y += 8 * dt;
-    }
   }
   fx = fx.filter(f => {
     if (f.t >= f.dur) {
@@ -351,6 +383,26 @@ scene.add(K.mesh);
 const kingGlow = ART.glow('#FFC98A', 4.5, 0, .5);
 kingGlow.position.set(0, 1.6, 0);
 K.mesh.add(kingGlow);
+/* the king's arsenal — chosen on the menu, sworn for the run */
+const WEAPONS = {
+  spear:  { name: 'Spear',     dmg: 2, rate: .55,  reach: 2.4, icon: '🗡', q: 'Spear Throw · Q', qcd: 6 },
+  bow:    { name: 'Longbow',   dmg: 1, rate: .5,   reach: 9,   icon: '🏹', q: 'Arrow Storm · Q', qcd: 8, ranged: true },
+  hammer: { name: 'Warhammer', dmg: 5, rate: 1.15, reach: 2.2, icon: '🔨', q: 'Ground Slam · Q', qcd: 8, splash: 1.7 },
+};
+S.weapon = 'spear';
+function setWeapon(w) {
+  if (!WEAPONS[w]) w = 'spear';
+  S.weapon = w;
+  try { localStorage.tf_weapon = w; } catch { /* private mode */ }
+  const props = K.mesh.userData.weapons;
+  for (const key in props) props[key].visible = key === w;
+  $$('.wcard').forEach(c => c.classList.toggle('on', c.dataset.w === w));
+  const W = WEAPONS[w];
+  $('#kingWeap').textContent = W.name + ' · Lv 3';
+  $('#kingTitle').textContent = 'King Aldric · ' + W.name;
+  $('#abQIc').textContent = W.icon;
+  $('#abSpear').title = W.q;
+}
 const keys = {};
 const DIAG = Math.SQRT1_2; // camera yaw is fixed 45°: W = screen-up = world (-1,-1)/√2
 function updateKing(dt) {
@@ -549,8 +601,10 @@ const rangeRings = [];
 function startNight() {
   if (S.phaseName === 'night') return;
   closeBmenu(); eprompt.style.display = 'none';
+  collectAllCoins(); // leftover taxes sweep themselves into the purse at dusk
   const queue = nightPlan(S.day);
-  N = { queue, total: queue.length, spawned: 0, killed: 0, enemies: [], units: [], towers: [],
+  if (S.day >= 3) queue.splice(Math.ceil(queue.length * .55), 0, { lull: true });
+  N = { queue, total: queue.filter(x => !x.lull).length, spawned: 0, killed: 0, enemies: [], units: [], towers: [],
     spawnEvery: Math.max(.35, 1.05 - S.day * .07), spawnT: .6, kingCd: 0, abQ: 0, abE: 0, hornUntil: 0, t: 0, over: false };
   for (const sl of SLOTS) {
     const b = S.builds[sl.id]; if (!b) continue;
@@ -577,12 +631,27 @@ function startNight() {
   setPhase('night');
 }
 function spawnUnit(u, v, kind) {
-  const specs = { knight: { range: 1.9, rate: .7, dmg: 1 }, berserk: { range: 1.9, rate: .8, dmg: 2 },
-    longbow: { range: 13, rate: 1.15, dmg: 1 }, fire: { range: 9, rate: 1.2, dmg: 1, splash: 1.7 } };
+  const specs = { knight: { range: 1.9, rate: .7, dmg: 1, hp: 7 }, berserk: { range: 1.9, rate: .8, dmg: 2, hp: 5 },
+    longbow: { range: 13, rate: 1.15, dmg: 1, hp: 3 }, fire: { range: 9, rate: 1.2, dmg: 1, splash: 1.7, hp: 3 } };
   const mesh = kind === 'knight' || kind === 'berserk' ? ART.knightArt(kind) : ART.archerArt(kind);
   mesh.position.set(u, 0, v); mesh.rotation.y = Math.random() * 6; scene.add(mesh);
-  N.units.push({ u, v, pu: u, pv: v, kind, cd: .3 + Math.random() * .5, ...specs[kind], mesh,
-    bob: Math.random() * 9, fo: Math.random() * Math.PI * 2, fr: 1.5 + Math.random() * 1.3, pop: 1 });
+  N.units.push({ u, v, pu: u, pv: v, kind, cd: .3 + Math.random() * .5, ...specs[kind], max: specs[kind].hp,
+    mesh, dead: false, hpEl: null, bob: Math.random() * 9, fo: Math.random() * Math.PI * 2, fr: 1.5 + Math.random() * 1.3, pop: 1 });
+}
+function hurtUnit(un, dmg) {
+  if (un.dead) return;
+  un.hp -= dmg;
+  dmgNum(un.u, 1.6, un.v, dmg);
+  if (!un.hpEl) un.hpEl = ehpPool.take();
+  if (un.hpEl) un.hpEl.firstChild.style.width = Math.max(0, 100 * un.hp / un.max) + '%';
+  if (un.hp <= 0) {
+    un.dead = true;
+    poof(un.u, .7, un.v);
+    sfx.kill(false);
+    fxAdd({ kind: 'die', mesh: un.mesh, t: 0, dur: .34 });
+    if (un.hpEl) ehpPool.release(un.hpEl);
+    if (!N._lost) { N._lost = true; flashBanner('A SOLDIER HAS FALLEN — MORE MUSTER AT DAWN'); }
+  }
 }
 function spawnEnemy(spec) {
   const T = ETYPES[spec.type], lane = spec.lane === 'A' ? LANE_A : LANE_B;
@@ -591,7 +660,7 @@ function spawnEnemy(spec) {
   const hpScale = 1 + Math.max(0, S.day - 3) * .18; // endless nights harden the horde
   const e = { type: spec.type, lane, d: 0, hp: Math.round(T.hp * hpScale), max: Math.round(T.hp * hpScale),
     speed: T.speed, dmg: T.dmg, rate: T.rate, ranged: T.ranged || 0,
-    atkCd: .8, fly: T.fly, mesh, dead: false, ph: Math.random() * 9, hpEl: null, kCd: .5, pop: 1, flinch: 0 };
+    atkCd: .8, fly: T.fly, mesh, dead: false, ph: Math.random() * 9, hpEl: null, kCd: .5, uCd: .7, pop: 1, flinch: 0 };
   N.enemies.push(e); N.spawned++;
   if (spec.type === 'ogre') flashBanner('AN OGRE APPROACHES');
   if (spec.type === 'spitter' && !N._spitSeen) { N._spitSeen = true; flashBanner('SPITTERS LOB FILTH FROM AFAR'); }
@@ -611,6 +680,8 @@ function hurt(e, dmg, kb = 0) {
     const big = e.type === 'ogre' || e.type === 'barrel';
     poof(p.u, e.fly ? 1.7 : .5, p.v, big);
     sfx.kill(big);
+    if (e.type === 'barrel') dropCoins(p.u, p.v, 1);   // the heavies carry loot
+    else if (e.type === 'ogre') dropCoins(p.u, p.v, 2);
     fxAdd({ kind: 'die', mesh: e.mesh, t: 0, dur: .34, fly: e.fly }); // removed from the scene when the squash ends
     if (e.hpEl) ehpPool.release(e.hpEl);
     $('#remainNum').textContent = N.total - N.killed;
@@ -637,11 +708,29 @@ function nearestEnemy(u, v, range) {
 }
 function simTick(dt) {
   N.t += dt; N.spawnT -= dt;
-  if (N.spawnT <= 0 && N.queue.length) { N.spawnT = N.spawnEvery; spawnEnemy(N.queue.shift()); }
+  if (N.spawnT <= 0 && N.queue.length) {
+    const nx = N.queue.shift();
+    if (nx.lull) { N.spawnT = 4.5; flashBanner('THE SECOND WAVE GATHERS'); sfx.night(); }
+    else { N.spawnT = N.spawnEvery; spawnEnemy(nx); }
+  }
   for (const e of N.enemies) {
     if (e.dead) continue;
     const stop = e.lane.total - e.ranged;
-    if (e.d < stop) e.d = Math.min(stop, e.d + e.speed * dt);
+    /* a soldier in the road blocks the march — the horde stops and brawls */
+    let foe = null;
+    if (!e.fly) {
+      const p0 = epos(e);
+      let bd = 1.3;
+      for (const un of N.units) {
+        if (un.dead) continue;
+        const d = Math.hypot(un.u - p0.u, un.v - p0.v);
+        if (d < bd) { bd = d; foe = un; }
+      }
+    }
+    if (foe) {
+      e.uCd -= dt;
+      if (e.uCd <= 0) { e.uCd = e.rate; hurtUnit(foe, e.dmg); }
+    } else if (e.d < stop) { e.uCd = .7; e.d = Math.min(stop, e.d + e.speed * dt); }
     else {
       e.atkCd -= dt;
       if (e.atkCd <= 0) {
@@ -654,7 +743,7 @@ function simTick(dt) {
     }
     const p = epos(e), q = e.lane.at(e.d + .5);
     e.mesh.position.set(p.u, 0, p.v);
-    e.mesh.lookAt(q.u, 0, q.v);
+    if (foe && !foe.dead) e.mesh.lookAt(foe.u, 0, foe.v); else e.mesh.lookAt(q.u, 0, q.v);
     if (e.pop > 0) { // pop out of the road on spawn
       e.pop = Math.max(0, e.pop - dt * 3);
       const k = 1 - e.pop;
@@ -692,6 +781,7 @@ function simTick(dt) {
   }
   const charge = S.stance === 'charge', follow = S.stance === 'follow';
   for (const un of N.units) {
+    if (un.dead) continue;
     un.cd -= dt;
     if (un.pop > 0) { // muster pop
       un.pop = Math.max(0, un.pop - dt * 2.5);
@@ -731,16 +821,29 @@ function simTick(dt) {
         else { hurt(e, un.dmg * (charge ? 1.3 : 1), .25); poof(p.u, .8, p.v); }
       } else un.cd = .15;
     }
+    if (un.hpEl) anchor(un.hpEl, un.u, 2.2, un.v);
   }
+  N.units = N.units.filter(u => !u.dead);
   N.kingCd -= dt;
   const horn = N.t < N.hornUntil;
   if (N.kingCd <= 0 && !K.down) {
-    const e = nearestEnemy(K.u, K.v, 2.4);
-    if (e) { N.kingCd = horn ? .34 : .55; const p = epos(e); hurt(e, 2, .45); poof(p.u, .9, p.v); }
-    else N.kingCd = .1;
+    const W = WEAPONS[S.weapon];
+    const e = nearestEnemy(K.u, K.v, W.reach);
+    if (e) {
+      N.kingCd = W.rate * (horn ? .62 : 1);
+      const p = epos(e);
+      if (W.ranged) arrow(new THREE.Vector3(K.u, 2, K.v), new THREE.Vector3(p.u, e.fly ? 1.7 : .6, p.v), 1.3, () => hurt(e, W.dmg, .2));
+      else {
+        hurt(e, W.dmg, W.splash ? .7 : .45); poof(p.u, .9, p.v, !!W.splash);
+        if (W.splash) for (const o of [...N.enemies]) {
+          const q2 = epos(o);
+          if (o !== e && !o.dead && Math.hypot(q2.u - p.u, q2.v - p.v) < W.splash) hurt(o, 3, .4);
+        }
+      }
+    } else N.kingCd = .1;
   }
   N.abQ = Math.max(0, N.abQ - dt); N.abE = Math.max(0, N.abE - dt);
-  updAb('#abSpear', '#abSpearCd', N.abQ, 6);
+  updAb('#abSpear', '#abSpearCd', N.abQ, WEAPONS[S.weapon].qcd);
   updAb('#abHorn', '#abHornCd', N.abE, 14);
   if (!N.queue.length && N.spawned === N.total && N.killed === N.total && !N.over) endNight(true);
 }
@@ -748,11 +851,35 @@ function updAb(bsel, csel, cd, max) {
   $(csel).style.setProperty('--cd', (cd / max * 100).toFixed(1));
   $(bsel).classList.toggle('ready', cd <= 0);
 }
-function useSpear() {
+function useQ() {
   if (!N || N.over || N.abQ > 0 || K.down) return;
-  const e = nearestEnemy(K.u, K.v, 10);
+  const W = WEAPONS[S.weapon];
+  if (S.weapon === 'hammer') { // ground slam — everything nearby is crushed and thrown back
+    const hits = N.enemies.filter(e => { if (e.dead || e.fly) return false; const p = epos(e); return Math.hypot(p.u - K.u, p.v - K.v) < 4.2; });
+    if (!hits.length) { flashBanner('NO TARGET IN RANGE'); return; }
+    N.abQ = W.qcd;
+    sfx.slam();
+    if (S.settings.shake && !matchMedia('(prefers-reduced-motion: reduce)').matches) shakeT = .3;
+    poof(K.u, .5, K.v, true);
+    hits.forEach(e => hurt(e, 6, 2.2));
+    return;
+  }
+  if (S.weapon === 'bow') { // arrow storm — five shafts rain on the nearest enemies
+    const es = N.enemies.filter(e => { if (e.dead) return false; const p = epos(e); return Math.hypot(p.u - K.u, p.v - K.v) < 12; })
+      .sort((a, b) => { const pa = epos(a), pb = epos(b);
+        return Math.hypot(pa.u - K.u, pa.v - K.v) - Math.hypot(pb.u - K.u, pb.v - K.v); })
+      .slice(0, 5);
+    if (!es.length) { flashBanner('NO TARGET IN RANGE'); return; }
+    N.abQ = W.qcd;
+    sfx.spear();
+    es.forEach((e, i) => { const p = epos(e);
+      arrow(new THREE.Vector3(K.u, 2.4, K.v), new THREE.Vector3(p.u, e.fly ? 1.7 : .7, p.v), 2.5 + i * .3,
+        () => { hurt(e, 4, .4); poof(p.u, .9, p.v); }, i === 0); });
+    return;
+  }
+  const e = nearestEnemy(K.u, K.v, 10); // spear throw
   if (!e) { flashBanner('NO TARGET IN RANGE'); return; }
-  N.abQ = 6;
+  N.abQ = W.qcd;
   sfx.spear();
   const p = epos(e);
   arrow(new THREE.Vector3(K.u, 2.2, K.v), new THREE.Vector3(p.u, e.fly ? 1.7 : .7, p.v), 1.2,
@@ -764,12 +891,12 @@ function useHorn() {
   sfx.horn();
   flashBanner('RALLY! THE KING FIGHTS HARDER');
 }
-$('#abSpear').addEventListener('click', useSpear);
+$('#abSpear').addEventListener('click', useQ);
 $('#abHorn').addEventListener('click', useHorn);
 function cleanupNight() {
   if (!N) return;
   N.enemies.forEach(e => { if (!e.dead) { scene.remove(e.mesh); if (e.hpEl) ehpPool.release(e.hpEl); } });
-  N.units.forEach(u => scene.remove(u.mesh));
+  N.units.forEach(u => { scene.remove(u.mesh); if (u.hpEl) ehpPool.release(u.hpEl); });
   rangeRings.forEach(r => scene.remove(r)); rangeRings.length = 0;
   fx.forEach(f => { if (f.el) dmgPool.release(f.el); if (f.m) f.m.visible = false; if (f.mesh) scene.remove(f.mesh); }); fx = [];
 }
@@ -794,11 +921,11 @@ function endNight(win) {
         <div class="row"><span>Castle integrity</span><b>${integ}%</b></div>`;
       for (const r of dr.rows) rows += `<div class="row"><span>${r.l}</span><b>+${r.n}</b></div>`;
       if (flaw) rows += `<div class="row"><span>Flawless defense bonus</span><b>+2</b></div>`;
-      rows += `<div class="row"><span><b style="color:#F6F2E8">Gold at dawn</b></span><b>${S.gold} → ${S.gold + dr.total + flaw}</b></div>`;
+      rows += `<div class="row"><span><b style="color:#F6F2E8">Taxes to collect at dawn</b></span><b>+${dr.total + flaw}</b></div>`;
       $('#vicTally').innerHTML = rows;
       $('#vicNext').textContent = 'CONTINUE TO DAY ' + (S.day + 1);
       $('#ovVictory').style.display = 'grid';
-      N._earned = dr.total + flaw;
+      N._flaw = flaw;
     } else {
       $('#defNights').textContent = String(S.day - 1);
       $('#ovDefeat').style.display = 'grid';
@@ -808,24 +935,28 @@ function endNight(win) {
 $('#vicNext').addEventListener('click', () => {
   $('#ovVictory').style.display = 'none';
   sfx.dawn();
-  S.gold += N._earned || 0; applyDawn(); S.day++; S.castleHP = S.castleMax;
-  N = null; setPhase('day'); revealPlots(); refreshDayHUD();
-  let ci = 0;
-  coinFly(25, 3, 24, ci++ * .08);
+  /* taxes fall in the streets — the king rides to collect them (income computed before mines age) */
+  const drops = [[25, 27.8, 1 + (N._flaw || 0)]];
   for (const sl of SLOTS) {
     const b = S.builds[sl.id]; if (!b) continue;
-    if (['house', 'mill', 'field', 'mine', 'harbour'].includes(b.type)) {
-      coinFly(sl.u, 1.5, sl.v, ci++ * .08);
-      if (b.type === 'house' && b.upg) coinFly(sl.u, 2.2, sl.v, ci++ * .08);
-    }
+    let v = 0;
+    if (b.type === 'house') v = b.upg ? 2 : 1;
+    else if (b.type === 'field' || b.type === 'mill') v = 1;
+    else if (b.type === 'mine') v = Math.max(0, 6 - b.age);
+    else if (b.type === 'harbour') v = Math.min(5, b.boats + 1) * (b.upg ? 2 : 1);
+    if (v) drops.push([sl.u, sl.v, v]);
   }
-  flashHint('Dawn pays taxes — reinvest before night ' + S.day);
+  applyDawn(); S.day++; S.castleHP = S.castleMax;
+  N = null; setPhase('day'); revealPlots(); refreshDayHUD();
+  for (const [u, v, val] of drops) dropCoins(u, v, val);
+  flashHint('Dawn taxes lie in the streets — ride and collect, then build');
 });
 $('#defRetry').addEventListener('click', () => { $('#ovDefeat').style.display = 'none'; N = null; startNight(); });
 $('#defMenu').addEventListener('click', () => { $('#ovDefeat').style.display = 'none'; N = null; resetRun(); setView('menu'); });
 $('#clrMenu').addEventListener('click', () => { $('#ovCleared').style.display = 'none'; resetRun(); setView('menu'); });
 const castleTrims = [];
 function resetRun() {
+  groundCoins.forEach(c => c.m.visible = false); groundCoins.length = 0;
   S.day = 1; S.gold = 8; S.builds = {};
   S.castleLvl = 1; S.castleMax = 15; S.castleHP = 15;
   castleTrims.forEach(t => castle.remove(t)); castleTrims.length = 0;
@@ -861,13 +992,15 @@ function bindSet(id, key) { $(id).addEventListener('change', e => {
   S.settings[key] = e.target.checked; saveSet();
   if (key === 'ranges') rangeRings.forEach(r => r.visible = e.target.checked);
   if (key === 'music' || key === 'sound') AUDIO.setEnabled(S.settings.music, S.settings.sound);
+  if (key === 'tilt') $('#tilt').style.display = e.target.checked ? '' : 'none';
 }); }
 bindSet('#setDmg', 'dmg'); bindSet('#setRanges', 'ranges'); bindSet('#setShake', 'shake');
-bindSet('#setMusic', 'music'); bindSet('#setSound', 'sound');
+bindSet('#setMusic', 'music'); bindSet('#setSound', 'sound'); bindSet('#setTilt', 'tilt');
 function syncSetUI() {
   $('#setDmg').checked = S.settings.dmg; $('#setRanges').checked = S.settings.ranges;
   $('#setShake').checked = S.settings.shake; $('#setMusic').checked = S.settings.music;
-  $('#setSound').checked = S.settings.sound;
+  $('#setSound').checked = S.settings.sound; $('#setTilt').checked = S.settings.tilt;
+  $('#tilt').style.display = S.settings.tilt ? '' : 'none';
 }
 syncSetUI();
 $$('.tchip').forEach(c => c.addEventListener('click', () => {
@@ -884,7 +1017,7 @@ document.addEventListener('keydown', e => {
   if (e.key === ' ' && S.view === 'game' && S.phaseName === 'day' && !anyOverlay()) { e.preventDefault(); startNight(); }
   else if (k === 'e' && S.view === 'game' && S.phaseName === 'day' && nearSlot && !anyOverlay())
     (nearSlot.castle || S.builds[nearSlot.id]) ? slotAction(nearSlot) : tryBuild(nearSlot);
-  else if (k === 'q' && S.phaseName === 'night' && !anyOverlay()) useSpear();
+  else if (k === 'q' && S.phaseName === 'night' && !anyOverlay()) useQ();
   else if (k === 'e' && S.phaseName === 'night' && !anyOverlay()) useHorn();
   else if (['1', '2', '3'].includes(e.key) && S.phaseName === 'night') $$('.tchip')[+e.key - 1].click();
   else if (k === 'm') {
@@ -907,7 +1040,7 @@ function updateFloaters() {
   const cnt = { A: 0, B: 0 };
   let showPrev = false;
   if (S.view === 'game' && S.phaseName === 'day') { showPrev = true; nightPlan(S.day).forEach(e => cnt[e.lane]++); }
-  else if (S.view === 'game' && N && !N.over) { showPrev = true; N.queue.forEach(e => cnt[e.lane]++); }
+  else if (S.view === 'game' && N && !N.over) { showPrev = true; N.queue.forEach(e => { if (e.lane) cnt[e.lane]++; }); }
   for (const [id, lane, u, v] of [['#prevA', 'A', 2, 25], ['#prevB', 'B', 48, 25]]) {
     const el = $(id);
     if (showPrev && cnt[lane]) { el.style.display = 'flex'; $(id + 'n').textContent = '×' + cnt[lane]; anchor(el, u, 3.6, v); }
@@ -949,6 +1082,7 @@ function step(dt) {
   if (S.view === 'game') updateKing(dt);
   if (N && !N.over) simTick(dt);
   updateFx(dt);
+  updateGroundCoins(dt);
   for (const sl of SLOTS) if (sl.pop > 0) { // elastic build pop
     sl.pop = Math.max(0, sl.pop - dt * 2.2);
     const k = 1 - sl.pop, over = 1 + Math.sin(k * Math.PI) * .18;
@@ -976,6 +1110,8 @@ window.__pump = s => { for (let i = 0; i < Math.round(s * 60); i++) step(STEP); 
 window.__dbg = { S, K, keys, AUDIO, get N() { return N; } };
 
 /* ============================== boot & test scenarios ============================== */
+$$('.wcard').forEach(c => c.addEventListener('click', () => setWeapon(c.dataset.w)));
+try { setWeapon(localStorage.tf_weapon || 'spear'); } catch { setWeapon('spear'); }
 refreshDayHUD();
 setPhase('day'); setView('menu');
 {
