@@ -536,7 +536,29 @@ export function finArt() {
   const f = cone(.45, 1.3, 4, mats.stoneDk); f.rotation.z = -.25; g.add(f);
   return g;
 }
-export function knightArt(kind) {
+export function golemArt() { // six achievements of stone, walking
+  const g = new THREE.Group();
+  g.add(mesh(new THREE.BoxGeometry(.9, 1.1, .6), mats.stoneDk, 0, .85, 0));
+  g.add(mesh(new THREE.BoxGeometry(.55, .45, .45), mats.stone, 0, 1.7, 0));
+  g.add(mesh(new THREE.SphereGeometry(.07, 5, 4), MC('#F0B429', { glow: 1.4 }), .13, 1.75, .24));
+  g.add(mesh(new THREE.SphereGeometry(.07, 5, 4), MC('#F0B429', { glow: 1.4 }), -.13, 1.75, .24));
+  for (const x of [-.62, .62]) g.add(box(.28, .95, .3, mats.stoneDk, x, .35, 0));
+  for (const x of [-.28, .28]) g.add(box(.3, .45, .34, mats.stone, x, 0, 0));
+  const gw = glow('#F0B429', 2, .2, .5); gw.position.y = 1.2; g.add(gw);
+  return g;
+}
+export function knightArt(kind, skin) {
+  if (skin === 'ww2') { // riflemen of the Ironfront
+    const g = new THREE.Group();
+    const m = kind === 'berserk' ? MC('#7A5A3A', { glow: .08 }) : mOlive;
+    g.add(mesh(new THREE.CapsuleGeometry(.26, .5, 3, 8), m, 0, .55, 0));
+    g.add(cyl(.24, .27, .15, 8, MC('#4A5A48', { glow: .06 }), 0, 1.05, 0));
+    const r = cyl(.03, .03, .9, 4, mats.dark, .3, .65, 0); r.rotation.z = -.6; g.add(r);
+    return g;
+  }
+  return knightArtBase(kind);
+}
+function knightArtBase(kind) {
   const g = new THREE.Group();
   const m = kind === 'berserk' ? mRust : mSteel;
   g.add(mesh(new THREE.CapsuleGeometry(.26, .5, 3, 8), m, 0, .55, 0));
@@ -546,7 +568,17 @@ export function knightArt(kind) {
   else g.add(cone(.07, .22, 5, mSteel, .58, .98, 0));
   return g;
 }
-export function archerArt(kind) {
+export function archerArt(kind, skin) {
+  if (skin === 'ww2') { // gunners
+    const g = new THREE.Group();
+    g.add(mesh(new THREE.CapsuleGeometry(.24, .45, 3, 8), mArmor, 0, .5, 0));
+    g.add(cyl(.2, .23, .13, 8, mats.dark, 0, .95, 0));
+    const r = cyl(.03, .03, 1.1, 4, mats.dark, .3, .6, 0); r.rotation.z = -.45; g.add(r);
+    return g;
+  }
+  return archerArtBase(kind);
+}
+function archerArtBase(kind) {
   const g = new THREE.Group();
   const m = kind === 'fire' ? mRust : mats.pine;
   g.add(mesh(new THREE.CapsuleGeometry(.24, .45, 3, 8), m, 0, .5, 0));
@@ -600,6 +632,30 @@ export function enemyArt(type, skin) {
   if (skin === 'ww2') { const w = ww2Art(type); if (w) return w; }
   const g = new THREE.Group();
   const bodyG = new THREE.Group(); g.add(bodyG); g.userData.body = bodyG;
+  if (type === 'wolfrider') { // goblin cavalry
+    const wolf = box(1.1, .45, .5, mats.stoneDk, 0, .35, 0); bodyG.add(wolf);
+    bodyG.add(box(.4, .32, .4, mats.stoneDk, .6, .55, 0));
+    bodyG.add(mesh(new THREE.SphereGeometry(.05, 5, 4), mThreat, .8, .68, .12));
+    bodyG.add(mesh(new THREE.SphereGeometry(.05, 5, 4), mThreat, .8, .68, -.12));
+    for (const [x, z] of [[-.4, .18], [-.4, -.18], [.4, .18], [.4, -.18]])
+      bodyG.add(cyl(.06, .06, .35, 4, mats.dark, x, 0, z));
+    bodyG.add(mesh(new THREE.CapsuleGeometry(.15, .3, 3, 6), mToxic, -.05, .85, 0)); // the goblin
+    bodyG.add(mesh(new THREE.SphereGeometry(.11, 6, 5), mToxic, -.05, 1.2, 0));
+    const sp = cyl(.025, .025, .9, 4, mats.trunk, .2, .95, 0); sp.rotation.z = -.7; bodyG.add(sp);
+    return g;
+  }
+  if (type === 'bat') { // small, quick, and many
+    const b = mesh(new THREE.SphereGeometry(.22, 6, 5), mats.dark, 0, 0, 0); bodyG.add(b);
+    bodyG.add(mesh(new THREE.SphereGeometry(.05, 5, 4), mThreat, .08, .06, .18));
+    bodyG.add(mesh(new THREE.SphereGeometry(.05, 5, 4), mThreat, -.08, .06, .18));
+    const wingM = new THREE.MeshBasicMaterial({ color: '#2A252E', side: THREE.DoubleSide });
+    const w1 = mesh(new THREE.PlaneGeometry(.5, .25), wingM, -.02, .1, .3, false);
+    const w2 = mesh(new THREE.PlaneGeometry(.5, .25), wingM, -.02, .1, -.3, false);
+    bodyG.add(w1); bodyG.add(w2);
+    g.userData.wings = [w1, w2];
+    bodyG.position.y = 1.9;
+    return g;
+  }
   if (type === 'cinderling') { // a coal that learned to crawl
     const b = mesh(new THREE.IcosahedronGeometry(.5, 0), MC('#FF6A3D', { glow: .8 }), 0, .4, 0); b.scale.y = .82; bodyG.add(b);
     bodyG.add(mesh(new THREE.SphereGeometry(.07, 5, 4), mats.dark, .17, .5, .36));
@@ -1075,6 +1131,41 @@ export function bubblesAt(group, u, v, color = '#BFEAF5') { // a slow column of 
   }
 }
 
+/* every realm crowns its keep differently */
+export function castleDress(style) {
+  const g = new THREE.Group();
+  if (style === 'bunker') { // Ironfront: concrete and searchlights
+    g.add(box(6.4, .5, 6.4, mats.stoneDk, 0, 0, 0));
+    for (const [x, z] of [[-2.6, 2.9], [2.6, 2.9], [-2.9, -2.6], [2.9, 2.6]])
+      g.add(box(.9, .55, .5, MC('#8A8578', { glow: .05 }), x, .5, z));
+    const sl = glow('#FFF2C9', 5, .1, 1, true); sl.position.set(0, 11.5, 0); g.add(sl);
+    g.add(box(2.4, .35, 2.4, mats.stoneDk, 0, 9.1, 0));
+  } else if (style === 'crystal') { // Lunaris / Aetherreach: living crystal
+    for (const [x, z, s] of [[-2.35, -2.35, 1], [2.35, -2.35, .8], [-2.35, 2.35, .8], [2.35, 2.35, 1]])
+      g.add(cone(.4 * s, 1.6 * s, 5, MC('#9FD8F0', { glow: .8 }), x, 6.4, z));
+    g.add(cone(.55, 2.4, 5, MC('#BFD8FF', { glow: 1 }), 0, 11.6, 0));
+    const gw = glow('#9FD8F0', 6, .3, .9); gw.position.y = 12; g.add(gw);
+  } else if (style === 'bone') { // Deephollow: the dead keep watch
+    g.add(mesh(new THREE.TorusGeometry(2.2, .18, 5, 12, Math.PI), mats.snow, 0, 5.6, 2.1));
+    for (const x of [-1.5, 1.5]) g.add(cone(.22, 1, 5, mats.snow, x, 5.5, 2));
+  } else if (style === 'coral') { // Abyss: reef-grown stone
+    for (const [x, z] of [[-2.2, 2.2], [2.4, 1.8], [1.9, -2.3]])
+      g.add(cone(.35, 1.3, 5, MC('#E87A9C', { glow: .4 }), x, 5.4, z));
+  } else if (style === 'ice') { // Frostmaw: rimed battlements
+    for (let i = 0; i < 4; i++) g.add(cone(.3, 1, 5, mats.snow, -1.5 + i, 5.6, 1.9));
+    g.add(box(4.4, .25, 4.4, mats.snow, 0, 5.5, 0));
+  } else if (style === 'vine') { // Verdania: the green claims all
+    for (const [x, z] of [[-2, 2], [2, 2], [2, -2]])
+      g.add(cone(.3, 2.2, 5, MC('#4E8A3E', { glow: .2 }), x, 3.4, z));
+    g.add(mesh(new THREE.SphereGeometry(.45, 7, 6), MC('#E87A9C', { glow: .6 }), 0, 12.2, 0));
+  } else if (style === 'magma') { // Cinderpeak: a keep with a burning heart
+    g.add(cyl(2.3, 2.3, .3, 8, lavaMat, 0, 5.45, 0));
+    const gw = glow('#FF6A3D', 6, .3, .95, true); gw.position.y = 6; g.add(gw);
+  } else if (style === 'dune') { // Sandsea: the gilded dome
+    g.add(mesh(new THREE.SphereGeometry(1.5, 9, 7, 0, Math.PI * 2, 0, Math.PI / 2), mGold, 0, 9.1, 0));
+  }
+  return g;
+}
 /* ---------- fx meshes ---------- */
 export function arrowMesh() {
   const g = new THREE.Group();

@@ -84,7 +84,7 @@ function saveBests() { try { localStorage.tf_bests = JSON.stringify(BESTS); } ca
 function mapUnlocked(def) { const r = def.unlockAfter; return !r || (BESTS[r.map] || 0) >= r.nights; }
 const BOSS_DEFS = {
   warlord:   { name: 'THE OGRE WARLORD', kind: 'warlord', hp: 55, speed: .55, dmg: 6, rate: 2.2 },
-  brood:     { name: 'THE BROODMOTHER', kind: 'brood', hp: 45, speed: 1.05, dmg: 3, rate: 1.6, fly: true, brood: 7 },
+  brood:     { name: 'THE BROODMOTHER', kind: 'brood', hp: 45, speed: 1.05, dmg: 3, rate: 1.6, fly: true, brood: 5, broodType: 'bat' },
   skeleking: { name: 'THE SKELETON KING', kind: 'skeleking', hp: 60, speed: .6, dmg: 4, rate: 2, brood: 6, broodType: 'skeleton' },
   landship:  { name: 'THE LANDSHIP', kind: 'landship', hp: 70, speed: .5, dmg: 7, rate: 2.1 },
   acewing:   { name: 'THE ACE WING', kind: 'acewing', hp: 50, speed: 1.1, dmg: 3, rate: 1.5, fly: true, brood: 8 },
@@ -279,6 +279,7 @@ const MAPS = {
       C: [[25, -11], [24.7, -3], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
     terrain: { sx: 1, sz: 1, sc: 1.6, pond: false },
+    castleStyle: 'bone',
     sub: { slime: 'skeleton' }, // the dead walk these hills
     boss: BOSS_DEFS.skeleking, bosses: [BOSS_DEFS.skeleking, BOSS_DEFS.warlord],
     slots: [
@@ -336,7 +337,7 @@ const MAPS = {
   },
   ironfront: {
     id: 'ironfront', name: 'Ironfront', unlockAfter: { map: 'deephollow', nights: 10 },
-    saboteur: true, skin: 'ww2', camZoom: 1.05,
+    saboteur: true, skin: 'ww2', castleStyle: 'bunker', camZoom: 1.05,
     terrain: { sx: 1, sz: 1, sc: 1.9, pond: false },
     laneIds: ['A', 'B', 'C', 'D'],
     boss: BOSS_DEFS.landship, bosses: [BOSS_DEFS.landship, BOSS_DEFS.acewing],
@@ -381,6 +382,7 @@ const MAPS = {
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'moon' },
+    castleStyle: 'crystal',
     sub: { slime: 'moonling' },
     boss: BOSS_DEFS.starspawn, bosses: [BOSS_DEFS.starspawn, BOSS_DEFS.tyrantking],
     slots: [
@@ -444,6 +446,7 @@ const MAPS = {
       C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'abyss' },
+    castleStyle: 'coral',
     sub: { slime: 'crab', wasp: 'jelly' },
     boss: BOSS_DEFS.maw, bosses: [BOSS_DEFS.maw, BOSS_DEFS.jellyqueen],
     slots: [
@@ -498,7 +501,7 @@ const MAPS = {
   },
   frostmaw: {
     id: 'frostmaw', name: 'Frostmaw', unlockAfter: { map: 'abyss', nights: 14 },
-    camZoom: 1.05, coldSnap: true,
+    camZoom: 1.05, coldSnap: true, castleStyle: 'ice', merchant: true,
     bounds: { u: [-12, 62], v: [-12, 62] },
     laneIds: ['A', 'B', 'C'],
     lanePts: {
@@ -566,6 +569,7 @@ const MAPS = {
       C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'jungle' },
+    castleStyle: 'vine', merchant: true,
     sub: { runner: 'panther' },
     boss: BOSS_DEFS.vinehorror, bosses: [BOSS_DEFS.vinehorror, BOSS_DEFS.warlord],
     slots: [
@@ -626,6 +630,7 @@ const MAPS = {
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'ash' },
+    castleStyle: 'magma', merchant: true,
     sub: { slime: 'cinderling' },
     boss: BOSS_DEFS.magmalord, bosses: [BOSS_DEFS.magmalord, BOSS_DEFS.tyrantking],
     slots: [
@@ -691,6 +696,7 @@ const MAPS = {
       C: [[25, 59], [25.3, 52], [24.8, 44], [25.2, 37], [25, 32.5], [25, 28.8]],
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: true, pal: 'dune' },
+    castleStyle: 'dune', merchant: true,
     sub: { slime: 'scarab' },
     boss: BOSS_DEFS.wyrm, bosses: [BOSS_DEFS.wyrm, BOSS_DEFS.warlord],
     slots: [
@@ -750,6 +756,7 @@ const MAPS = {
       C: [[25, -9], [24.7, -2], [25.2, 5], [24.8, 11], [25, 17], [25, 21.6]],
     },
     terrain: { sx: 1, sz: 1, sc: 1.5, pond: false, pal: 'sky' },
+    castleStyle: 'crystal', merchant: true,
     sub: { wasp: 'sprite' },
     boss: BOSS_DEFS.roc, bosses: [BOSS_DEFS.roc, BOSS_DEFS.starspawn],
     slots: [
@@ -816,18 +823,26 @@ function blockedBy(u, v) { // stone and timber stop a horse; crops and open gate
   for (const sl of SLOTS) {
     const b = S.builds[sl.id];
     if (!b || b.type === 'wall' || b.type === 'field') continue;
-    if (Math.hypot(u - sl.u, v - sl.v) < 1.5) return true;
+    if (Math.hypot(u - sl.u, v - sl.v) < 1.35) return true;
   }
   return false;
 }
 const passable = (u, v) => onLand(u, v) && !blockedBy(u, v);
-function slideMove(o, nx, nz) { // clamp to map bounds, then slide along coast and walls
+function slideMove(o, nx, nz) { // clamp to map bounds, then glide around whatever is in the way
   const bu = (MAP.bounds || {}).u || [1.5, 48.5], bv = (MAP.bounds || {}).v || [1.5, 48.5];
   nx = Math.max(bu[0], Math.min(bu[1], nx)); nz = Math.max(bv[0], Math.min(bv[1], nz));
   if (!passable(o.u, o.v)) { if (onLand(nx, nz)) { o.u = nx; o.v = nz; } return; } // trapped inside? any road out is legal
   if (passable(nx, nz)) { o.u = nx; o.v = nz; return; }
   if (passable(nx, o.v)) { o.u = nx; return; }
-  if (passable(o.u, nz)) o.v = nz;
+  if (passable(o.u, nz)) { o.v = nz; return; }
+  /* head-on against something round: curve along its tangent instead of grinding to a halt */
+  const step = Math.hypot(nx - o.u, nz - o.v);
+  if (step < 1e-6) return;
+  const ang = Math.atan2(nz - o.v, nx - o.u);
+  for (const rot of [.7, -.7, 1.2, -1.2]) {
+    const mu = o.u + Math.cos(ang + rot) * step, mv = o.v + Math.sin(ang + rot) * step;
+    if (mu >= bu[0] && mu <= bu[1] && mv >= bv[0] && mv <= bv[1] && passable(mu, mv)) { o.u = mu; o.v = mv; return; }
+  }
 }
 
 function loadMap(id) {
@@ -842,6 +857,7 @@ function loadMap(id) {
   ART.buildTerrain(mapGroup, def.laneIds.map(l => def.lanePts[l]), def.terrain);
   def.decor();
   castle = place(ART.castleArt(), 25, 24);
+  if (def.castleStyle) castle.add(ART.castleDress(def.castleStyle));
   for (const p of castle.userData.torches) addTorch(p.clone().add(castle.position));
   for (const lid of def.laneIds) place(ART.spawnFlagArt(), LANES[lid].start[0], LANES[lid].start[1]);
   SLOTS = def.slots.map(s => ({ ...s }));
@@ -870,7 +886,7 @@ function loadMap(id) {
 
 /* ============================== game state (exact ECS numbers) ============================== */
 const S = { view: 'menu', phaseName: 'day', day: 1, gold: 8, castleHP: 15, castleMax: 15, castleLvl: 1,
-  builds: {}, settings: { dmg: true, ranges: true, shake: true, music: true, sound: true, tilt: true }, stance: 'hold' };
+  builds: {}, settings: { dmg: true, ranges: true, shake: true, music: true, sound: true, tilt: true, mini: true }, stance: 'hold' };
 try { Object.assign(S.settings, JSON.parse(localStorage.tf_set || '{}')); } catch { /* fresh device */ }
 function saveSet() { try { localStorage.tf_set = JSON.stringify(S.settings); } catch { /* private mode */ } }
 AUDIO.setEnabled(S.settings.music, S.settings.sound);
@@ -886,14 +902,60 @@ const BTYPES = {
   range:    { name: 'Archery Range',   cost: 4, icon: '🏹', desc: 'Trains 3 archers' },
   wall:     { name: 'Palisade Wall',   cost: 2, icon: '🧱', desc: 'Blocks a road — the horde must break it' },
 };
+/* ---- achievements: medals on the wall, and a secret at the end of them ---- */
+const ACHS = {
+  first:   { n: 'First Dawn',      d: 'Survive your first night' },
+  n5:      { n: 'Boss Slayer',     d: 'Survive night 5' },
+  n10:     { n: 'Saga Written',    d: 'Survive ten nights in one realm' },
+  n15:     { n: 'Legend',          d: 'Survive fifteen nights in one realm' },
+  boss:    { n: 'Giantsbane',      d: 'Slay a boss' },
+  serpent: { n: 'Deepslayer',      d: 'Slay the Leviathan itself' },
+  maps3:   { n: 'Wayfarer',        d: 'Unlock three realms' },
+  crowns50:{ n: 'Royal Treasury',  d: 'Bank 50 crowns in total' },
+  raze0:   { n: 'Not One Stone',   d: 'Survive night 6+ with no building razed' },
+};
+let ACH = {};
+try { ACH = JSON.parse(localStorage.tf_ach || '{}'); } catch { /* fresh device */ }
+function achCount() { return Object.keys(ACHS).filter(k => ACH[k]).length; }
+function award(id) {
+  if (ACH[id] || !ACHS[id]) return;
+  ACH[id] = 1;
+  try { localStorage.tf_ach = JSON.stringify(ACH); } catch { /* private */ }
+  flashBanner('🏅 ' + ACHS[id].n.toUpperCase());
+  sfx.upgrade();
+  if (achCount() >= 6 && !ACH.golem) {
+    ACH.golem = 1;
+    try { localStorage.tf_ach = JSON.stringify(ACH); } catch { /* private */ }
+    setTimeout(() => flashBanner('SECRET — A STONE GOLEM ANSWERS YOUR BANNERS'), 2600);
+  }
+  refreshAch();
+}
+function refreshAch() {
+  const el = $('#achGrid');
+  if (!el) return;
+  $('#achNum').textContent = achCount() + '/' + Object.keys(ACHS).length;
+  el.innerHTML = Object.entries(ACHS).map(([k, a]) =>
+    '<div class="medal' + (ACH[k] ? ' won' : '') + '"><div class="mIc">' + (ACH[k] ? '🏅' : '🔒') + '</div>' +
+    '<b>' + a.n + '</b><span>' + a.d + '</span></div>').join('') +
+    '<div class="medal' + (ACH.golem ? ' won' : '') + '"><div class="mIc">' + (ACH.golem ? '🗿' : '❓') + '</div>' +
+    '<b>' + (ACH.golem ? 'The Golem' : '???') + '</b><span>' + (ACH.golem ? 'It fights beside your soldiers now' : 'Earn six medals…') + '</span></div>';
+}
+
 /* ---- the armory: crowns earned each night survived buy permanent unlocks ---- */
 const META = { crowns: 0, owned: {} };
 try { Object.assign(META, JSON.parse(localStorage.tf_meta || '{}')); } catch { /* fresh device */ }
 function saveMeta() { try { localStorage.tf_meta = JSON.stringify(META); } catch { /* private mode */ } }
 const ARMORY = {
-  frost: { cost: 10 }, seal: { cost: 12 }, beacons: { cost: 6 }, pockets: { cost: 6 }, bastion: { cost: 8 }, arcana: { cost: 8 },
+  frost: { cost: 15 }, seal: { cost: 18 }, beacons: { cost: 9 }, pockets: { cost: 9 }, bastion: { cost: 12 }, arcana: { cost: 12 },
 };
-function earnCrowns(n) { META.crowns += n; saveMeta(); refreshArmory(); }
+let CROWN_TOTAL = 0;
+try { CROWN_TOTAL = +localStorage.tf_ctotal || 0; } catch { /* ok */ }
+function earnCrowns(n) {
+  META.crowns += n; CROWN_TOTAL += n;
+  try { localStorage.tf_ctotal = CROWN_TOTAL; } catch { /* ok */ }
+  saveMeta(); refreshArmory();
+  if (CROWN_TOTAL >= 50) award('crowns50');
+}
 function refreshArmory() {
   $('#crownNum').textContent = META.crowns;
   $('#armCrowns').textContent = META.crowns;
@@ -1029,7 +1091,7 @@ const ETYPES = {
   wasp:    { hp: 2,  speed: 2.6, dmg: 1, rate: 1.1, fly: true },
   runner:  { hp: 1,  speed: 3.4, dmg: 1, rate: 1.2 },
   spitter: { hp: 3,  speed: 1.1, dmg: 1, rate: 2.0, ranged: 6 },
-  ogre:    { hp: 18, speed: .7,  dmg: 3, rate: 1.8 },
+  ogre:    { hp: 18, speed: .7,  dmg: 3, rate: 1.8, ranged: 5 },  // hurls boulders at the keep
   shade:   { hp: 4,  speed: 2.2, dmg: 2, rate: 1.3, fly: true },  // drifts over walls and soldiers alike
   chief:   { hp: 12, speed: .9,  dmg: 2, rate: 1.6, buff: 5 },    // drives nearby monsters onward
   skeleton:{ hp: 3,  speed: 1.7, dmg: 1, rate: 1.2 },             // the dead of the deep hollows
@@ -1044,6 +1106,8 @@ const ETYPES = {
   cinderling:{ hp: 3, speed: 1.7, dmg: 1, rate: 1.3 },
   scarab:  { hp: 4,  speed: 1.5, dmg: 1, rate: 1.4 },
   sprite:  { hp: 2,  speed: 2.8, dmg: 1, rate: 1.1, fly: true },
+  wolfrider:{ hp: 5, speed: 3.2, dmg: 2, rate: 1.1 },             // goblin cavalry, fast as a fright
+  bat:     { hp: 1,  speed: 3.4, dmg: 1, rate: 1, fly: true },    // the Broodmother's true children
 };
 /* endless campaign: nights 1–3 are authored, then the horde scales forever.
    Enemies rotate across every road the map has. */
@@ -1055,7 +1119,7 @@ function nightPlan(n) {
   /* a share of the light troops break for the farms instead of the keep */
   const done = () => {
     if (MAP.mini && n >= 4) { p(MAP.mini); if (n >= 8) p(MAP.mini); }
-    if (n >= 2) q.forEach(s => { if ((s.type === 'slime' || s.type === 'runner') && Math.random() < .32) s.raid = true; });
+    if (n >= 2) q.forEach(s => { if ((s.type === 'slime' || s.type === 'runner' || s.type === 'wolfrider') && Math.random() < .45) s.raid = true; });
     return q;
   };
   if (n === 1) { for (let i = 0; i < 10; i++) q.push({ type: 'slime', lane: ids[0] }); return q; }
@@ -1074,12 +1138,14 @@ function nightPlan(n) {
   }
   const slimes = Math.min(40, 8 + Math.round(2.4 * n)), barrels = Math.min(24, n + 2),
     wasps = Math.min(20, n) + xw, runners = Math.min(22, Math.round((n - 3) * 2.5)),
+    wolfriders = n >= 3 ? Math.min(12, n) : 0,
     spitters = Math.min(12, n - 4), ogres = n % 3 === 0 ? Math.min(8, Math.floor(n / 3) + 1) : 0,
     shades = n >= 8 ? Math.min(12, n - 6) : 0,
     chiefs = n >= 10 && n % 2 === 0 ? Math.min(4, Math.floor((n - 8) / 2)) : 0;
   for (let i = 0; i < slimes; i++) p('slime');
   for (let i = 0; i < barrels; i++) p('barrel');
   for (let i = 0; i < runners; i++) p('runner');
+  for (let i = 0; i < wolfriders; i++) p('wolfrider');
   for (let i = 0; i < wasps; i++) p('wasp');
   for (let i = 0; i < spitters; i++) p('spitter');
   for (let i = 0; i < shades; i++) p('shade');
@@ -1291,6 +1357,19 @@ function updateKing(dt) {
   const moving = im > 0;
   if (Math.abs(K.vx) > .15 || Math.abs(K.vz) > .15)
     slideMove(K, K.u + K.vx * dt, K.v + K.vz * dt);
+  /* guardian angel: no snag may pin the king for more than a heartbeat */
+  if (moving) {
+    if (Math.hypot(K.u - (K._lu ?? K.u), K.v - (K._lv ?? K.v)) < .01) {
+      K._pin = (K._pin || 0) + dt;
+      if (K._pin > 1.2) {
+        K._pin = 0;
+        const hu = K.u + ax * 1.7, hv = K.v + az * 1.7;
+        if (onLand(hu, hv)) { K.u = hu; K.v = hv; }        // hop past it (escape rule frees him after)
+        else if (onLand(K.u - ax * 1.4, K.v - az * 1.4)) { K.u -= ax * 1.4; K.v -= az * 1.4; }
+      }
+    } else K._pin = 0;
+  } else K._pin = 0;
+  K._lu = K.u; K._lv = K.v;
   if (moving) K.face = Math.atan2(ax, az);
   if (K.ring) K.ring.visible = S.phaseName === 'night' && S.stance === 'follow';
   if (S.phaseName === 'day') K.hp = Math.min(K.max, K.hp + 2.5 * dt);
@@ -1563,6 +1642,11 @@ function startNight() {
   if (hasPerk('beacons')) N.towers.forEach(t => { t.spec = { ...t.spec, range: t.spec.range * 1.15 }; });
   N.towers.push({ u: 25, v: 24, z: 9.5, cd: .8, castle: true,
     spec: { range: 11, rate: S.castleLvl >= 4 ? .5 : S.castleLvl >= 3 ? .7 : 1.1, dmg: S.castleLvl >= 4 ? 4 : S.castleLvl >= 2 ? 3 : 2 } });
+  if (ACH.golem) spawnUnit(25 + 2.5, 28.8, 'golem', 0); // the stone friend keeps its vigil
+  if (S._mercs) { for (let i = 0; i < S._mercs; i++) spawnUnit(23 + i * 1.4, 30.5, 'knight', 2); S._mercs = 0; }
+  N.trapsLeft = S._traps || 0; S._traps = 0;
+  if (S._powder) { N.towers.forEach(t => t.spec = { ...t.spec, dmg: t.spec.dmg + 1 }); S._powder = false; }
+  N.bellSlow = S._bell ? .88 : 1; S._bell = false;
   N.serpentAt = (MAP.serpent && S.serpent && !S.serpent.slain && S.day >= 4) ? 8 + Math.random() * 10 : 0;
   N.serp = null;
   N.sabAt = (MAP.saboteur && S.day >= 3 && N.bldgs.length) ? 10 + Math.random() * 14 : 0;
@@ -1584,15 +1668,18 @@ function startNight() {
   S.stance = 'hold';
   $$('.tchip').forEach(x => x.classList.toggle('on', x.dataset.stance === 'hold'));
   sfx.night();
+  cine('NIGHT ' + S.day);
   setPhase('night');
 }
 function spawnUnit(u, v, kind) {
-  const specs = { knight: { range: 1.9, rate: .7, dmg: 1, hp: 7 }, berserk: { range: 1.9, rate: .8, dmg: 2, hp: 5 },
-    longbow: { range: 13, rate: 1.15, dmg: 1, hp: 3 }, fire: { range: 9, rate: 1.2, dmg: 1, splash: 1.7, hp: 3 } };
+  const specs = { knight: { range: 1.9, rate: .7, dmg: 1, hp: 5 }, berserk: { range: 1.9, rate: .8, dmg: 2, hp: 4 },
+    longbow: { range: 13, rate: 1.15, dmg: 1, hp: 2 }, fire: { range: 9, rate: 1.2, dmg: 1, splash: 1.7, hp: 2 },
+    golem: { range: 2.2, rate: 1.4, dmg: 4, hp: 30 } };
   const sp = { ...specs[kind] };
   if (hasPerk('discipline')) { sp.hp += 2; sp.rate *= .85; }
   sp.hp += arguments[3] || 0; // veteran bonus
-  const mesh = kind === 'knight' || kind === 'berserk' ? ART.knightArt(kind) : ART.archerArt(kind);
+  const mesh = kind === 'golem' ? ART.golemArt()
+    : kind === 'knight' || kind === 'berserk' ? ART.knightArt(kind, MAP.skin) : ART.archerArt(kind, MAP.skin);
   mesh.position.set(u, 0, v); mesh.rotation.y = Math.random() * 6; scene.add(mesh);
   const ring = ART.ringMesh(.55, '#F0B429', .75); // lights up while this soldier rides with the king
   ring.position.y = .06; ring.visible = false; mesh.add(ring);
@@ -1616,10 +1703,11 @@ function hurtUnit(un, dmg) {
     if (!N._lost) { N._lost = true; flashBanner('A SOLDIER HAS FALLEN — MORE MUSTER AT DAWN'); }
   }
 }
+const BOSS_HP_MULT = 1.7; // a boss night should be an event, not a speed bump
 function spawnEnemy(spec) {
   const isBoss = spec.type === 'boss';
   const type = (!isBoss && MAP.sub && MAP.sub[spec.type]) || spec.type;
-  const T = isBoss ? MAP.boss : ETYPES[type];
+  const T = isBoss ? { ...MAP.boss, hp: Math.round(MAP.boss.hp * BOSS_HP_MULT) } : ETYPES[type];
   const lane = LANES[spec.lane];
   const mesh = isBoss ? ART.bossArt(MAP.boss.kind) : ART.enemyArt(type, MAP.skin);
   scene.add(mesh);
@@ -1628,9 +1716,10 @@ function spawnEnemy(spec) {
     speed: T.speed, dmg: T.dmg, rate: T.rate, ranged: T.ranged || 0,
     atkCd: .8, fly: T.fly, mesh, dead: false, ph: Math.random() * 9, hpEl: null, kCd: .5, uCd: .7, pop: 1, flinch: 0,
     boss: isBoss, brood: isBoss ? (T.brood || 0) : 0, broodT: 4, broodType: T.broodType || 'wasp' };
+  if (N.trapsLeft > 0 && !isBoss && !spec.raid) { N.trapsLeft--; e.trapAt = e.lane.total * (.35 + Math.random() * .25); }
   if (spec.raid && !isBoss) { // a raider veers off the road toward gold on its own flank
     const st = LANES[spec.lane].start;
-    const targets = N.bldgs.filter(g => !g.dead && INCOME_T.has(g.type))
+    const targets = N.bldgs.filter(g => !g.dead && (INCOME_T.has(g.type) || S.day >= 6))
       .sort((a, b) => Math.hypot(a.u - st[0], a.v - st[1]) - Math.hypot(b.u - st[0], b.v - st[1]));
     if (targets.length) {
       const g = targets[Math.floor(Math.random() * Math.min(3, targets.length))];
@@ -1680,6 +1769,7 @@ function hurtBldg(g, dmg) {
     poof(g.u, 1, g.v, true);
     sfx.castleHit();
     delete S.builds[g.id]; // razed — the plot must be bought again
+    N._anyRazed = true;
     renderBuild(g.sl); g.sl.holder.clear();
     if (g.hpEl) { ehpPool.release(g.hpEl); g.hpEl = null; }
     if (g.type === 'tower') {
@@ -1719,10 +1809,15 @@ function spawnSerpent() {
   mesh.lookAt(25, -8.5, 24);
   scene.add(mesh);
   const e = { type: 'serpent', serpent: true, laneId: 'S', lane: { at: () => ({ u: SERP.u, v: SERP.v }), total: 0 },
-    d: 0, hp: S.serpent.hp, max: S.serpent.max, speed: 0, dmg: 2, rate: 2.6, ranged: 8,
+    d: 0, hp: S.serpent.hp, max: S.serpent.max, speed: 0, dmg: 3, rate: 2.1, ranged: 8,
     atkCd: 3, fly: false, mesh, dead: false, ph: 0, hpEl: null, kCd: .5, uCd: .7, pop: 0, flinch: 0,
-    boss: false, brood: 0, rise: 0, leaveAt: N.t + 26 };
+    boss: false, brood: 0, rise: 0, leaveAt: N.t + 40 };
   N.enemies.push(e); // NOTE: not part of the wave count — a visitation, not an invader
+  for (let i = 0; i < 3; i++) { // it does not come alone: the deep answers
+    N.total++;
+    spawnEnemy({ type: i % 2 ? 'jelly' : 'crab', lane: MAP.laneIds[Math.floor(Math.random() * MAP.laneIds.length)] });
+  }
+  $('#remainNum').textContent = N.total - N.killed;
   $('#serpWrap').style.display = 'block';
   $('#serpFill').style.width = (100 * e.hp / e.max) + '%';
   flashBanner('THE LEVIATHAN RISES FROM THE DEEP');
@@ -1761,6 +1856,16 @@ function hurt(e, dmg) {
     dmgNum(SERP.u, 5, SERP.v, dmg);
     sfx.hit();
     $('#serpFill').style.width = Math.max(0, 100 * e.hp / e.max) + '%';
+    if (!e.leaving && e.hp > 0 && e.hp < e.max * .35 && !S.serpent._dove) {
+      S.serpent._dove = true;
+      e.leaving = true;
+      $('#serpWrap').style.display = 'none';
+      S.serpent.hp = Math.min(Math.round(e.max * .55), e.hp + 30); // it licks its wounds below
+      N.serpentAt = N.t + 18; N.serp = null; // and it WILL be back tonight
+      flashBanner('THE LEVIATHAN PLUNGES — IT WILL RETURN');
+      sfx.roar();
+      return;
+    }
     if (e.hp <= 0) {
       e.dead = true;
       S.serpent.hp = 0; S.serpent.slain = true;
@@ -1769,6 +1874,7 @@ function hurt(e, dmg) {
       sfx.kill(true);
       dropCoins(38.5, 43.5, 12); // its hoard washes ashore
       earnCrowns(5);
+      award('serpent');
       fxAdd({ kind: 'die', mesh: e.mesh, t: 0, dur: .5 });
       flashBanner('THE LEVIATHAN IS SLAIN — ITS HOARD WASHES ASHORE');
     }
@@ -1777,7 +1883,14 @@ function hurt(e, dmg) {
   e.hp -= dmg;
   const p = epos(e);
   dmgNum(p.u, e.fly ? 2.6 : 1.4, p.v, dmg);
-  if (e.boss) $('#bossFill').style.width = Math.max(0, 100 * e.hp / e.max) + '%';
+  if (e.boss) {
+    $('#bossFill').style.width = Math.max(0, 100 * e.hp / e.max) + '%';
+    if (!e.enraged && e.hp < e.max * .4) { // wounded, it stops playing
+      e.enraged = true; e.rate *= .68; e.speed *= 1.35;
+      flashBanner(MAP.boss.name + ' RAGES'); sfx.roar();
+      if (S.settings.shake && !matchMedia('(prefers-reduced-motion: reduce)').matches) shakeT = .35;
+    }
+  }
   else {
     if (!e.hpEl) e.hpEl = ehpPool.take();
     if (e.hpEl) e.hpEl.firstChild.style.width = Math.max(0, 100 * e.hp / e.max) + '%';
@@ -1787,7 +1900,7 @@ function hurt(e, dmg) {
     const big = e.boss || e.type === 'ogre' || e.type === 'barrel';
     poof(p.u, e.fly ? 1.7 : .5, p.v, big);
     sfx.kill(big);
-    if (e.boss) { $('#bossWrap').style.display = 'none'; N.boss = null; dropCoins(p.u, p.v, 6); flashBanner(MAP.boss.name + ' IS SLAIN'); }
+    if (e.boss) { $('#bossWrap').style.display = 'none'; N.boss = null; dropCoins(p.u, p.v, 6); flashBanner(MAP.boss.name + ' IS SLAIN'); award('boss'); }
     else if (e.sab) dropCoins(p.u, p.v, 3);
     else if (e.type === 'barrel') dropCoins(p.u, p.v, 1);   // the heavies carry loot
     else if (e.type === 'ogre') dropCoins(p.u, p.v, 2);
@@ -1922,15 +2035,16 @@ function simTick(dt) {
       }
     } else if (bldg) { // siege the roadside building
       e.atkCd -= dt;
-      if (e.atkCd <= 0) { e.atkCd = e.rate; e.atkAnim = .35; hurtBldg(bldg, e.dmg); }
+      if (e.atkCd <= 0) { e.atkCd = e.rate; e.atkAnim = .35; hurtBldg(bldg, e.dmg * (e.type === 'ogre' || e.boss ? 2 : 1)); }
     } else if (e.d < stop) {
       e.uCd = .7;
-      let mult = e.slowT > 0 ? .6 : 1;
+      let mult = (e.slowT > 0 ? .6 : 1) * (N.bellSlow || 1);
       if (chiefPos && e.type !== 'chief') { // the war chief's drums quicken the march
         const pp = epos(e);
         if (chiefPos.some(c => Math.hypot(c.u - pp.u, c.v - pp.v) < 5)) mult *= 1.3;
       }
       e.d = Math.min(stop, e.d + e.speed * mult * dt);
+      if (e.trapAt && e.d >= e.trapAt) { e.trapAt = 0; poof(p0.u, .4, p0.v, true); sfx.kill(false); hurt(e, 999); }
     }
     else if (wall) {
       e.atkCd -= dt;
@@ -2051,7 +2165,7 @@ function simTick(dt) {
           hurt(e, un.dmg);
           if (un.splash) for (const o of [...N.enemies]) { const q = epos(o); if (o !== e && Math.hypot(q.u - p.u, q.v - p.v) < un.splash) hurt(o, un.dmg); }
         }, un.kind === 'fire');
-        else { hurt(e, un.dmg * (charge ? 1.3 : 1), .25); poof(p.u, .8, p.v); }
+        else { hurt(e, un.dmg * (charge ? 1.15 : 1)); poof(p.u, .8, p.v); }
       } else un.cd = .15;
     }
     if (un.hpEl) anchor(un.hpEl, un.u, 2.2, un.v);
@@ -2174,14 +2288,27 @@ function abortNight() {
 }
 function endNight(win) {
   if (!N || N.over) return;
-  N.over = true;
-  setTimeout(() => {
+  N.over = true; N._win = win;
+  N.endCd = win ? .65 : .25; // sim clock first (works under headless pumps) …
+  setTimeout(() => { // … real clock as fallback (hidden tabs, throttled timers)
+    if (N && N.endCd != null) { N.endCd = null; finishNight(); }
+  }, win ? 750 : 320);
+}
+function finishNight() {
+  const win = N._win;
+  {
     const slain = N.killed, integ = Math.round(100 * S.castleHP / S.castleMax);
     cleanupNight();
     win ? sfx.victory() : sfx.defeat();
     if (win) {
       try { const b = +localStorage.tf_best || 0; if (S.day > b) localStorage.tf_best = S.day; } catch { /* private mode */ }
       BESTS[S.map] = Math.max(BESTS[S.map] || 0, S.day); saveBests(); // mastery of THIS map unlocks the next
+      award('first');
+      if (S.day >= 5) award('n5');
+      if (S.day >= 10) award('n10');
+      if (S.day >= 15) award('n15');
+      if (S.day >= 6 && !N._anyRazed) award('raze0');
+      if (Object.values(MAPS).filter(m => mapUnlocked(m)).length >= 3) award('maps3');
       refreshMapCards();
       const dr = dawnRows(), flaw = integ === 100 ? 2 : 0;
       $('#vicSub').textContent = S.day % 5 === 0
@@ -2203,7 +2330,7 @@ function endNight(win) {
       $('#defNights').textContent = String(S.day - 1);
       $('#ovDefeat').style.display = 'grid';
     }
-  }, win ? 650 : 250);
+  }
 }
 $('#vicNext').addEventListener('click', () => {
   $('#ovVictory').style.display = 'none';
@@ -2221,9 +2348,11 @@ $('#vicNext').addEventListener('click', () => {
   }
   applyDawn(); S.day++; S.castleHP = S.castleMax;
   N = null; setPhase('day'); revealPlots(); refreshDayHUD();
+  cine('DAY ' + S.day);
   SLOTS.forEach(sl => { const b = S.builds[sl.id]; if (b && b.type === 'wall') sl.holder.scale.y = 1; }); // masons repair overnight
   for (const [u, v, val] of drops) dropCoins(u, v, val);
   flashHint('Dawn taxes lie in the streets — ride and collect, then build');
+  if (MAP.merchant && S.day > 2 && S.day % 3 === 0) setTimeout(openMerchant, 1400);
   if (S.day === 11 && !S._saga) { // ten nights weathered — the saga milestone
     S._saga = true;
     $('#clrTitle').textContent = 'THE SAGA OF ' + MAP.name.toUpperCase();
@@ -2248,7 +2377,7 @@ function resetRun() {
   groundCoins.forEach(c => c.m.visible = false); groundCoins.length = 0;
   S.day = 1; S.gold = 8 + (hasPerk('pockets') ? 4 : 0); S.builds = {};
   S.castleLvl = 1; S.castleMax = 15 + (hasPerk('masonry') ? 8 : 0); S.castleHP = S.castleMax;
-  S.serpent = MAP.serpent ? { hp: 80, max: 80, slain: false } : null;
+  S.serpent = MAP.serpent ? { hp: 140, max: 140, slain: false } : null;
   S._saga = false;
   castleTrims.forEach(t => castle.remove(t)); castleTrims.length = 0;
   SLOTS.forEach(sl => { sl.hidden = sl.type === 'field' || !!sl.unlockDay; renderBuild(sl); });
@@ -2293,7 +2422,7 @@ $$('.mcard').forEach(c => c.addEventListener('click', () => {
 $$('.pchip').forEach(c => c.addEventListener('click', () => togglePerk(c.dataset.p)));
 $$('.pchip').forEach(c => c.classList.toggle('on', perkSet.has(c.dataset.p)));
 $('#beginNight').addEventListener('click', startNight);
-function anyOverlay() { return ['ovVictory', 'ovDefeat', 'ovCleared', 'ovPause', 'ovSettings', 'ovArmory'].some(id => $('#' + id).style.display === 'grid'); }
+function anyOverlay() { return ['ovVictory', 'ovDefeat', 'ovCleared', 'ovPause', 'ovSettings', 'ovArmory', 'ovAch', 'ovMerchant'].some(id => $('#' + id).style.display === 'grid'); }
 $('#pauseBtn').addEventListener('click', () => { $('#ovPause').style.display = 'grid'; });
 $('#pauseResume').addEventListener('click', () => { $('#ovPause').style.display = 'none'; });
 $('#pauseRestart').addEventListener('click', () => {
@@ -2311,11 +2440,12 @@ function bindSet(id, key) { $(id).addEventListener('change', e => {
   if (key === 'tilt') $('#tilt').style.display = e.target.checked ? '' : 'none';
 }); }
 bindSet('#setDmg', 'dmg'); bindSet('#setRanges', 'ranges'); bindSet('#setShake', 'shake');
-bindSet('#setMusic', 'music'); bindSet('#setSound', 'sound'); bindSet('#setTilt', 'tilt');
+bindSet('#setMusic', 'music'); bindSet('#setSound', 'sound'); bindSet('#setTilt', 'tilt'); bindSet('#setMini', 'mini');
 function syncSetUI() {
   $('#setDmg').checked = S.settings.dmg; $('#setRanges').checked = S.settings.ranges;
   $('#setShake').checked = S.settings.shake; $('#setMusic').checked = S.settings.music;
   $('#setSound').checked = S.settings.sound; $('#setTilt').checked = S.settings.tilt;
+  $('#setMini').checked = S.settings.mini;
   $('#tilt').style.display = S.settings.tilt ? '' : 'none';
 }
 syncSetUI();
@@ -2401,6 +2531,81 @@ function updateFloaters() {
   $('#kingFill').style.width = (100 * K.hp / K.max) + '%';
 }
 
+/* ============================== minimap ============================== */
+const miniC = $('#mini'), miniX = miniC.getContext('2d');
+let miniTick = 0;
+function drawMini() {
+  if (!S.settings.mini || S.view !== 'game') { miniC.style.display = 'none'; return; }
+  miniC.style.display = 'block';
+  if (miniTick++ % 6) return; // ~10 fps is plenty for a map
+  const t = MAP.terrain || {}, sx = t.sx || 1, sz = t.sz || 1, sc = t.sc || 1;
+  const bu = (MAP.bounds || {}).u || [0, 50], bv = (MAP.bounds || {}).v || [0, 50];
+  const span = Math.max(bu[1] - bu[0], bv[1] - bv[0]) + 6;
+  const px = (u, v) => [(u - 25) / span * 168 + 88, (v - 25) / span * 168 + 88];
+  const X = miniX;
+  X.clearRect(0, 0, 176, 176);
+  /* the island silhouette from the same coast formula */
+  X.beginPath();
+  for (let i = 0; i <= 72; i++) {
+    const th = i / 72 * Math.PI * 2, c = Math.cos(th), s2 = Math.sin(th);
+    const base = 24 / Math.pow(Math.max(Math.abs(c), Math.abs(s2)), 0.72);
+    const wob = Math.sin(th * 3 + 1.7) * 1.1 + Math.sin(th * 5 + .4) * .7 + Math.sin(th * 8 + 2.9) * .45;
+    const r = (base + wob) * sc;
+    const [mx, my] = px(25 + r * c * sx, 25 + r * s2 * sz);
+    i ? X.lineTo(mx, my) : X.moveTo(mx, my);
+  }
+  X.closePath();
+  X.fillStyle = 'rgba(120,140,110,.35)'; X.fill();
+  /* roads */
+  X.strokeStyle = 'rgba(229,201,143,.55)'; X.lineWidth = 2;
+  for (const lid of MAP.laneIds) {
+    const pts = MAP.lanePts[lid];
+    X.beginPath();
+    pts.forEach(([u, v], i) => { const [mx, my] = px(u, v); i ? X.lineTo(mx, my) : X.moveTo(mx, my); });
+    X.stroke();
+  }
+  /* buildings and walls */
+  for (const sl of SLOTS) {
+    const b = S.builds[sl.id]; if (!b) continue;
+    const [mx, my] = px(sl.u, sl.v);
+    X.fillStyle = b.type === 'wall' ? '#C9D2DE' : INCOME_T.has(b.type) ? '#F0B429' : '#B8C4E8';
+    X.fillRect(mx - 1.5, my - 1.5, 3, 3);
+  }
+  /* the keep */
+  { const [mx, my] = px(25, 24); X.fillStyle = '#F6C95C'; X.beginPath(); X.moveTo(mx, my - 4); X.lineTo(mx + 3.5, my); X.lineTo(mx, my + 4); X.lineTo(mx - 3.5, my); X.closePath(); X.fill(); }
+  /* coins worth riding for */
+  X.fillStyle = '#FFD97A';
+  for (const c of groundCoins) { const [mx, my] = px(c.x, c.z); X.fillRect(mx - 1, my - 1, 2, 2); }
+  if (N) {
+    /* soldiers */
+    X.fillStyle = '#8FD8F0';
+    for (const un of N.units) { if (un.dead) continue; const [mx, my] = px(un.u, un.v); X.fillRect(mx - 1, my - 1, 2, 2); }
+    /* the horde */
+    for (const e of N.enemies) {
+      if (e.dead) continue;
+      const p = epos(e), [mx, my] = px(p.u, p.v);
+      X.fillStyle = e.serpent ? '#7BE0C8' : e.boss ? '#FF6A3D' : '#E64A53';
+      const r2 = e.boss || e.serpent ? 3 : 1.6;
+      X.beginPath(); X.arc(mx, my, r2, 0, 7); X.fill();
+    }
+  }
+  /* the rider */
+  if (!(K.down > 0)) {
+    const [mx, my] = px(K.u, K.v);
+    X.fillStyle = '#FFE9A6'; X.beginPath(); X.arc(mx, my, 2.6, 0, 7); X.fill();
+    X.strokeStyle = 'rgba(255,233,166,.6)'; X.lineWidth = 1; X.beginPath(); X.arc(mx, my, 4.5, 0, 7); X.stroke();
+  }
+}
+
+/* cinematic title card */
+function cine(txt) {
+  const c = $('#cine');
+  c.textContent = txt;
+  c.classList.remove('show');
+  void c.offsetWidth;
+  c.classList.add('show');
+}
+
 /* ============================== camera ============================== */
 const CAMOFF = new THREE.Vector3(17.5, 36, 17.5);
 const camTarget = new THREE.Vector3(25, 0, 27);
@@ -2433,6 +2638,10 @@ function step(dt) {
   perf += dt;
   if (S.view === 'game') updateKing(dt);
   if (N && !N.over) simTick(dt);
+  if (N && N.over && N.endCd != null) {
+    N.endCd -= dt;
+    if (N.endCd <= 0) { N.endCd = null; finishNight(); }
+  }
   updateFx(dt);
   updateGroundCoins(dt);
   for (const sl of SLOTS) if (sl.pop > 0) { // elastic build pop
@@ -2455,11 +2664,108 @@ function frame(now) {
   updateCamera(dt);
   applyPhase();
   updateFloaters();
+  drawMini();
   renderer.render(scene, camera);
 }
 requestAnimationFrame(frame);
 window.__pump = s => { for (let i = 0; i < Math.round(s * 60); i++) step(STEP); };
 window.__dbg = { S, K, keys, AUDIO, get N() { return N; }, get MAP() { return MAP; }, get coins() { return groundCoins.length; } };
+/* seal the realm into a code, carry it anywhere */
+function saveCode() {
+  const d = { v: 1, map: S.map, day: S.day, gold: S.gold, builds: S.builds, lvl: S.castleLvl,
+    max: S.castleMax, serp: S.serpent, saga: !!S._saga, char: S.char, weap: S.weapon };
+  return 'TF1.' + btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+}
+function loadCode(code) {
+  try {
+    code = String(code || '').trim();
+    if (!code.startsWith('TF1.')) return false;
+    const d = JSON.parse(decodeURIComponent(escape(atob(code.slice(4)))));
+    if (!MAPS[d.map]) return false;
+    loadMap(d.map);
+    S.day = d.day || 1; S.gold = d.gold || 8;
+    S.castleLvl = d.lvl || 1; S.castleMax = d.max || 15; S.castleHP = S.castleMax;
+    if (d.serp) S.serpent = d.serp;
+    S._saga = !!d.saga;
+    S.builds = d.builds || {};
+    for (let i = 2; i <= S.castleLvl; i++) { const tr = ART.castleTrim(i); castle.add(tr); castleTrims.push(tr); }
+    SLOTS.forEach(sl => {
+      if (S.builds[sl.id]) sl.hidden = false;
+      renderBuild(sl); sl.pop = 0; sl.holder.scale.setScalar(1);
+    });
+    setChar(d.char || 'aldric'); setWeapon(d.weap || 'spear');
+    revealPlots(true); refreshDayHUD(); setPhase('day'); setView('game');
+    flashHint('The realm remembers — day ' + S.day + ' on ' + MAP.name);
+    return true;
+  } catch { return false; }
+}
+window.saveCode = saveCode; window.loadCode = loadCode;
+$('#pauseSave').addEventListener('click', () => {
+  const code = saveCode();
+  try { navigator.clipboard.writeText(code); } catch { /* no clipboard */ }
+  prompt('Your save code (copied to clipboard) — keep it safe:', code);
+});
+$('#loadBtn').addEventListener('click', () => {
+  const code = prompt('Paste your save code:');
+  if (code && loadCode(code)) { $('#ovPause').style.display = 'none'; }
+  else if (code) { sfx.error(); alert('That code would not open.'); }
+});
+$('#achBtn').addEventListener('click', () => { refreshAch(); $('#ovAch').style.display = 'grid'; });
+$('#achClose').addEventListener('click', () => { $('#ovAch').style.display = 'none'; });
+$('#cheatGo').addEventListener('click', () => {
+  const out = window.cheat($('#cheatIn').value);
+  $('#cheatOut').textContent = out;
+  $('#cheatIn').value = '';
+});
+
+/* the wandering merchant of the far realms */
+const MERCH_POOL = [
+  { id: 'merc', ic: '⚔️', n: 'Sellsword Band', d: 'Three veteran knights fight for you tonight', c: 6 },
+  { id: 'trap', ic: '🪤', n: 'Bear Traps', d: 'The first 4 invaders down the roads are snared and slain', c: 7 },
+  { id: 'tonic', ic: '🧪', n: 'Hearth Tonic', d: 'The King gains +6 max HP for this run', c: 5 },
+  { id: 'powder', ic: '🧨', n: 'Blast Powder', d: 'Every tower strikes +1 harder tonight', c: 6 },
+  { id: 'bell', ic: '🔔', n: 'Warning Bell', d: 'Tonight the horde marches 12% slower', c: 4 },
+];
+function openMerchant() {
+  const offers = [...MERCH_POOL].sort(() => Math.random() - .5).slice(0, 3);
+  $('#merchRows').innerHTML = offers.map(o =>
+    '<div class="aitem" data-mc="' + o.id + '" data-c="' + o.c + '"><span class="ic">' + o.ic + '</span><span><span class="nm">' + o.n +
+    '</span><br><span class="ds">' + o.d + '</span></span><button>🪙 ' + o.c + '</button></div>').join('');
+  $('#ovMerchant').style.display = 'grid';
+  $$('#merchRows .aitem button').forEach(b => b.addEventListener('click', () => {
+    const el = b.closest('.aitem'), id = el.dataset.mc, c = +el.dataset.c;
+    if (S.gold < c) { sfx.error(); return; }
+    S.gold -= c; refreshDayHUD(); sfx.upgrade();
+    if (id === 'merc') S._mercs = 3;
+    if (id === 'trap') S._traps = 4;
+    if (id === 'tonic') { K.max += 6; K.hp = K.max; }
+    if (id === 'powder') S._powder = true;
+    if (id === 'bell') S._bell = true;
+    b.textContent = 'SOLD'; b.disabled = true;
+  }));
+}
+$('#merchClose').addEventListener('click', () => { $('#ovMerchant').style.display = 'none'; });
+/* the crown's testing chamber: type a word of power into the Armory */
+window.cheat = (code) => {
+  code = String(code || '').trim().toLowerCase();
+  if (code === 'gold') { S.gold += 200; refreshGold(); refreshDayHUD(); return 'gold +200'; }
+  if (code === 'crowns') { earnCrowns(100); return 'crowns +100'; }
+  if (code === 'unlock') {
+    for (const id in MAPS) BESTS[id] = 30;
+    saveBests();
+    for (const id in ARMORY) META.owned[id] = true;
+    saveMeta(); applyOwned(); refreshArmory(); refreshMapCards();
+    return 'all realms and armory unlocked';
+  }
+  if (code.startsWith('day')) {
+    const d = parseInt(code.slice(3).trim(), 10);
+    if (d > 0) { S.day = d; S.gold += d * 4; revealPlots(true); refreshDayHUD(); return 'jumped to day ' + d; }
+  }
+  if (code === 'god') { S.castleMax = 999; S.castleHP = 999; K.max = 200; K.hp = 200; return 'castle and king fortified'; }
+  if (code === 'medals') { for (const k in ACHS) award(k); return 'all medals'; }
+  if (code === 'sovereign') return 'words of power: gold · crowns · unlock · day N · god · medals';
+  return 'nothing happens';
+};
 
 /* ============================== boot & test scenarios ============================== */
 try { setChar(S.char); } catch { setChar('aldric'); }
@@ -2479,6 +2785,7 @@ $('#armClose').addEventListener('click', () => { $('#ovArmory').style.display = 
 $$('.aitem button').forEach(b => b.addEventListener('click', () => buyItem(b.closest('.aitem').dataset.a)));
 applyOwned();
 refreshArmory();
+refreshAch();
 refreshDayHUD();
 setPhase('day'); setView('menu');
 { const bs = $('#boot'); if (bs) { bs.style.opacity = '0'; setTimeout(() => bs.remove(), 700); } }
